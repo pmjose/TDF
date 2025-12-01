@@ -99,7 +99,13 @@ SELECT
     END AS DIGITAL_TWIN_STATUS
 FROM 
     TABLE(GENERATOR(ROWCOUNT => 8785)) g
-    CROSS JOIN (SELECT * FROM TDF_DATA_PLATFORM.CORE.DEPARTMENTS ORDER BY RANDOM() LIMIT 1) d
+    INNER JOIN (
+        -- Distribute sites across departments based on population (weighted)
+        SELECT 
+            d.*,
+            ROW_NUMBER() OVER (ORDER BY d.POPULATION DESC, d.DEPARTMENT_ID) as dept_rank
+        FROM TDF_DATA_PLATFORM.CORE.DEPARTMENTS d
+    ) d ON MOD(SEQ4(), 96) + 1 = d.dept_rank
 ORDER BY RANDOM();
 
 -- Calculate COLOCATION_RATE (was removed as computed column - Snowflake doesn't support GENERATED ALWAYS AS)
