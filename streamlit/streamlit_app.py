@@ -6051,6 +6051,512 @@ def page_capex_lifecycle():
         st.button("📧 Send to Teams", use_container_width=True)
     with btn_col3:
         st.button("📅 Schedule Reviews", use_container_width=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 8: Vendor Concentration + Technology Obsolescence
+    # -------------------------------------------------------------------------
+    
+    vendor_col, obsol_col = st.columns(2)
+    
+    with vendor_col:
+        st.markdown("### 🏢 Vendor Concentration & Risk")
+        
+        # Vendor data
+        vendors = [
+            {"name": "Ericsson", "share": 28, "equipment": 12850, "risk": "Low", "rating": 4.5},
+            {"name": "Nokia", "share": 24, "equipment": 11014, "risk": "Low", "rating": 4.3},
+            {"name": "Huawei", "share": 18, "equipment": 8261, "risk": "High", "rating": 4.1},
+            {"name": "Rohde & Schwarz", "share": 12, "equipment": 5507, "risk": "Low", "rating": 4.6},
+            {"name": "Kathrein", "share": 8, "equipment": 3671, "risk": "Medium", "rating": 3.9},
+            {"name": "Others", "share": 10, "equipment": 4589, "risk": "Mixed", "rating": 3.5},
+        ]
+        
+        # Pie chart
+        fig_vendor = go.Figure(data=[go.Pie(
+            labels=[v['name'] for v in vendors],
+            values=[v['share'] for v in vendors],
+            hole=0.5,
+            marker_colors=['#1a2b4a', '#3498db', '#e63946', '#27ae60', '#f39c12', '#9b59b6'],
+            textinfo='label+percent',
+            textfont_size=11,
+            hovertemplate='<b>%{label}</b><br>Share: %{percent}<br>Equipment: %{value:,}<extra></extra>'
+        )])
+        
+        fig_vendor.add_annotation(
+            text="<b>Top 3</b><br>70%",
+            x=0.5, y=0.5, font_size=14, showarrow=False
+        )
+        
+        fig_vendor.update_layout(
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=False,
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_vendor, use_container_width=True)
+        
+        # Risk indicators
+        st.markdown("#### ⚠️ Supply Chain Risks")
+        for v in vendors[:4]:
+            risk_color = '#e63946' if v['risk'] == 'High' else '#f39c12' if v['risk'] == 'Medium' else '#27ae60'
+            st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #eee;">
+                    <span style="font-weight: 500;">{v['name']}</span>
+                    <div>
+                        <span style="background: {risk_color}20; color: {risk_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-right: 0.5rem;">{v['risk']} Risk</span>
+                        <span style="color: #f39c12;">{'⭐' * int(v['rating'])}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("""
+            <div style="background: #e6394615; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem;">
+                <span style="font-weight: 600; color: #e63946;">⚠️ Alert:</span> Huawei dependency at 18% - regulatory risk in some regions
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with obsol_col:
+        st.markdown("### 📡 Technology Obsolescence Radar")
+        
+        # Obsolescence tracking
+        tech_status = [
+            {"tech": "2G/GSM", "status": "Sunset 2026", "equipment": 1245, "value": 8.2, "risk": 95},
+            {"tech": "3G/UMTS", "status": "Sunset 2028", "equipment": 3421, "value": 24.5, "risk": 75},
+            {"tech": "DVB-T (SD)", "status": "Migrating", "equipment": 892, "value": 12.3, "risk": 60},
+            {"tech": "Analog FM", "status": "Legacy", "equipment": 456, "value": 3.1, "risk": 40},
+            {"tech": "4G/LTE", "status": "Active", "equipment": 15234, "value": 156.0, "risk": 10},
+            {"tech": "5G NR", "status": "Expanding", "equipment": 8921, "value": 245.0, "risk": 5},
+        ]
+        
+        # Horizontal bar showing obsolescence risk
+        fig_obsol = go.Figure()
+        
+        fig_obsol.add_trace(go.Bar(
+            y=[t['tech'] for t in tech_status],
+            x=[t['risk'] for t in tech_status],
+            orientation='h',
+            marker_color=['#c0392b', '#e63946', '#f39c12', '#f1c40f', '#27ae60', '#2ecc71'],
+            text=[f"{t['risk']}%" for t in tech_status],
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Risk: %{x}%<br>Equipment: %{customdata[0]:,}<br>Value: €%{customdata[1]}M<extra></extra>',
+            customdata=[[t['equipment'], t['value']] for t in tech_status]
+        ))
+        
+        fig_obsol.update_layout(
+            height=250,
+            margin=dict(l=10, r=50, t=10, b=10),
+            xaxis_title="Obsolescence Risk %",
+            xaxis=dict(range=[0, 110]),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_obsol, use_container_width=True)
+        
+        # Stranded asset value
+        stranded_value = sum(t['value'] for t in tech_status if t['risk'] > 50)
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">💀 Stranded Asset Risk (3-Year)</div>
+                <div style="font-size: 2rem; font-weight: 700;">€{stranded_value:.1f}M</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">Equipment value at high obsolescence risk</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Migration timeline
+        st.markdown("#### 📅 Technology Migration Timeline")
+        migrations = [
+            {"from": "2G → Decommission", "date": "Q4 2026", "status": "Planned"},
+            {"from": "3G → 4G/5G", "date": "Q2 2028", "status": "Planning"},
+            {"from": "DVB-T → DVB-T2", "date": "Q1 2026", "status": "In Progress"},
+        ]
+        for m in migrations:
+            status_color = '#27ae60' if m['status'] == 'In Progress' else '#3498db' if m['status'] == 'Planned' else '#f39c12'
+            st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0;">
+                    <span>{m['from']}</span>
+                    <div>
+                        <span style="color: #666; font-size: 0.85rem; margin-right: 0.5rem;">{m['date']}</span>
+                        <span style="background: {status_color}20; color: {status_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{m['status']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 9: Warranty Tracker + Maintain vs Replace
+    # -------------------------------------------------------------------------
+    
+    warranty_col, decision_col = st.columns(2)
+    
+    with warranty_col:
+        st.markdown("### 📅 Warranty Expiration Tracker")
+        
+        # Warranty cliff visualization
+        warranty_data = [
+            {"period": "Expired", "count": 12456, "value": 89.2},
+            {"period": "0-6 months", "count": 3421, "value": 34.5},
+            {"period": "6-12 months", "count": 2891, "value": 28.9},
+            {"period": "12-24 months", "count": 5234, "value": 67.8},
+            {"period": "24+ months", "count": 21890, "value": 312.4},
+        ]
+        
+        fig_warranty = go.Figure()
+        
+        colors = ['#e63946', '#f39c12', '#f1c40f', '#3498db', '#27ae60']
+        
+        fig_warranty.add_trace(go.Bar(
+            x=[w['period'] for w in warranty_data],
+            y=[w['count'] for w in warranty_data],
+            marker_color=colors,
+            text=[f"{w['count']:,}" for w in warranty_data],
+            textposition='outside',
+            hovertemplate='<b>%{x}</b><br>Equipment: %{y:,}<br>Value: €%{customdata}M<extra></extra>',
+            customdata=[w['value'] for w in warranty_data]
+        ))
+        
+        fig_warranty.update_layout(
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis_title="Warranty Status",
+            yaxis_title="Equipment Count",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_warranty, use_container_width=True)
+        
+        # Warranty cliff alert
+        expiring_soon = warranty_data[1]['count'] + warranty_data[2]['count']
+        expiring_value = warranty_data[1]['value'] + warranty_data[2]['value']
+        
+        w_col1, w_col2 = st.columns(2)
+        with w_col1:
+            st.markdown(f"""
+                <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #666;">⏰ Expiring in 12 months</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #f39c12;">{expiring_soon:,}</div>
+                    <div style="font-size: 0.7rem; color: #888;">€{expiring_value:.1f}M value</div>
+                </div>
+            """, unsafe_allow_html=True)
+        with w_col2:
+            ext_warranty_cost = expiring_value * 0.08  # 8% of value for extended warranty
+            st.markdown(f"""
+                <div style="background: #3498db15; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #666;">💰 Extended Warranty Cost</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #3498db;">€{ext_warranty_cost:.1f}M</div>
+                    <div style="font-size: 0.7rem; color: #888;">~8% of asset value</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.button("📋 View Warranty Details", use_container_width=True)
+    
+    with decision_col:
+        st.markdown("### 🔧 Maintain vs Replace Decision Matrix")
+        
+        # Decision matrix
+        decision_data = [
+            {"category": "Antennas", "maint_cost": 2500, "replace_cost": 15000, "breakeven": 6, "recommendation": "Maintain"},
+            {"category": "Transmitters", "maint_cost": 8500, "replace_cost": 45000, "breakeven": 5.3, "recommendation": "Case-by-case"},
+            {"category": "Power Systems", "maint_cost": 4200, "replace_cost": 18000, "breakeven": 4.3, "recommendation": "Replace if >7y"},
+            {"category": "Cooling/HVAC", "maint_cost": 3800, "replace_cost": 12000, "breakeven": 3.2, "recommendation": "Replace if >5y"},
+            {"category": "Network Equip", "maint_cost": 1500, "replace_cost": 8000, "breakeven": 5.3, "recommendation": "Maintain"},
+        ]
+        
+        # Visual comparison
+        fig_decision = go.Figure()
+        
+        categories = [d['category'] for d in decision_data]
+        
+        fig_decision.add_trace(go.Bar(
+            name='Annual Maintenance',
+            x=categories,
+            y=[d['maint_cost'] for d in decision_data],
+            marker_color='#3498db',
+            text=[f"€{d['maint_cost']:,}" for d in decision_data],
+            textposition='outside'
+        ))
+        
+        fig_decision.add_trace(go.Bar(
+            name='Replacement Cost',
+            x=categories,
+            y=[d['replace_cost'] for d in decision_data],
+            marker_color='#e63946',
+            text=[f"€{d['replace_cost']:,}" for d in decision_data],
+            textposition='outside'
+        ))
+        
+        fig_decision.update_layout(
+            barmode='group',
+            height=220,
+            margin=dict(l=10, r=10, t=10, b=10),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02),
+            yaxis_title="Cost (EUR)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_decision, use_container_width=True)
+        
+        # Recommendations table
+        st.markdown("#### 💡 AI Recommendations")
+        for d in decision_data:
+            rec_color = '#27ae60' if 'Maintain' in d['recommendation'] else '#f39c12' if 'Case' in d['recommendation'] else '#e63946'
+            st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid #eee;">
+                    <span>{d['category']}</span>
+                    <div>
+                        <span style="font-size: 0.75rem; color: #666; margin-right: 0.5rem;">Break-even: {d['breakeven']}y</span>
+                        <span style="background: {rec_color}20; color: {rec_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{d['recommendation']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 10: Regional CAPEX Heatmap
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🗺️ Regional CAPEX Investment Distribution")
+    st.caption("Investment equity across France regions")
+    
+    # Regional CAPEX data
+    regional_capex = [
+        {"region": "Île-de-France", "budget": 12.5, "spent": 11.2, "equipment": 8956, "per_site": 45.2},
+        {"region": "Auvergne-Rhône-Alpes", "budget": 6.8, "spent": 5.9, "equipment": 5234, "per_site": 38.5},
+        {"region": "Provence-Alpes-Côte d'Azur", "budget": 5.2, "spent": 4.8, "equipment": 4123, "per_site": 41.2},
+        {"region": "Occitanie", "budget": 4.8, "spent": 4.2, "equipment": 3891, "per_site": 36.8},
+        {"region": "Nouvelle-Aquitaine", "budget": 4.5, "spent": 3.9, "equipment": 3567, "per_site": 35.2},
+        {"region": "Hauts-de-France", "budget": 3.8, "spent": 3.5, "equipment": 2891, "per_site": 33.5},
+        {"region": "Grand Est", "budget": 3.2, "spent": 2.8, "equipment": 2456, "per_site": 32.1},
+        {"region": "Pays de la Loire", "budget": 2.5, "spent": 2.2, "equipment": 1987, "per_site": 34.8},
+        {"region": "Bretagne", "budget": 2.2, "spent": 2.0, "equipment": 1756, "per_site": 33.2},
+        {"region": "Normandie", "budget": 1.8, "spent": 1.5, "equipment": 1423, "per_site": 31.5},
+    ]
+    
+    map_col, detail_col = st.columns([2, 1])
+    
+    with map_col:
+        # Bubble chart as proxy for map
+        fig_regional = go.Figure()
+        
+        # Create scatter with size based on budget
+        fig_regional.add_trace(go.Bar(
+            x=[r['region'] for r in regional_capex],
+            y=[r['budget'] for r in regional_capex],
+            name='Budget',
+            marker_color='#3498db',
+            opacity=0.4
+        ))
+        
+        fig_regional.add_trace(go.Bar(
+            x=[r['region'] for r in regional_capex],
+            y=[r['spent'] for r in regional_capex],
+            name='Spent',
+            marker_color='#1a2b4a'
+        ))
+        
+        # Add equity line (avg per site)
+        avg_per_site = sum(r['per_site'] for r in regional_capex) / len(regional_capex)
+        
+        fig_regional.update_layout(
+            barmode='overlay',
+            height=350,
+            margin=dict(l=10, r=10, t=30, b=80),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02),
+            xaxis_tickangle=-45,
+            yaxis_title="CAPEX (€M)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_regional, use_container_width=True)
+    
+    with detail_col:
+        st.markdown("#### 📊 Investment Equity Score")
+        
+        # Calculate equity metrics
+        total_budget = sum(r['budget'] for r in regional_capex)
+        utilization = sum(r['spent'] for r in regional_capex) / total_budget * 100
+        
+        # Equity gauge
+        fig_equity = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=78,
+            title={'text': "Investment Balance", 'font': {'size': 14}},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': '#27ae60'},
+                'steps': [
+                    {'range': [0, 50], 'color': '#e6394620'},
+                    {'range': [50, 75], 'color': '#f39c1220'},
+                    {'range': [75, 100], 'color': '#27ae6020'}
+                ],
+                'threshold': {
+                    'line': {'color': '#1a2b4a', 'width': 2},
+                    'thickness': 0.75,
+                    'value': 85
+                }
+            }
+        ))
+        fig_equity.update_layout(
+            height=180,
+            margin=dict(l=20, r=20, t=40, b=10),
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_equity, use_container_width=True)
+        
+        # Key insights
+        st.markdown(f"""
+            <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.8rem; color: #27ae60; font-weight: 600;">✅ Budget Utilization</div>
+                <div style="font-size: 1.2rem; font-weight: 700;">{utilization:.1f}%</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Under-invested regions
+        under_invested = [r for r in regional_capex if r['per_site'] < avg_per_site * 0.9]
+        if under_invested:
+            st.markdown(f"""
+                <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem;">
+                    <div style="font-size: 0.8rem; color: #f39c12; font-weight: 600;">⚠️ Under-invested Regions</div>
+                    <div style="font-size: 0.85rem; margin-top: 0.25rem;">{', '.join([r['region'][:10] for r in under_invested[:3]])}</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 11: CAPEX Approval Pipeline
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📋 CAPEX Approval Pipeline")
+    st.caption("Track capital expenditure requests through approval workflow")
+    
+    pipeline_col, requests_col = st.columns([2, 1])
+    
+    with pipeline_col:
+        # Pipeline funnel
+        stages = [
+            {"stage": "Submitted", "count": 47, "value": 28.5, "color": "#3498db"},
+            {"stage": "Technical Review", "count": 32, "value": 19.2, "color": "#9b59b6"},
+            {"stage": "Finance Review", "count": 24, "value": 14.8, "color": "#f39c12"},
+            {"stage": "Director Approval", "count": 18, "value": 11.2, "color": "#e67e22"},
+            {"stage": "CFO Approval", "count": 8, "value": 6.5, "color": "#27ae60"},
+            {"stage": "Approved", "count": 156, "value": 38.2, "color": "#1a2b4a"},
+        ]
+        
+        fig_pipeline = go.Figure()
+        
+        # Funnel chart
+        fig_pipeline.add_trace(go.Funnel(
+            y=[s['stage'] for s in stages],
+            x=[s['count'] for s in stages],
+            textinfo="value+percent initial",
+            marker=dict(color=[s['color'] for s in stages]),
+            hovertemplate='<b>%{y}</b><br>Requests: %{x}<br>Value: €%{customdata}M<extra></extra>',
+            customdata=[s['value'] for s in stages]
+        ))
+        
+        fig_pipeline.update_layout(
+            height=350,
+            margin=dict(l=10, r=10, t=20, b=10),
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_pipeline, use_container_width=True)
+    
+    with requests_col:
+        st.markdown("#### ⏱️ Pipeline Metrics")
+        
+        avg_time = 12.5  # days
+        bottleneck = "Finance Review"
+        fast_track = 5
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #3498db;">
+                <div style="font-size: 0.75rem; color: #888;">Avg. Approval Time</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{avg_time} days</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #e63946;">
+                <div style="font-size: 0.75rem; color: #888;">🚧 Bottleneck Stage</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #e63946;">{bottleneck}</div>
+                <div style="font-size: 0.75rem; color: #888;">Avg. 4.2 days stuck</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #27ae60;">
+                <div style="font-size: 0.75rem; color: #888;">⚡ Fast-Track Requests</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">{fast_track}</div>
+                <div style="font-size: 0.75rem; color: #888;">Critical priority</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Pending value
+        pending_value = sum(s['value'] for s in stages[:-1])
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">💰 Pending Approval Value</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">€{pending_value:.1f}M</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Recent high-value requests
+    st.markdown("#### 📝 High-Value Pending Requests (>€1M)")
+    
+    high_value_requests = [
+        {"id": "CAPEX-2025-0892", "desc": "5G Antenna Array - Paris Region", "value": 4.2, "stage": "CFO Approval", "days": 3, "priority": "High"},
+        {"id": "CAPEX-2025-0856", "desc": "DVB-T2 Transmitter Upgrade - Lyon", "value": 2.8, "stage": "Director Approval", "days": 5, "priority": "High"},
+        {"id": "CAPEX-2025-0834", "desc": "Data Center Cooling System", "value": 1.9, "stage": "Finance Review", "days": 8, "priority": "Medium"},
+        {"id": "CAPEX-2025-0821", "desc": "Emergency Power Replacement", "value": 1.5, "stage": "Technical Review", "days": 2, "priority": "Critical"},
+        {"id": "CAPEX-2025-0798", "desc": "FM Transmitter Modernization", "value": 1.2, "stage": "Finance Review", "days": 12, "priority": "Low"},
+    ]
+    
+    req_cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
+    with req_cols[0]:
+        st.markdown("**Request ID**")
+    with req_cols[1]:
+        st.markdown("**Description**")
+    with req_cols[2]:
+        st.markdown("**Value**")
+    with req_cols[3]:
+        st.markdown("**Stage**")
+    with req_cols[4]:
+        st.markdown("**Days**")
+    with req_cols[5]:
+        st.markdown("**Priority**")
+    
+    for req in high_value_requests:
+        cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
+        priority_color = '#e63946' if req['priority'] == 'Critical' else '#f39c12' if req['priority'] == 'High' else '#3498db' if req['priority'] == 'Medium' else '#27ae60'
+        
+        with cols[0]:
+            st.markdown(f"`{req['id']}`")
+        with cols[1]:
+            st.markdown(req['desc'][:35] + "..." if len(req['desc']) > 35 else req['desc'])
+        with cols[2]:
+            st.markdown(f"**€{req['value']}M**")
+        with cols[3]:
+            st.markdown(req['stage'][:15])
+        with cols[4]:
+            day_color = '#e63946' if req['days'] > 7 else '#f39c12' if req['days'] > 3 else '#27ae60'
+            st.markdown(f"<span style='color: {day_color};'>{req['days']}d</span>", unsafe_allow_html=True)
+        with cols[5]:
+            st.markdown(f"<span style='background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.75rem;'>{req['priority']}</span>", unsafe_allow_html=True)
+    
+    # Action buttons
+    act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+    with act_col1:
+        st.button("📊 Full Pipeline Report", use_container_width=True)
+    with act_col2:
+        st.button("⚡ Fast-Track Request", use_container_width=True)
+    with act_col3:
+        st.button("📧 Notify Approvers", use_container_width=True)
+    with act_col4:
+        st.button("📈 Analytics Dashboard", use_container_width=True)
 
 # ==============================================================================
 # PAGE: ARCHITECTURE
