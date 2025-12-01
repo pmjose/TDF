@@ -10,7 +10,7 @@ A comprehensive Snowflake data platform with executive dashboards for TDF Infras
 |--------|-------|
 | 📡 Active Sites | **8,785** |
 | 🗼 Towers | **7,877** |
-| 👥 Employees | **1,850** |
+| 👥 Employees | **~1,500** |
 | 💰 Annual Revenue | **€799.1M** |
 | 📊 EBITDAaL Margin | **42-53%** |
 | 🏦 Credit Rating | **BBB- (Fitch, Stable)** |
@@ -112,7 +112,7 @@ Interactive dashboards built with Streamlit in Snowflake (SiS):
 | TOWERS | 7,877 | Tower structures |
 | EQUIPMENT | 45,892 | All equipment inventory |
 | ANTENNAS | ~25,000 | Antenna installations |
-| EMPLOYEES | 1,850 | TDF workforce |
+| EMPLOYEES | ~1,500 | TDF workforce |
 | WORK_ORDERS | 15,000+ | Maintenance work orders |
 | **Total** | **145,000+** | Across all tables |
 

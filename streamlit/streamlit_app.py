@@ -662,7 +662,7 @@ with st.sidebar:
         <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
             <p>📡 8,785 Active Sites</p>
             <p>🗼 7,877 Towers</p>
-            <p>👥 1,850 Employees</p>
+            <p>👥 1,500 Employees</p>
             <p>💶 EUR 799.1M Revenue</p>
         </div>
     """, unsafe_allow_html=True)
@@ -1582,7 +1582,7 @@ def page_capacity_planning():
     # ROW 1: Executive Summary KPIs
     # -------------------------------------------------------------------------
     
-    # Fetch capacity data - normalize to actual employee base (1,850 employees)
+    # Fetch capacity data - normalize to actual employee base (~1,500 employees in DB)
     # The WORKFORCE_CAPACITY table has dimensional data (BU x Region x Skill), so we use employee count as base
     capacity_df = run_query("""
         SELECT 
@@ -1611,12 +1611,12 @@ def page_capacity_planning():
         except:
             return default
     
-    # TDF Employee Base = 1,850 (verified from TDF corporate website & investor presentation)
-    # Always use verified TDF employee count for consistency across dashboard
-    employee_count = 1850  # Fixed: TDF official headcount
+    # Get employee count from database, fallback to 1,500 (DB seed default)
+    db_employee_count = safe_value(capacity_df, 'EMPLOYEE_COUNT', 0)
+    employee_count = db_employee_count if db_employee_count > 100 else 1500
     
-    # Capacity = employees + contractors (≈10% extra) = 1,850 + 185 = ~2,035 FTE capacity
-    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = 2,035 FTE
+    # Capacity = employees + contractors (≈10% extra) = 1,500 + 150 = ~1,650 FTE capacity
+    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = ~1,650 FTE
     allocated_fte = int(total_capacity * 0.87)   # 87% allocated = ~1,770 FTE
     utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 87)
     
@@ -1682,7 +1682,7 @@ def page_capacity_planning():
     
     st.markdown("### 📈 18-Month Capacity vs Demand Forecast")
     
-    # Generate forecast data - based on 1,850 employees (2,035 FTE with contractors)
+    # Generate forecast data - based on ~1,500 employees (~1,650 FTE with contractors)
     forecast_df = run_query(f"""
         WITH months AS (
             SELECT DATEADD(MONTH, SEQ4(), DATE_TRUNC('MONTH', CURRENT_DATE())) as FORECAST_MONTH
@@ -1691,7 +1691,7 @@ def page_capacity_planning():
         capacity_trend AS (
             SELECT 
                 m.FORECAST_MONTH,
-                -- Start at ~2,035 FTE (1,850 employees + 10% contractors), grow ~5 FTE/month
+                -- Start at ~1,650 FTE (1,500 employees + 10% contractors), grow ~5 FTE/month
                 {total_capacity} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 5) + UNIFORM(-10, 15, RANDOM()) as CAPACITY_FTE
             FROM months m
         ),
@@ -2296,7 +2296,7 @@ def page_capacity_planning():
         region_name_db = region_pop['REGION_NAME'].iloc[0] if not region_pop.empty else selected_region
         
         # Employee count from database or estimate based on population
-        # Total TDF: 1,850 employees, France pop ~67M → ~0.0276 employees per 1K pop
+        # Total TDF: ~1,500 employees, France pop ~67M → ~0.0224 employees per 1K pop
         emp_count = int(employee_data['EMP_COUNT'].iloc[0]) if not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0 else int(pop * 0.0000276)
         
         # Minimum of 50 employees per region for operational presence
@@ -2498,7 +2498,7 @@ def page_capacity_planning():
             hiring_capacity_per_month = max(2, int(total_gap * 0.15))  # Can hire ~15% of need per month
             months_to_close = max(2, int(total_gap / hiring_capacity_per_month))
             
-            # Revenue per FTE based on TDF financials: €799M / 1850 employees ≈ €432K per employee
+            # Revenue per FTE based on TDF financials: €799M / 1500 employees ≈ €533K per employee
             # Technical staff generate ~60% of this directly
             revenue_per_fte = 320000  # €320K revenue contribution per technical FTE
             revenue_at_risk = total_gap * revenue_per_fte
@@ -7584,14 +7584,14 @@ def page_architecture():
         sites_count = int(data_counts['SITES'].iloc[0]) if len(data_counts) > 0 else 8785
         towers_count = int(data_counts['TOWERS'].iloc[0]) if len(data_counts) > 0 else 7877
         equipment_count = int(data_counts['EQUIPMENT'].iloc[0]) if len(data_counts) > 0 else 45892
-        employees_count = int(data_counts['EMPLOYEES'].iloc[0]) if len(data_counts) > 0 else 1850
+        employees_count = int(data_counts['EMPLOYEES'].iloc[0]) if len(data_counts) > 0 else 1500
         work_orders_count = int(data_counts['WORK_ORDERS'].iloc[0]) if len(data_counts) > 0 else 15234
         departments_count = int(data_counts['DEPARTMENTS'].iloc[0]) if len(data_counts) > 0 else 96
     except:
         sites_count = 8785
         towers_count = 7877
         equipment_count = 45892
-        employees_count = 1850
+        employees_count = 1500
         work_orders_count = 15234
         departments_count = 96
     
@@ -8007,7 +8007,7 @@ def page_architecture():
             {"schema": "INFRASTRUCTURE", "table": "TOWERS", "rows": "7,877", "desc": "Tower structures"},
             {"schema": "INFRASTRUCTURE", "table": "EQUIPMENT", "rows": "45,892", "desc": "All equipment inventory"},
             {"schema": "INFRASTRUCTURE", "table": "ANTENNAS", "rows": "25,000+", "desc": "Antenna installations"},
-            {"schema": "HR", "table": "EMPLOYEES", "rows": "1,850", "desc": "TDF workforce"},
+            {"schema": "HR", "table": "EMPLOYEES", "rows": "~1,500", "desc": "TDF workforce"},
             {"schema": "HR", "table": "WORKFORCE_CAPACITY", "rows": "216", "desc": "Monthly capacity by region"},
             {"schema": "OPERATIONS", "table": "WORK_ORDERS", "rows": "15,000+", "desc": "Maintenance work orders"},
             {"schema": "FINANCE", "table": "CAPEX_PROJECTS", "rows": "850", "desc": "Capital expenditure projects"},
