@@ -2780,10 +2780,198 @@ def page_esg_reporting():
         include_lineage = st.checkbox("Include Data Lineage Trail", value=True)
         include_methodology = st.checkbox("Include Calculation Methodology", value=True)
         
-        # Generate button
-        if st.button("🚀 Generate Report", type="primary", use_container_width=True):
-            st.success(f"✅ {report_type} generated successfully!")
-            st.balloons()
+        # Generate and download report
+        st.markdown("---")
+        
+        # Generate report data based on type
+        if "Equality" in report_type:
+            report_data = {
+                "Report": "Index Égalité Professionnelle H/F",
+                "Period": period,
+                "Company": "TDF Infrastructure",
+                "SIREN": "343 070 044",
+                "Indicator_1_Pay_Gap": {"Score": 38, "Max": 40, "Description": "Écart de rémunération"},
+                "Indicator_2_Raise_Gap": {"Score": 20, "Max": 20, "Description": "Écart d'augmentations individuelles"},
+                "Indicator_3_Promotion_Gap": {"Score": 15, "Max": 15, "Description": "Écart de promotions"},
+                "Indicator_4_Maternity_Return": {"Score": 15, "Max": 15, "Description": "Retour de congé maternité"},
+                "Indicator_5_Top_Earners": {"Score": 0, "Max": 10, "Description": "Hautes rémunérations"},
+                "Total_Score": 88,
+                "Threshold": 75,
+                "Status": "Compliant",
+                "Publication_Date": "2025-03-01",
+                "Data_Source": "HR.EMPLOYEES",
+                "Methodology": "Calcul selon décret n°2019-15 du 8 janvier 2019"
+            }
+            filename_base = f"index_egalite_{period.replace(' ', '_').lower()}"
+        elif "Carbon" in report_type:
+            report_data = {
+                "Report": "Bilan des Émissions de Gaz à Effet de Serre (BEGES)",
+                "Period": period,
+                "Company": "TDF Infrastructure",
+                "SIREN": "343 070 044",
+                "Scope_1_Direct": {"Value": 8420, "Unit": "tCO2e", "Description": "Combustibles, véhicules"},
+                "Scope_2_Electricity": {"Value": 32150, "Unit": "tCO2e", "Description": "Électricité consommée"},
+                "Scope_3_Indirect": {"Value": 7930, "Unit": "tCO2e", "Description": "Achats, déplacements"},
+                "Total_Emissions": 48500,
+                "Emissions_Per_Site": 5.52,
+                "Reduction_vs_Baseline": -12,
+                "Target_2030": -40,
+                "Renewable_Energy_Pct": 47,
+                "Data_Source": "ENERGY.CONSUMPTION, ESG.CARBON_INVENTORY",
+                "Methodology": "ADEME Bilan Carbone® v8, Base Carbone 2024"
+            }
+            filename_base = f"bilan_ges_{period.replace(' ', '_').lower()}"
+        elif "EU Taxonomy" in report_type:
+            report_data = {
+                "Report": "EU Taxonomy Alignment Report",
+                "Period": period,
+                "Company": "TDF Infrastructure",
+                "Eligible_Revenue_Pct": 78,
+                "Aligned_Revenue_Pct": 65,
+                "Eligible_CAPEX_Pct": 82,
+                "Aligned_CAPEX_Pct": 71,
+                "Eligible_OPEX_Pct": 74,
+                "Aligned_OPEX_Pct": 62,
+                "Climate_Mitigation": True,
+                "Climate_Adaptation": True,
+                "DNSH_Criteria_Met": True,
+                "Minimum_Safeguards_Met": True,
+                "Data_Source": "FINANCE.TRANSACTIONS, ESG.CARBON_INVENTORY"
+            }
+            filename_base = f"eu_taxonomy_{period.replace(' ', '_').lower()}"
+        else:
+            report_data = {
+                "Report": report_type,
+                "Period": period,
+                "Company": "TDF Infrastructure",
+                "Environmental_Score": "A-",
+                "Social_Score": "B+",
+                "Governance_Score": "A",
+                "Overall_Rating": "BBB+",
+                "Carbon_Emissions_tCO2e": 48500,
+                "Renewable_Energy_Pct": 47,
+                "Equality_Index": 88,
+                "Female_Management_Pct": 32,
+                "Training_Hours_Per_Employee": 24,
+                "Accident_Frequency_Rate": 3.2,
+                "Active_Sites": 8785,
+                "Data_Sources": "ESG, HR, ENERGY, FINANCE schemas"
+            }
+            filename_base = f"esg_report_{period.replace(' ', '_').lower()}"
+        
+        # Add lineage if selected
+        if include_lineage:
+            report_data["Data_Lineage"] = {
+                "Source_Tables": ["ENERGY.CONSUMPTION", "HR.EMPLOYEES", "FINANCE.TRANSACTIONS"],
+                "Transform_Date": "2025-12-01",
+                "Validation_Status": "Validated",
+                "Audit_Trail_ID": "AUD-2025-1201-001"
+            }
+        
+        if include_methodology:
+            report_data["Calculation_Methodology"] = {
+                "Framework": "GRI Standards 2021, CSRD ESRS",
+                "Emission_Factors": "ADEME Base Carbone 2024",
+                "Currency": "EUR",
+                "Boundary": "Operational Control"
+            }
+        
+        # Convert to appropriate format
+        import json
+        import io
+        
+        if "CSV" in export_format:
+            # Flatten dict for CSV
+            flat_data = {}
+            for k, v in report_data.items():
+                if isinstance(v, dict):
+                    for k2, v2 in v.items():
+                        flat_data[f"{k}_{k2}"] = v2
+                else:
+                    flat_data[k] = v
+            
+            csv_content = "Field,Value\n"
+            for k, v in flat_data.items():
+                csv_content += f'"{k}","{v}"\n'
+            
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv_content,
+                file_name=f"{filename_base}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="primary"
+            )
+        elif "JSON" in export_format:
+            json_content = json.dumps(report_data, indent=2, ensure_ascii=False)
+            
+            st.download_button(
+                label="📥 Download JSON",
+                data=json_content,
+                file_name=f"{filename_base}.json",
+                mime="application/json",
+                use_container_width=True,
+                type="primary"
+            )
+        elif "Excel" in export_format:
+            # Create Excel-compatible CSV (opens in Excel)
+            flat_data = {}
+            for k, v in report_data.items():
+                if isinstance(v, dict):
+                    for k2, v2 in v.items():
+                        flat_data[f"{k}_{k2}"] = v2
+                else:
+                    flat_data[k] = v
+            
+            csv_content = "Field,Value\n"
+            for k, v in flat_data.items():
+                csv_content += f'"{k}","{v}"\n'
+            
+            st.download_button(
+                label="📥 Download Excel (CSV)",
+                data=csv_content,
+                file_name=f"{filename_base}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="primary"
+            )
+            st.caption("Opens directly in Microsoft Excel")
+        else:  # PDF - provide as formatted text
+            pdf_content = f"""
+{'='*60}
+{report_data.get('Report', report_type)}
+{'='*60}
+
+Company: TDF Infrastructure
+Period: {period}
+Generated: 2025-12-01
+{'='*60}
+
+"""
+            for k, v in report_data.items():
+                if isinstance(v, dict):
+                    pdf_content += f"\n{k.replace('_', ' ').upper()}:\n"
+                    for k2, v2 in v.items():
+                        pdf_content += f"  - {k2}: {v2}\n"
+                else:
+                    pdf_content += f"{k.replace('_', ' ')}: {v}\n"
+            
+            pdf_content += f"""
+{'='*60}
+This report is generated from TDF Data Platform
+Full audit trail available in system
+{'='*60}
+"""
+            
+            st.download_button(
+                label="📥 Download Report (TXT)",
+                data=pdf_content,
+                file_name=f"{filename_base}.txt",
+                mime="text/plain",
+                use_container_width=True,
+                type="primary"
+            )
+            st.caption("📄 For PDF, import this file into your document system")
     
     with report_col2:
         st.markdown("#### 📊 Report Preview")
