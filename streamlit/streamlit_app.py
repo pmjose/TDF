@@ -2331,8 +2331,8 @@ def page_capacity_planning():
         st.markdown(f"#### 📍 {selected_region} - Scenario Results")
         
         # Show data source info
-        data_source = "📊 Live data" if (not region_data.empty and region_data['CAPACITY'].iloc[0] > 0) else "📊 Estimated"
-        st.caption(f"{data_source} from HR.WORKFORCE_CAPACITY & COMMERCIAL.DEMAND_FORECAST")
+        data_source = "📊 Live data" if (not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0) else "📊 Estimated"
+        st.caption(f"{data_source} from HR.EMPLOYEES & HR.WORKFORCE_CAPACITY")
         
         # Results metrics
         res_col1, res_col2, res_col3 = st.columns(3)
