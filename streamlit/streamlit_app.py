@@ -551,6 +551,109 @@ def page_executive_dashboard():
     """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
+    # MONTHLY FINANCIAL PERFORMANCE - Revenue vs Costs
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📈 Monthly Financial Performance")
+    
+    # Fetch monthly financial data
+    monthly_finance_df = run_query("""
+        SELECT 
+            PERIOD_DATE,
+            REVENUE_EUR / 1000000 as REVENUE_M,
+            OPEX_EUR / 1000000 as OPEX_M,
+            EBITDA_EUR / 1000000 as EBITDA_M,
+            EBITDAAL_MARGIN_PCT as MARGIN_PCT
+        FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
+        WHERE FISCAL_YEAR = 2025
+        ORDER BY PERIOD_DATE
+    """)
+    
+    if not monthly_finance_df.empty:
+        fig = go.Figure()
+        
+        # Revenue line
+        fig.add_trace(go.Scatter(
+            x=monthly_finance_df['PERIOD_DATE'],
+            y=monthly_finance_df['REVENUE_M'],
+            mode='lines+markers',
+            name='Revenue',
+            line=dict(color='#1a2b4a', width=3),
+            marker=dict(size=10, color='#1a2b4a'),
+            hovertemplate='Revenue: €%{y:.1f}M<extra></extra>'
+        ))
+        
+        # OPEX line
+        fig.add_trace(go.Scatter(
+            x=monthly_finance_df['PERIOD_DATE'],
+            y=monthly_finance_df['OPEX_M'],
+            mode='lines+markers',
+            name='OPEX',
+            line=dict(color='#e63946', width=3),
+            marker=dict(size=10, color='#e63946'),
+            hovertemplate='OPEX: €%{y:.1f}M<extra></extra>'
+        ))
+        
+        # EBITDA line
+        fig.add_trace(go.Scatter(
+            x=monthly_finance_df['PERIOD_DATE'],
+            y=monthly_finance_df['EBITDA_M'],
+            mode='lines+markers',
+            name='EBITDA',
+            line=dict(color='#27ae60', width=2, dash='dot'),
+            marker=dict(size=8, color='#27ae60'),
+            hovertemplate='EBITDA: €%{y:.1f}M<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            height=350,
+            margin=dict(l=20, r=20, t=30, b=40),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='#f0f0f0',
+                tickformat='%b %Y',
+                title=None
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor='#f0f0f0',
+                title=dict(text='EUR Millions', font=dict(size=12, color='#666')),
+                tickprefix='€',
+                ticksuffix='M'
+            ),
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='center',
+                x=0.5,
+                font=dict(size=12)
+            ),
+            hovermode='x unified'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Summary metrics below chart
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            avg_revenue = monthly_finance_df['REVENUE_M'].mean()
+            st.metric("Avg Monthly Revenue", f"€{avg_revenue:.1f}M")
+        with col2:
+            avg_opex = monthly_finance_df['OPEX_M'].mean()
+            st.metric("Avg Monthly OPEX", f"€{avg_opex:.1f}M")
+        with col3:
+            avg_ebitda = monthly_finance_df['EBITDA_M'].mean()
+            st.metric("Avg Monthly EBITDA", f"€{avg_ebitda:.1f}M")
+        with col4:
+            avg_margin = monthly_finance_df['MARGIN_PCT'].mean()
+            st.metric("Avg Margin", f"{avg_margin:.1f}%")
+    else:
+        st.info("Loading financial data...")
+    
+    # -------------------------------------------------------------------------
     # FOUR VITAL SIGNS - Gauge Charts
     # -------------------------------------------------------------------------
     
