@@ -148,6 +148,11 @@ EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data
 EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data/21_seed_commercial.sql;
 
 -- ============================================================================
+-- SECTION 22: SEED DATA - INFRASTRUCTURE DETAIL (Rooftops, Antennas, Fibre)
+-- ============================================================================
+EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data/22_seed_infrastructure_detail.sql;
+
+-- ============================================================================
 -- DEPLOYMENT VALIDATION
 -- ============================================================================
 

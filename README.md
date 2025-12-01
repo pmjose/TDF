@@ -112,6 +112,7 @@ snowsql -f sql/data/13_seed_france_geo.sql
     19_seed_energy_esg.sql
     20_seed_executive_kpis.sql
     21_seed_commercial.sql    # Demand forecast, projects, contracts
+    22_seed_infrastructure_detail.sql  # Rooftops, antennas, fibre, PoS
   
   /queries                    # Sample queries for demos
     uc1_capacity_planning.sql
