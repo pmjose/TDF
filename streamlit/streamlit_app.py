@@ -972,13 +972,13 @@ def page_executive_dashboard():
                 "style": {"backgroundColor": "transparent", "color": "white"}
             }
             
-            # Render the map
+            # Render the map with Carto basemap (no API key needed)
             st.pydeck_chart(
                 pdk.Deck(
                     layers=[layer, text_layer],
                     initial_view_state=view_state,
                     tooltip=tooltip,
-                    map_style="mapbox://styles/mapbox/light-v10",  # Clean light basemap
+                    map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
                 ),
                 use_container_width=True
             )
