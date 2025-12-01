@@ -662,7 +662,7 @@ with st.sidebar:
         <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
             <p>📡 8,785 Active Sites</p>
             <p>🗼 7,877 Towers</p>
-            <p>👥 1,500 Employees</p>
+            <p>👥 1,850 Employees</p>
             <p>💶 EUR 799.1M Revenue</p>
         </div>
     """, unsafe_allow_html=True)
@@ -2498,7 +2498,7 @@ def page_capacity_planning():
             hiring_capacity_per_month = max(2, int(total_gap * 0.15))  # Can hire ~15% of need per month
             months_to_close = max(2, int(total_gap / hiring_capacity_per_month))
             
-            # Revenue per FTE based on TDF financials: €799M / 1500 employees ≈ €533K per employee
+            # Revenue per FTE based on TDF financials: €799M / 1850 employees ≈ €432K per employee
             # Technical staff generate ~60% of this directly
             revenue_per_fte = 320000  # €320K revenue contribution per technical FTE
             revenue_at_risk = total_gap * revenue_per_fte
@@ -5526,7 +5526,7 @@ def page_capex_lifecycle():
         
         # Equipment categories with age distribution
         categories = [
-            {"name": "Antennas", "count": 15234, "avg_age": 4.2, "eol": 892, "value": 245},
+            {"name": "Antennas", "count": 25234, "avg_age": 4.2, "eol": 1892, "value": 245},
             {"name": "Transmitters", "count": 8756, "avg_age": 7.8, "eol": 1245, "value": 312},
             {"name": "Power Systems", "count": 6892, "avg_age": 5.5, "eol": 456, "value": 156},
             {"name": "Cooling/HVAC", "count": 5234, "avg_age": 6.1, "eol": 321, "value": 78},
