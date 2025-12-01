@@ -2440,8 +2440,10 @@ def page_capacity_planning():
                     base_fte = int(base_capacity * proportion) if base_capacity > 0 else 10
                     current_fte = max(5, base_fte + (idx * 2) - 5)  # Add some variation
                     
-                    # Recruitment cost varies by salary level (€5K-€12K range)
-                    recruitment_per_hire = 5000 + (benchmark['salary'] - 35000) / 5
+                    # Recruitment cost: French market avg 15-18% of annual salary
+                    # Junior: ~15%, Senior: ~18%, includes agency fees + onboarding
+                    recruitment_pct = 0.15 + (benchmark['salary'] - 38000) / 500000  # 15-18%
+                    recruitment_per_hire = int(benchmark['salary'] * recruitment_pct)
                     recruitment_cost = int(fte_needed * recruitment_per_hire)
                     annual_salary_cost = fte_needed * benchmark['salary']
                     
@@ -2480,7 +2482,9 @@ def page_capacity_planning():
                 base_current = max(10, int(base_capacity / len(default_roles)))
                 for idx, role in enumerate(default_roles):
                     fte = max(1, round(total_gap * role["pct"]))
-                    rec_cost = int(fte * (5000 + (role["salary"] - 35000) / 5))
+                    # Recruitment cost: 15-18% of salary (French market standard)
+                    rec_pct = 0.15 + (role["salary"] - 38000) / 500000
+                    rec_cost = int(fte * role["salary"] * rec_pct)
                     total_hiring_cost += rec_cost
                     current = base_current + (idx * 3) - 10 + int(role["pct"] * 100)
                     priority = "🔴 Critical" if role["pct"] >= 0.15 else "🟡 High" if role["pct"] >= 0.08 else "🟢 Normal"
