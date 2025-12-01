@@ -890,66 +890,55 @@ def page_executive_dashboard():
         """)
         
         if not regional_df.empty:
-            # Create bubble map for France
+            # Scale bubble sizes based on site count
+            max_sites = regional_df['SITE_COUNT'].max()
+            regional_df['bubble_size'] = (regional_df['SITE_COUNT'] / max_sites) * 40 + 15
+            
+            # Create interactive map using Scattermapbox (works in SiS)
             fig = go.Figure()
             
-            # Scale bubble sizes
-            max_sites = regional_df['SITE_COUNT'].max()
-            regional_df['bubble_size'] = (regional_df['SITE_COUNT'] / max_sites) * 60 + 15
-            
-            # Color by revenue
-            fig.add_trace(go.Scattergeo(
-                lon=regional_df['LONGITUDE'],
+            fig.add_trace(go.Scattermapbox(
                 lat=regional_df['LATITUDE'],
+                lon=regional_df['LONGITUDE'],
                 mode='markers+text',
                 marker=dict(
                     size=regional_df['bubble_size'],
                     color=regional_df['REVENUE_M'],
-                    colorscale=[[0, '#d4e6f1'], [0.5, '#3498db'], [1, '#1a2b4a']],
+                    colorscale='Blues',
                     showscale=True,
                     colorbar=dict(
-                        title=dict(text='Revenue<br>(€M)', font=dict(size=11)),
+                        title=dict(text='Revenue (€M)', font=dict(size=10)),
                         thickness=15,
-                        len=0.6
+                        len=0.7,
+                        x=1.02
                     ),
-                    line=dict(color='white', width=1),
-                    opacity=0.85
+                    opacity=0.8,
+                    sizemode='diameter'
                 ),
                 text=regional_df['REGION_CODE'],
                 textposition='middle center',
-                textfont=dict(color='white', size=9, family='Arial Black'),
+                textfont=dict(size=10, color='white', family='Arial Black'),
                 hovertemplate=(
                     '<b>%{customdata[0]}</b><br>' +
-                    'Sites: %{customdata[1]:,}<br>' +
-                    'Revenue: €%{customdata[2]:.1f}M<br>' +
-                    'Colocation: %{customdata[3]:.0f}%<extra></extra>'
+                    '📡 Sites: %{customdata[1]:,}<br>' +
+                    '💰 Revenue: €%{customdata[2]:.1f}M<br>' +
+                    '🏢 Colocation: %{customdata[3]:.0f}%<extra></extra>'
                 ),
-                customdata=regional_df[['REGION_NAME', 'SITE_COUNT', 'REVENUE_M', 'AVG_COLOCATION']].values
+                customdata=regional_df[['REGION_NAME', 'SITE_COUNT', 'REVENUE_M', 'AVG_COLOCATION']].values,
+                name='Regions'
             ))
             
-            # Focus on France
-            fig.update_geos(
-                scope='europe',
-                center=dict(lat=46.6, lon=2.5),
-                projection_scale=5,
-                showland=True,
-                landcolor='#f8f9fa',
-                showocean=True,
-                oceancolor='#e8f4f8',
-                showcountries=True,
-                countrycolor='#ddd',
-                showcoastlines=True,
-                coastlinecolor='#ccc',
-                showlakes=False,
-                showrivers=False,
-                showframe=False
-            )
-            
+            # Configure map to focus on France
             fig.update_layout(
-                height=400,
+                mapbox=dict(
+                    style='carto-positron',  # Clean, light map style (no API key needed)
+                    center=dict(lat=46.6, lon=2.5),
+                    zoom=4.5
+                ),
+                height=420,
                 margin=dict(l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
-                geo=dict(bgcolor='rgba(0,0,0,0)')
+                showlegend=False
             )
             
             st.plotly_chart(fig, use_container_width=True)
