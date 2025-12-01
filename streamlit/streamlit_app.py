@@ -4484,6 +4484,10 @@ def page_digital_twin():
             </div>
         """, unsafe_allow_html=True)
     
+    st.markdown("")
+    st.markdown("---")
+    st.markdown("")
+    
     # -------------------------------------------------------------------------
     # ROW 7: Data Quality Trends
     # -------------------------------------------------------------------------
