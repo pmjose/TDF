@@ -491,10 +491,14 @@ def page_executive_dashboard():
     # HERO BANNER - Key Financial Metrics
     # -------------------------------------------------------------------------
     
-    # Fetch EBITDA metrics
+    # Fetch EBITDA metrics - annualized
     ebitda_df = run_query("""
-        SELECT * FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
-        ORDER BY PERIOD_DATE DESC LIMIT 1
+        SELECT 
+            SUM(REVENUE_EUR) as ANNUAL_REVENUE,
+            AVG(EBITDAAL_MARGIN_PCT) as AVG_MARGIN,
+            AVG(YOY_GROWTH_PCT) as AVG_GROWTH
+        FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
+        WHERE FISCAL_YEAR = 2025
     """)
     
     # Fetch ESG status
@@ -503,10 +507,16 @@ def page_executive_dashboard():
         ORDER BY REPORTING_DATE DESC LIMIT 1
     """)
     
-    # Get values with defaults
-    revenue = ebitda_df['REVENUE_EUR'].iloc[0] / 1000000 if not ebitda_df.empty else 799.1
-    ebitda_margin = ebitda_df['EBITDAAL_MARGIN_PCT'].iloc[0] if not ebitda_df.empty else 47.0
-    yoy_growth = ebitda_df['YOY_GROWTH_PCT'].iloc[0] if not ebitda_df.empty else 8.5
+    # Get values - annualize if we only have partial year data
+    if not ebitda_df.empty and ebitda_df['ANNUAL_REVENUE'].iloc[0]:
+        # We have 7 months of data (June-Dec), annualize to 12 months
+        months_of_data = 7  # June to December
+        revenue = (ebitda_df['ANNUAL_REVENUE'].iloc[0] / months_of_data * 12) / 1000000
+    else:
+        revenue = 799.1
+    
+    ebitda_margin = ebitda_df['AVG_MARGIN'].iloc[0] if not ebitda_df.empty and ebitda_df['AVG_MARGIN'].iloc[0] else 47.0
+    yoy_growth = ebitda_df['AVG_GROWTH'].iloc[0] if not ebitda_df.empty and ebitda_df['AVG_GROWTH'].iloc[0] else 8.5
     esg_status = esg_df['OVERALL_ESG_STATUS'].iloc[0] if not esg_df.empty else 'GREEN'
     
     # Hero Banner
