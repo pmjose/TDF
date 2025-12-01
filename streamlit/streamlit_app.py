@@ -4277,101 +4277,254 @@ def page_digital_twin():
     st.markdown("### 🗼 3D Cell Tower Model - Interactive Viewer")
     st.caption("Detailed 3D representation of TDF tower infrastructure • Rotate and zoom to explore")
     
+    # Tower database with unique configurations
+    tower_database = {
+        "SITE-003421 (Paris 15ème)": {
+            "id": "SITE-003421",
+            "location": "Paris 15ème",
+            "type": "Lattice",
+            "height": 65,
+            "year": 2008,
+            "max_load": 2500,
+            "current_load": 1847,
+            "color": "#e63946",
+            "tenants": [
+                {"name": "Orange", "tech": "4G/5G", "height": 25, "color": "#3498db", "count": 3},
+                {"name": "SFR", "tech": "5G", "height": 40, "color": "#27ae60", "count": 3},
+                {"name": "Bouygues", "tech": "4G", "height": 55, "color": "#f39c12", "count": 3},
+                {"name": "Free", "tech": "5G", "height": 62, "color": "#9b59b6", "count": 2},
+            ]
+        },
+        "SITE-005892 (Lyon Part-Dieu)": {
+            "id": "SITE-005892",
+            "location": "Lyon Part-Dieu",
+            "type": "Monopole",
+            "height": 45,
+            "year": 2015,
+            "max_load": 1800,
+            "current_load": 1245,
+            "color": "#3498db",
+            "tenants": [
+                {"name": "Orange", "tech": "5G", "height": 30, "color": "#3498db", "count": 3},
+                {"name": "SFR", "tech": "4G/5G", "height": 40, "color": "#27ae60", "count": 3},
+            ]
+        },
+        "SITE-007234 (Marseille Vieux-Port)": {
+            "id": "SITE-007234",
+            "location": "Marseille Vieux-Port",
+            "type": "Rooftop",
+            "height": 25,
+            "year": 2019,
+            "max_load": 800,
+            "current_load": 520,
+            "color": "#27ae60",
+            "tenants": [
+                {"name": "Bouygues", "tech": "5G", "height": 20, "color": "#f39c12", "count": 3},
+                {"name": "Free", "tech": "4G", "height": 23, "color": "#9b59b6", "count": 2},
+            ]
+        },
+        "SITE-001256 (Bordeaux Mériadeck)": {
+            "id": "SITE-001256",
+            "location": "Bordeaux Mériadeck",
+            "type": "Lattice",
+            "height": 80,
+            "year": 2003,
+            "max_load": 3200,
+            "current_load": 2890,
+            "color": "#e74c3c",
+            "tenants": [
+                {"name": "Orange", "tech": "4G", "height": 30, "color": "#3498db", "count": 3},
+                {"name": "SFR", "tech": "4G", "height": 45, "color": "#27ae60", "count": 3},
+                {"name": "Bouygues", "tech": "4G/5G", "height": 60, "color": "#f39c12", "count": 3},
+                {"name": "Free", "tech": "5G", "height": 75, "color": "#9b59b6", "count": 3},
+                {"name": "TDF Broadcast", "tech": "DTT", "height": 78, "color": "#e63946", "count": 2},
+            ]
+        },
+        "SITE-002891 (Toulouse Blagnac)": {
+            "id": "SITE-002891",
+            "location": "Toulouse Blagnac",
+            "type": "Guyed Mast",
+            "height": 120,
+            "year": 1998,
+            "max_load": 5000,
+            "current_load": 3750,
+            "color": "#9b59b6",
+            "tenants": [
+                {"name": "TDF Broadcast", "tech": "FM Radio", "height": 50, "color": "#e63946", "count": 4},
+                {"name": "TDF Broadcast", "tech": "DTT", "height": 80, "color": "#c0392b", "count": 6},
+                {"name": "Orange", "tech": "4G", "height": 100, "color": "#3498db", "count": 3},
+                {"name": "SFR", "tech": "5G", "height": 110, "color": "#27ae60", "count": 3},
+            ]
+        },
+        "SITE-004567 (Nantes Île de Nantes)": {
+            "id": "SITE-004567",
+            "location": "Nantes Île de Nantes",
+            "type": "Camouflaged (Tree)",
+            "height": 35,
+            "year": 2021,
+            "max_load": 1200,
+            "current_load": 680,
+            "color": "#27ae60",
+            "tenants": [
+                {"name": "Free", "tech": "5G", "height": 28, "color": "#9b59b6", "count": 3},
+                {"name": "Bouygues", "tech": "5G", "height": 32, "color": "#f39c12", "count": 3},
+            ]
+        },
+    }
+    
+    # Tower selector
+    selected_tower_name = st.selectbox(
+        "🗼 Select Tower to View",
+        options=list(tower_database.keys()),
+        index=0
+    )
+    
+    tower = tower_database[selected_tower_name]
+    tower_height = tower["height"]
+    
     viz_col1, viz_col2 = st.columns([2, 1])
     
     with viz_col1:
         import numpy as np
         
-        # Create a detailed 3D cell tower model
+        # Create a detailed 3D cell tower model based on selected tower
         fig_tower = go.Figure()
         
-        tower_height = 65  # meters
+        # === TOWER STRUCTURE (varies by type) ===
+        tower_color = tower["color"]
         
-        # === TOWER STRUCTURE (Lattice Tower) ===
-        # Main vertical legs
-        leg_offset = 1.5
-        for x, y in [(-leg_offset, -leg_offset), (leg_offset, -leg_offset), 
-                     (leg_offset, leg_offset), (-leg_offset, leg_offset)]:
-            # Tapered legs
-            z_points = list(range(0, tower_height + 1, 5))
-            taper = [1 - (z / tower_height) * 0.6 for z in z_points]
-            x_points = [x * t for t in taper]
-            y_points = [y * t for t in taper]
+        if tower["type"] in ["Lattice", "Guyed Mast"]:
+            # Lattice tower with 4 legs
+            leg_offset = 1.5 + (tower_height / 100)  # Larger base for taller towers
+            for x, y in [(-leg_offset, -leg_offset), (leg_offset, -leg_offset), 
+                         (leg_offset, leg_offset), (-leg_offset, leg_offset)]:
+                z_points = list(range(0, tower_height + 1, 5))
+                taper = [1 - (z / tower_height) * 0.6 for z in z_points]
+                x_points = [x * t for t in taper]
+                y_points = [y * t for t in taper]
+                
+                fig_tower.add_trace(go.Scatter3d(
+                    x=x_points, y=y_points, z=z_points,
+                    mode='lines',
+                    line=dict(color=tower_color, width=8),
+                    name='Tower Structure',
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
             
+            # Cross bracing
+            brace_interval = 10 if tower_height < 80 else 15
+            for z in range(5, tower_height, brace_interval):
+                taper = 1 - (z / tower_height) * 0.6
+                offset = leg_offset * taper
+                ring_x = [-offset, offset, offset, -offset, -offset]
+                ring_y = [-offset, -offset, offset, offset, -offset]
+                ring_z = [z] * 5
+                fig_tower.add_trace(go.Scatter3d(
+                    x=ring_x, y=ring_y, z=ring_z,
+                    mode='lines',
+                    line=dict(color='#7f8c8d', width=4),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+                
+        elif tower["type"] == "Monopole":
+            # Single pole structure
+            z_points = list(range(0, tower_height + 1, 2))
+            x_points = [0] * len(z_points)
+            y_points = [0] * len(z_points)
             fig_tower.add_trace(go.Scatter3d(
                 x=x_points, y=y_points, z=z_points,
                 mode='lines',
-                line=dict(color='#e63946', width=8),
-                name='Tower Leg',
+                line=dict(color=tower_color, width=20),
+                name='Monopole',
                 showlegend=False,
                 hoverinfo='skip'
             ))
-        
-        # Cross bracing
-        for z in range(5, tower_height, 10):
-            taper = 1 - (z / tower_height) * 0.6
-            offset = leg_offset * taper
-            # Horizontal ring
-            ring_x = [-offset, offset, offset, -offset, -offset]
-            ring_y = [-offset, -offset, offset, offset, -offset]
-            ring_z = [z] * 5
+            
+        elif tower["type"] == "Rooftop":
+            # Building base + small mast
+            # Building representation
+            building_size = 8
+            fig_tower.add_trace(go.Mesh3d(
+                x=[-building_size, building_size, building_size, -building_size, -building_size, building_size, building_size, -building_size],
+                y=[-building_size, -building_size, building_size, building_size, -building_size, -building_size, building_size, building_size],
+                z=[0, 0, 0, 0, -15, -15, -15, -15],
+                color='#bdc3c7',
+                opacity=0.5,
+                name='Building',
+                hoverinfo='name'
+            ))
+            # Small mast on top
             fig_tower.add_trace(go.Scatter3d(
-                x=ring_x, y=ring_y, z=ring_z,
+                x=[0, 0], y=[0, 0], z=[0, tower_height],
                 mode='lines',
-                line=dict(color='#c0392b', width=4),
+                line=dict(color=tower_color, width=15),
                 showlegend=False,
                 hoverinfo='skip'
             ))
-            # Diagonal braces
+            
+        elif tower["type"] == "Camouflaged (Tree)":
+            # Tree-shaped tower
+            # Trunk
             fig_tower.add_trace(go.Scatter3d(
-                x=[-offset, offset], y=[-offset, offset], z=[z, z+10],
-                mode='lines', line=dict(color='#95a5a6', width=2),
-                showlegend=False, hoverinfo='skip'
+                x=[0, 0], y=[0, 0], z=[0, tower_height],
+                mode='lines',
+                line=dict(color='#8B4513', width=15),
+                name='Trunk',
+                showlegend=False,
+                hoverinfo='skip'
             ))
+            # Branches at different levels
+            for z in range(10, tower_height, 8):
+                branch_len = 3 - (z / tower_height) * 2
+                for angle in np.linspace(0, 2*np.pi, 6, endpoint=False):
+                    bx = branch_len * np.cos(angle)
+                    by = branch_len * np.sin(angle)
+                    fig_tower.add_trace(go.Scatter3d(
+                        x=[0, bx], y=[0, by], z=[z, z+1],
+                        mode='lines',
+                        line=dict(color='#228B22', width=6),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
         
-        # === ANTENNA PLATFORMS ===
-        platform_heights = [25, 40, 55, 65]
-        platform_colors = ['#3498db', '#27ae60', '#f39c12', '#9b59b6']
-        
-        for i, (ph, pc) in enumerate(zip(platform_heights, platform_colors)):
-            taper = 1 - (ph / tower_height) * 0.6
-            platform_size = 2.5
-            # Platform surface
+        # === ANTENNA PLATFORMS & PANELS (from tower config) ===
+        for tenant in tower["tenants"]:
+            ph = tenant["height"]
+            
+            # Platform
+            platform_size = 2.5 if tower["type"] != "Monopole" else 1.5
             fig_tower.add_trace(go.Mesh3d(
                 x=[-platform_size, platform_size, platform_size, -platform_size],
                 y=[-platform_size, -platform_size, platform_size, platform_size],
                 z=[ph, ph, ph, ph],
-                color=pc,
-                opacity=0.7,
-                name=f'Platform {i+1}',
-                hoverinfo='name'
+                color=tenant["color"],
+                opacity=0.6,
+                name=f'{tenant["name"]} Platform',
+                hoverinfo='skip'
             ))
-        
-        # === ANTENNA PANELS ===
-        antenna_configs = [
-            {"height": 25, "count": 3, "color": "#3498db", "name": "Orange 4G"},
-            {"height": 40, "count": 3, "color": "#27ae60", "name": "SFR 5G"},
-            {"height": 55, "count": 3, "color": "#f39c12", "name": "Bouygues 4G"},
-            {"height": 65, "count": 2, "color": "#9b59b6", "name": "Free 5G"},
-        ]
-        
-        for config in antenna_configs:
-            angles = np.linspace(0, 2*np.pi, config["count"], endpoint=False)
-            for angle in angles:
+            
+            # Antenna panels
+            antenna_count = tenant.get("count", 3)
+            angles = np.linspace(0, 2*np.pi, antenna_count, endpoint=False)
+            for i, angle in enumerate(angles):
                 ax = 3 * np.cos(angle)
                 ay = 3 * np.sin(angle)
-                # Antenna panel (vertical rectangle represented as lines)
                 panel_h = 2
-                panel_w = 0.4
+                
+                # Only add legend for first panel of each tenant
+                show_legend = (i == 0)
+                
                 fig_tower.add_trace(go.Scatter3d(
                     x=[ax, ax, ax, ax, ax],
                     y=[ay, ay, ay, ay, ay],
-                    z=[config["height"], config["height"]+panel_h, config["height"]+panel_h, 
-                       config["height"], config["height"]],
+                    z=[ph, ph+panel_h, ph+panel_h, ph, ph],
                     mode='lines',
-                    line=dict(color=config["color"], width=12),
-                    name=config["name"],
-                    hovertemplate=f'<b>{config["name"]}</b><br>Height: {config["height"]}m<extra></extra>'
+                    line=dict(color=tenant["color"], width=12),
+                    name=f'{tenant["name"]} {tenant["tech"]}',
+                    showlegend=show_legend,
+                    hovertemplate=f'<b>{tenant["name"]}</b><br>{tenant["tech"]}<br>Height: {ph}m<extra></extra>'
                 ))
         
         # === GROUND BASE ===
@@ -4401,10 +4554,10 @@ def page_digital_twin():
             scene=dict(
                 xaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
                 yaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
-                zaxis=dict(title='Height (m)', range=[-5, 75], showgrid=True, gridcolor='#eee'),
+                zaxis=dict(title='Height (m)', range=[-20 if tower["type"] == "Rooftop" else -5, tower_height + 10], showgrid=True, gridcolor='#eee'),
                 camera=dict(eye=dict(x=1.8, y=1.8, z=0.8)),
                 bgcolor='rgba(248,249,250,1)',
-                aspectratio=dict(x=1, y=1, z=2)
+                aspectratio=dict(x=1, y=1, z=2 if tower_height < 50 else 2.5 if tower_height < 100 else 3)
             ),
             paper_bgcolor='rgba(0,0,0,0)',
             showlegend=True,
@@ -4415,35 +4568,31 @@ def page_digital_twin():
         st.caption("🖱️ Drag to rotate • Scroll to zoom • Click legend to toggle layers")
     
     with viz_col2:
-        st.markdown("#### 🗼 Tower: SITE-003421")
-        st.markdown("**Location:** Paris 15ème")
+        st.markdown(f"#### 🗼 Tower: {tower['id']}")
+        st.markdown(f"**Location:** {tower['location']}")
         
         # Tower specifications
         st.markdown("##### Specifications")
+        load_pct = int(tower['current_load'] / tower['max_load'] * 100)
+        load_color = '#27ae60' if load_pct < 70 else '#f39c12' if load_pct < 85 else '#e63946'
+        
         spec_data = {
-            "Tower Type": "Lattice",
-            "Total Height": "65m",
-            "Year Built": "2008",
+            "Tower Type": tower['type'],
+            "Total Height": f"{tower['height']}m",
+            "Year Built": str(tower['year']),
             "Last Inspection": "Oct 2025",
-            "Max Load": "2,500 kg",
-            "Current Load": "1,847 kg (74%)"
+            "Max Load": f"{tower['max_load']:,} kg",
+            "Current Load": f"<span style='color:{load_color}'>{tower['current_load']:,} kg ({load_pct}%)</span>"
         }
         
         for key, value in spec_data.items():
-            st.markdown(f"**{key}:** {value}")
+            st.markdown(f"**{key}:** {value}", unsafe_allow_html=True)
         
         st.markdown("---")
-        st.markdown("##### 📶 Tenants (4)")
+        st.markdown(f"##### 📶 Tenants ({len(tower['tenants'])})")
         
-        tenants = [
-            {"name": "Orange", "tech": "4G/5G", "height": "25m", "color": "#3498db"},
-            {"name": "SFR", "tech": "5G", "height": "40m", "color": "#27ae60"},
-            {"name": "Bouygues", "tech": "4G", "height": "55m", "color": "#f39c12"},
-            {"name": "Free", "tech": "5G", "height": "65m", "color": "#9b59b6"},
-        ]
-        
-        for t in tenants:
-            st.markdown(f"<span style='color:{t['color']};'>●</span> **{t['name']}** - {t['tech']} @ {t['height']}", unsafe_allow_html=True)
+        for t in tower['tenants']:
+            st.markdown(f"<span style='color:{t['color']};'>●</span> **{t['name']}** - {t['tech']} @ {t['height']}m", unsafe_allow_html=True)
         
         st.markdown("---")
         
