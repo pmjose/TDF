@@ -9,6 +9,8 @@
 -- - EU Taxonomy Regulation
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 
 -- ============================================================================
