@@ -727,7 +727,7 @@ def page_executive_dashboard():
                     showgrid=True,
                     gridcolor='#f0f0f0',
                     title='Revenue (EUR Millions)',
-                    titlefont=dict(size=12, color='#666')
+                    title=dict(text='Revenue (EUR Millions)', font=dict(size=12, color='#666'))
                 ),
                 yaxis=dict(
                     showgrid=False,
