@@ -1,0 +1,210 @@
+-- ============================================================================
+-- TDF DATA PLATFORM - SEED DATA: EXECUTIVE KPIs & DIGITAL TWIN
+-- ============================================================================
+-- Executive KPIs with traffic lights, Digital Twin data
+-- ============================================================================
+
+USE DATABASE TDF_DATA_PLATFORM;
+
+-- ============================================================================
+-- DIGITAL TWIN SCHEMA
+-- ============================================================================
+
+USE SCHEMA DIGITAL_TWIN;
+
+-- ============================================================================
+-- ASSET_MODELS (3D models for sites and towers)
+-- ============================================================================
+
+INSERT INTO ASSET_MODELS (
+    MODEL_ID, SITE_ID, TOWER_ID,
+    MODEL_TYPE, MODEL_FORMAT, MODEL_NAME, MODEL_VERSION,
+    CREATED_FROM, SURVEY_DATE, ACCURACY_CM, COMPLETENESS_PCT, QUALITY_SCORE,
+    STATUS, IS_CURRENT, SYNC_STATUS
+)
+SELECT 
+    'MDL-' || LPAD(ROW_NUMBER() OVER (), 6, '0') AS MODEL_ID,
+    s.SITE_ID,
+    t.TOWER_ID,
+    CASE WHEN t.TOWER_ID IS NOT NULL THEN 'TOWER_3D' ELSE 'SITE_3D' END AS MODEL_TYPE,
+    CASE MOD(ROW_NUMBER() OVER (), 3) WHEN 0 THEN 'IFC' WHEN 1 THEN 'GLTF' ELSE 'OBJ' END AS MODEL_FORMAT,
+    '3D Model - ' || s.SITE_NAME AS MODEL_NAME,
+    'v' || UNIFORM(1, 5, RANDOM()) || '.0' AS MODEL_VERSION,
+    CASE MOD(ROW_NUMBER() OVER (), 4) 
+        WHEN 0 THEN 'SURVEY' WHEN 1 THEN 'LIDAR' WHEN 2 THEN 'PHOTOGRAMMETRY' ELSE 'CAD' 
+    END AS CREATED_FROM,
+    DATEADD(MONTH, -UNIFORM(1, 24, RANDOM()), CURRENT_DATE()) AS SURVEY_DATE,
+    UNIFORM(1, 10, RANDOM()) AS ACCURACY_CM,
+    UNIFORM(85, 100, RANDOM()) AS COMPLETENESS_PCT,
+    UNIFORM(75, 100, RANDOM()) AS QUALITY_SCORE,
+    'VALIDATED' AS STATUS,
+    TRUE AS IS_CURRENT,
+    s.DIGITAL_TWIN_STATUS AS SYNC_STATUS
+FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES s
+LEFT JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.TOWERS t ON s.SITE_ID = t.SITE_ID
+WHERE s.STATUS = 'ACTIVE'
+LIMIT 10000;
+
+-- ============================================================================
+-- DISCREPANCY_LOG (~3% discrepancy rate per plan)
+-- ============================================================================
+
+INSERT INTO DISCREPANCY_LOG (
+    DISCREPANCY_ID, MODEL_ID, SITE_ID, TOWER_ID, EQUIPMENT_ID,
+    DISCREPANCY_TYPE, SEVERITY, FIELD_NAME, EXPECTED_VALUE, ACTUAL_VALUE, DESCRIPTION,
+    DETECTED_DATE, DETECTED_BY, DETECTION_SOURCE,
+    AFFECTS_OPERATIONS, AFFECTS_BILLING, AFFECTS_COMPLIANCE,
+    STATUS, RESOLUTION_ACTION, DAYS_OPEN
+)
+SELECT 
+    'DISC-' || LPAD(ROW_NUMBER() OVER (), 6, '0') AS DISCREPANCY_ID,
+    am.MODEL_ID,
+    am.SITE_ID,
+    am.TOWER_ID,
+    NULL AS EQUIPMENT_ID,
+    CASE MOD(ROW_NUMBER() OVER (), 5)
+        WHEN 0 THEN 'WRONG_POSITION'
+        WHEN 1 THEN 'WRONG_ATTRIBUTE'
+        WHEN 2 THEN 'MISSING_ASSET'
+        WHEN 3 THEN 'OUTDATED'
+        ELSE 'EXTRA_ASSET'
+    END AS DISCREPANCY_TYPE,
+    CASE 
+        WHEN UNIFORM(0, 100, RANDOM()) < 10 THEN 'CRITICAL'
+        WHEN UNIFORM(0, 100, RANDOM()) < 30 THEN 'HIGH'
+        WHEN UNIFORM(0, 100, RANDOM()) < 70 THEN 'MEDIUM'
+        ELSE 'LOW'
+    END AS SEVERITY,
+    CASE MOD(ROW_NUMBER() OVER (), 4)
+        WHEN 0 THEN 'HEIGHT_M'
+        WHEN 1 THEN 'EQUIPMENT_COUNT'
+        WHEN 2 THEN 'ANTENNA_TYPE'
+        ELSE 'POSITION_COORDS'
+    END AS FIELD_NAME,
+    'Expected Value' AS EXPECTED_VALUE,
+    'Actual Value (Different)' AS ACTUAL_VALUE,
+    'Discrepancy detected between Digital Twin model and physical reality' AS DESCRIPTION,
+    DATEADD(DAY, -UNIFORM(1, 90, RANDOM()), CURRENT_DATE()) AS DETECTED_DATE,
+    'AUTOMATED' AS DETECTED_BY,
+    'Digital Twin Sync Process' AS DETECTION_SOURCE,
+    CASE WHEN UNIFORM(0, 100, RANDOM()) < 20 THEN TRUE ELSE FALSE END AS AFFECTS_OPERATIONS,
+    CASE WHEN UNIFORM(0, 100, RANDOM()) < 10 THEN TRUE ELSE FALSE END AS AFFECTS_BILLING,
+    CASE WHEN UNIFORM(0, 100, RANDOM()) < 5 THEN TRUE ELSE FALSE END AS AFFECTS_COMPLIANCE,
+    CASE 
+        WHEN UNIFORM(0, 100, RANDOM()) < 60 THEN 'RESOLVED'
+        WHEN UNIFORM(0, 100, RANDOM()) < 85 THEN 'INVESTIGATING'
+        ELSE 'OPEN'
+    END AS STATUS,
+    CASE WHEN UNIFORM(0, 100, RANDOM()) < 60 THEN 'UPDATE_MODEL' ELSE NULL END AS RESOLUTION_ACTION,
+    UNIFORM(1, 60, RANDOM()) AS DAYS_OPEN
+FROM ASSET_MODELS am
+WHERE am.SYNC_STATUS = 'DISCREPANCY'
+   OR UNIFORM(0, 100, RANDOM()) < 3  -- ~3% random discrepancies
+LIMIT 500;
+
+-- ============================================================================
+-- VALIDATION_RULES
+-- ============================================================================
+
+INSERT INTO VALIDATION_RULES (
+    RULE_ID, RULE_CODE, RULE_NAME, APPLIES_TO_SCHEMA, APPLIES_TO_TABLE,
+    RULE_TYPE, RULE_DESCRIPTION, SEVERITY_IF_FAILED, IS_ACTIVE, RUN_FREQUENCY
+)
+VALUES
+    ('VR-001', 'SITE-COORDS-VALID', 'Site Coordinates Validation', 'INFRASTRUCTURE', 'SITES', 'ACCURACY', 'Validate GPS coordinates are within France boundaries', 'HIGH', TRUE, 'DAILY'),
+    ('VR-002', 'TOWER-HEIGHT-RANGE', 'Tower Height Range Check', 'INFRASTRUCTURE', 'TOWERS', 'ACCURACY', 'Tower height should be between 10m and 300m', 'MEDIUM', TRUE, 'DAILY'),
+    ('VR-003', 'EQUIPMENT-EOL-CHECK', 'Equipment End of Life Check', 'INFRASTRUCTURE', 'EQUIPMENT', 'TIMELINESS', 'Flag equipment past expected end of life', 'HIGH', TRUE, 'DAILY'),
+    ('VR-004', 'CLIENT-REVENUE-MATCH', 'Client Revenue Consistency', 'FINANCE', 'REVENUE_BY_CLIENT', 'CONSISTENCY', 'Client revenue should match installation count trends', 'MEDIUM', TRUE, 'WEEKLY'),
+    ('VR-005', 'CARBON-DATA-COMPLETE', 'Carbon Data Completeness', 'ENERGY', 'CARBON_EMISSIONS', 'COMPLETENESS', 'All regions should have monthly carbon data', 'HIGH', TRUE, 'MONTHLY'),
+    ('VR-006', 'EMPLOYEE-SKILL-COVERAGE', 'Employee Skill Coverage', 'HR', 'SKILLS_MATRIX', 'COMPLETENESS', 'Each employee should have at least 3 skills mapped', 'LOW', TRUE, 'WEEKLY'),
+    ('VR-007', 'DT-MODEL-FRESHNESS', 'Digital Twin Model Freshness', 'DIGITAL_TWIN', 'ASSET_MODELS', 'TIMELINESS', 'Models should be updated within last 12 months', 'MEDIUM', TRUE, 'WEEKLY');
+
+-- ============================================================================
+-- DATA_QUALITY_SCORES
+-- ============================================================================
+
+INSERT INTO DATA_QUALITY_SCORES (
+    SCORE_ID, ENTITY_TYPE, ENTITY_ID, SCORE_DATE,
+    COMPLETENESS_SCORE, ACCURACY_SCORE, CONSISTENCY_SCORE, TIMELINESS_SCORE, UNIQUENESS_SCORE,
+    OVERALL_SCORE, SCORE_LABEL, PRIOR_PERIOD_SCORE, SCORE_CHANGE, TARGET_SCORE, MEETS_TARGET,
+    OPEN_DISCREPANCIES, CRITICAL_ISSUES
+)
+SELECT 
+    'DQS-' || LPAD(ROW_NUMBER() OVER (), 6, '0') AS SCORE_ID,
+    entity.ENTITY_TYPE,
+    entity.ENTITY_ID,
+    cal.DATE_KEY AS SCORE_DATE,
+    UNIFORM(85, 100, RANDOM()) AS COMPLETENESS_SCORE,
+    UNIFORM(88, 100, RANDOM()) AS ACCURACY_SCORE,
+    UNIFORM(90, 100, RANDOM()) AS CONSISTENCY_SCORE,
+    UNIFORM(82, 98, RANDOM()) AS TIMELINESS_SCORE,
+    UNIFORM(95, 100, RANDOM()) AS UNIQUENESS_SCORE,
+    UNIFORM(88, 98, RANDOM()) AS OVERALL_SCORE,
+    CASE 
+        WHEN UNIFORM(88, 98, RANDOM()) >= 90 THEN 'EXCELLENT'
+        WHEN UNIFORM(88, 98, RANDOM()) >= 80 THEN 'GOOD'
+        ELSE 'FAIR'
+    END AS SCORE_LABEL,
+    UNIFORM(85, 95, RANDOM()) AS PRIOR_PERIOD_SCORE,
+    UNIFORM(-2, 5, RANDOM()) AS SCORE_CHANGE,
+    90 AS TARGET_SCORE,
+    CASE WHEN UNIFORM(88, 98, RANDOM()) >= 90 THEN TRUE ELSE FALSE END AS MEETS_TARGET,
+    UNIFORM(0, 20, RANDOM()) AS OPEN_DISCREPANCIES,
+    UNIFORM(0, 3, RANDOM()) AS CRITICAL_ISSUES
+FROM (
+    SELECT DISTINCT DATE_TRUNC('MONTH', DATE_KEY) AS DATE_KEY 
+    FROM TDF_DATA_PLATFORM.CORE.CALENDAR 
+    WHERE DATE_KEY BETWEEN '2025-06-01' AND '2025-12-31'
+) cal
+CROSS JOIN (
+    SELECT 'COMPANY' AS ENTITY_TYPE, 'TDF' AS ENTITY_ID
+    UNION ALL SELECT 'REGION', 'REG-IDF'
+    UNION ALL SELECT 'REGION', 'REG-ARA'
+    UNION ALL SELECT 'REGION', 'REG-PAC'
+    UNION ALL SELECT 'BU', 'BU-HOST'
+    UNION ALL SELECT 'BU', 'BU-BC'
+) entity;
+
+-- ============================================================================
+-- COMMERCIAL SCHEMA - Investment Scenarios
+-- ============================================================================
+
+USE SCHEMA COMMERCIAL;
+
+INSERT INTO INVESTMENT_SCENARIOS (
+    SCENARIO_ID, SCENARIO_NAME, SCENARIO_TYPE, DESCRIPTION, ASSUMPTIONS,
+    TIME_HORIZON_YEARS, BASE_YEAR,
+    CAPEX_CHANGE_EUR, OPEX_CHANGE_EUR, REVENUE_IMPACT_EUR, NPV_EUR, IRR_PCT, PAYBACK_YEARS,
+    PROBABILITY_PCT, STATUS, CREATED_BY
+)
+VALUES
+    ('SCN-001', 'Accelerated 5G Rollout', 'COVERAGE_EXPANSION', 'Accelerate 5G antenna deployment by 20%', 'Assumes continued MNO demand; equipment costs stable', 5, 2025, 50000000, 5000000, 80000000, 35000000, 18.5, 4.2, 75, 'APPROVED', 'Strategy Team'),
+    ('SCN-002', 'CAPEX Deferral 20%', 'CAPEX_DEFERRAL', 'Defer 20% of non-critical maintenance CAPEX', 'Risk: increased equipment failures; assumes stable operations', 3, 2025, -40000000, 8000000, -5000000, 25000000, 22.0, 2.1, 60, 'UNDER_REVIEW', 'Finance Team'),
+    ('SCN-003', 'Edge DC Expansion', 'COVERAGE_EXPANSION', 'Double Edge DC capacity from 102 to 200+', 'Growing demand for edge computing; 5G enables new use cases', 5, 2025, 80000000, 12000000, 120000000, 45000000, 16.2, 4.8, 70, 'APPROVED', 'Strategy Team'),
+    ('SCN-004', 'PMN Market Entry', 'COVERAGE_EXPANSION', 'Aggressive Private Mobile Network expansion', 'Industry 4.0 demand; logistics sector growth', 4, 2025, 30000000, 4000000, 50000000, 18000000, 14.5, 3.5, 55, 'UNDER_REVIEW', 'Commercial Team'),
+    ('SCN-005', 'Renewable Energy 100%', 'COST_REDUCTION', 'Achieve 100% renewable energy by 2030', 'PPA agreements; on-site solar investment', 5, 2025, 25000000, -8000000, 0, 15000000, 12.0, 4.0, 80, 'APPROVED', 'ESG Team');
+
+-- ============================================================================
+-- CLIENT_PIPELINE (Sales opportunities)
+-- ============================================================================
+
+INSERT INTO CLIENT_PIPELINE (
+    PIPELINE_ID, OPPORTUNITY_NAME, OPERATOR_ID, OPPORTUNITY_TYPE, SERVICE_TYPE,
+    REGION_ID, SITE_COUNT, ESTIMATED_VALUE_EUR, ANNUAL_REVENUE_EUR,
+    EXPECTED_CLOSE_DATE, EXPECTED_START_DATE, PIPELINE_STAGE, PROBABILITY_PCT
+)
+VALUES
+    ('PIP-001', 'Orange 5G Densification IDF', 'OP-ORANGE', 'EXPANSION', 'SITE_HOSTING', 'REG-IDF', 150, 15000000, 4500000, '2025-09-30', '2025-11-01', 'NEGOTIATION', 80),
+    ('PIP-002', 'SFR Rural Coverage NAQ', 'OP-SFR', 'NEW_SITES', 'SITE_HOSTING', 'REG-NAQ', 75, 8000000, 2400000, '2025-10-15', '2026-01-01', 'PROPOSAL', 60),
+    ('PIP-003', 'Bouygues Indoor Shopping Centers', 'OP-BOUYGUES', 'NEW_SITES', 'INDOOR', 'REG-ARA', 20, 5000000, 1500000, '2025-08-31', '2025-10-01', 'QUALIFIED', 40),
+    ('PIP-004', 'Free 5G ARA Expansion', 'OP-FREE', 'EXPANSION', 'SITE_HOSTING', 'REG-ARA', 100, 10000000, 3000000, '2025-11-30', '2026-02-01', 'LEAD', 25),
+    ('PIP-005', 'Orange PMN Logistics Hub', 'OP-ORANGE', 'NEW_SITES', 'PMN', 'REG-HDF', 5, 2000000, 600000, '2025-09-15', '2025-12-01', 'NEGOTIATION', 70),
+    ('PIP-006', 'SFR Edge DC Colocations', 'OP-SFR', 'EXPANSION', 'EDGE_CONNECT', 'REG-PAC', 10, 3000000, 900000, '2025-10-31', '2026-01-15', 'PROPOSAL', 55);
+
+SELECT 'EXECUTIVE KPIs & DIGITAL TWIN DATA SEEDED' AS STATUS,
+       (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.DIGITAL_TWIN.ASSET_MODELS) AS MODELS_COUNT,
+       (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.DIGITAL_TWIN.DISCREPANCY_LOG) AS DISCREPANCIES_COUNT,
+       (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.DIGITAL_TWIN.DATA_QUALITY_SCORES) AS DQ_SCORES_COUNT,
+       (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.COMMERCIAL.INVESTMENT_SCENARIOS) AS SCENARIOS_COUNT,
+       (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.COMMERCIAL.CLIENT_PIPELINE) AS PIPELINE_COUNT;
+

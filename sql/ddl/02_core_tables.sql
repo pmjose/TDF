@@ -1,0 +1,210 @@
+-- ============================================================================
+-- TDF DATA PLATFORM - CORE TABLES
+-- ============================================================================
+-- Master data: Regions, Departments, Business Units, Operators
+-- France Metropolitan: 13 Regions, 96 Departments
+-- ============================================================================
+
+USE DATABASE TDF_DATA_PLATFORM;
+USE SCHEMA CORE;
+
+-- ============================================================================
+-- REGIONS (13 Metropolitan French Regions)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE REGIONS (
+    REGION_ID VARCHAR(10) PRIMARY KEY,
+    REGION_NAME VARCHAR(100) NOT NULL,
+    REGION_CODE VARCHAR(3) NOT NULL,
+    CAPITAL_CITY VARCHAR(100),
+    LATITUDE FLOAT,
+    LONGITUDE FLOAT,
+    POPULATION INTEGER,
+    AREA_KM2 FLOAT,
+    SITE_DENSITY_TARGET FLOAT COMMENT 'Target sites per 1000 km2',
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- DEPARTMENTS (96 Metropolitan French Departments)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE DEPARTMENTS (
+    DEPARTMENT_ID VARCHAR(10) PRIMARY KEY,
+    DEPARTMENT_CODE VARCHAR(3) NOT NULL,
+    DEPARTMENT_NAME VARCHAR(100) NOT NULL,
+    REGION_ID VARCHAR(10) NOT NULL REFERENCES REGIONS(REGION_ID),
+    PREFECTURE VARCHAR(100),
+    LATITUDE FLOAT,
+    LONGITUDE FLOAT,
+    POPULATION INTEGER,
+    AREA_KM2 FLOAT,
+    IS_URBAN BOOLEAN DEFAULT FALSE,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- COMMUNES (Major French Cities/Towns)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE COMMUNES (
+    COMMUNE_ID VARCHAR(10) PRIMARY KEY,
+    INSEE_CODE VARCHAR(5) NOT NULL,
+    COMMUNE_NAME VARCHAR(100) NOT NULL,
+    DEPARTMENT_ID VARCHAR(10) NOT NULL REFERENCES DEPARTMENTS(DEPARTMENT_ID),
+    POSTAL_CODE VARCHAR(5),
+    LATITUDE FLOAT,
+    LONGITUDE FLOAT,
+    POPULATION INTEGER,
+    IS_PREFECTURE BOOLEAN DEFAULT FALSE,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- BUSINESS UNITS (TDF Organizational Structure)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE BUSINESS_UNITS (
+    BU_ID VARCHAR(10) PRIMARY KEY,
+    BU_CODE VARCHAR(20) NOT NULL,
+    BU_NAME VARCHAR(100) NOT NULL,
+    BU_TYPE VARCHAR(50) NOT NULL COMMENT 'BROADCAST, TELECOM, CONNECTIVITY, CORPORATE',
+    PARENT_BU_ID VARCHAR(10) REFERENCES BUSINESS_UNITS(BU_ID),
+    REVENUE_TARGET_EUR FLOAT COMMENT 'Annual revenue target in EUR',
+    HEADCOUNT_TARGET INTEGER,
+    COST_CENTER VARCHAR(20),
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- OPERATORS (Mobile Network Operators - TDF Clients)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE OPERATORS (
+    OPERATOR_ID VARCHAR(10) PRIMARY KEY,
+    OPERATOR_CODE VARCHAR(20) NOT NULL,
+    OPERATOR_NAME VARCHAR(100) NOT NULL,
+    OPERATOR_TYPE VARCHAR(50) NOT NULL COMMENT 'MNO, MVNO, BROADCASTER, IOT',
+    PARENT_COMPANY VARCHAR(100),
+    CONTRACT_START_DATE DATE,
+    CONTRACT_END_DATE DATE,
+    ANNUAL_REVENUE_EUR FLOAT COMMENT 'Annual revenue from this operator',
+    CREDIT_RATING VARCHAR(10),
+    PAYMENT_TERMS_DAYS INTEGER DEFAULT 30,
+    IS_STRATEGIC_CLIENT BOOLEAN DEFAULT FALSE,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- SITE TYPES (Reference data for infrastructure)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE SITE_TYPES (
+    SITE_TYPE_ID VARCHAR(10) PRIMARY KEY,
+    SITE_TYPE_CODE VARCHAR(20) NOT NULL,
+    SITE_TYPE_NAME VARCHAR(100) NOT NULL,
+    DESCRIPTION VARCHAR(500),
+    TYPICAL_HEIGHT_M FLOAT,
+    TYPICAL_CAPACITY INTEGER COMMENT 'Typical number of tenants',
+    MAINTENANCE_FREQUENCY_DAYS INTEGER,
+    AVERAGE_ENERGY_KWH_MONTH FLOAT,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- EQUIPMENT TYPES (Reference data for equipment)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE EQUIPMENT_TYPES (
+    EQUIPMENT_TYPE_ID VARCHAR(10) PRIMARY KEY,
+    EQUIPMENT_TYPE_CODE VARCHAR(20) NOT NULL,
+    EQUIPMENT_TYPE_NAME VARCHAR(100) NOT NULL,
+    CATEGORY VARCHAR(50) NOT NULL COMMENT 'ANTENNA, TRANSMITTER, POWER, NETWORK, HVAC',
+    MANUFACTURER VARCHAR(100),
+    EXPECTED_LIFESPAN_YEARS INTEGER,
+    MAINTENANCE_INTERVAL_MONTHS INTEGER,
+    AVERAGE_UNIT_COST_EUR FLOAT,
+    POWER_CONSUMPTION_W FLOAT,
+    IS_CRITICAL BOOLEAN DEFAULT FALSE,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- SKILL CATEGORIES (Reference data for HR)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE SKILL_CATEGORIES (
+    SKILL_CATEGORY_ID VARCHAR(10) PRIMARY KEY,
+    SKILL_CATEGORY_CODE VARCHAR(20) NOT NULL,
+    SKILL_CATEGORY_NAME VARCHAR(100) NOT NULL,
+    DESCRIPTION VARCHAR(500),
+    IS_TECHNICAL BOOLEAN DEFAULT TRUE,
+    CERTIFICATION_REQUIRED BOOLEAN DEFAULT FALSE,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- COST CENTERS
+-- ============================================================================
+
+CREATE OR REPLACE TABLE COST_CENTERS (
+    COST_CENTER_ID VARCHAR(10) PRIMARY KEY,
+    COST_CENTER_CODE VARCHAR(20) NOT NULL,
+    COST_CENTER_NAME VARCHAR(100) NOT NULL,
+    BU_ID VARCHAR(10) REFERENCES BUSINESS_UNITS(BU_ID),
+    MANAGER_NAME VARCHAR(100),
+    ANNUAL_BUDGET_EUR FLOAT,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- ============================================================================
+-- CALENDAR (Date dimension for time-series analysis)
+-- ============================================================================
+
+CREATE OR REPLACE TABLE CALENDAR (
+    DATE_KEY DATE PRIMARY KEY,
+    YEAR INTEGER,
+    QUARTER INTEGER,
+    MONTH INTEGER,
+    MONTH_NAME VARCHAR(20),
+    WEEK_OF_YEAR INTEGER,
+    DAY_OF_MONTH INTEGER,
+    DAY_OF_WEEK INTEGER,
+    DAY_NAME VARCHAR(20),
+    IS_WEEKEND BOOLEAN,
+    IS_FRENCH_HOLIDAY BOOLEAN,
+    HOLIDAY_NAME VARCHAR(100),
+    FISCAL_YEAR INTEGER,
+    FISCAL_QUARTER INTEGER
+);
+
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+
+-- Create indexes for common lookups
+CREATE OR REPLACE INDEX IDX_DEPARTMENTS_REGION ON DEPARTMENTS(REGION_ID);
+CREATE OR REPLACE INDEX IDX_COMMUNES_DEPARTMENT ON COMMUNES(DEPARTMENT_ID);
+CREATE OR REPLACE INDEX IDX_BU_PARENT ON BUSINESS_UNITS(PARENT_BU_ID);
+CREATE OR REPLACE INDEX IDX_COST_CENTER_BU ON COST_CENTERS(BU_ID);
+
+SELECT 'CORE TABLES CREATED' AS STATUS, CURRENT_TIMESTAMP() AS CREATED_AT;
+

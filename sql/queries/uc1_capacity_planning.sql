@@ -1,0 +1,112 @@
+-- ============================================================================
+-- TDF DATA PLATFORM - USE CASE 1: RESOURCE & CAPACITY PLANNING
+-- ============================================================================
+-- Sample queries for C-Level demo
+-- ============================================================================
+
+USE DATABASE TDF_DATA_PLATFORM;
+USE SCHEMA ANALYTICS;
+
+-- ============================================================================
+-- KPI 1: Capacity vs Demand Gap Analysis
+-- ============================================================================
+
+SELECT 
+    YEAR_MONTH,
+    BU_NAME,
+    REGION_NAME,
+    FTE_AVAILABLE,
+    FTE_ALLOCATED,
+    FTE_REMAINING,
+    DEMAND_FTE,
+    FTE_GAP,
+    CAPACITY_STATUS,
+    UTILIZATION_PCT
+FROM VW_CAPACITY_VS_DEMAND
+WHERE YEAR_MONTH >= '2025-06-01'
+ORDER BY YEAR_MONTH, BU_NAME;
+
+-- ============================================================================
+-- KPI 2: 18-Month Demand Forecast
+-- ============================================================================
+
+SELECT 
+    TARGET_MONTH,
+    SUM(DEMAND_FTE) AS TOTAL_DEMAND_FTE,
+    SUM(REVENUE_FORECAST_EUR) AS TOTAL_REVENUE_FORECAST,
+    AVG(CONFIDENCE_PCT) AS AVG_CONFIDENCE
+FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST
+WHERE TARGET_MONTH BETWEEN '2025-06-01' AND '2027-06-01'
+GROUP BY TARGET_MONTH
+ORDER BY TARGET_MONTH;
+
+-- ============================================================================
+-- KPI 3: Work Order Backlog by Priority
+-- ============================================================================
+
+SELECT 
+    PRIORITY,
+    STATUS,
+    COUNT(*) AS WO_COUNT,
+    SUM(ESTIMATED_HOURS) AS TOTAL_HOURS,
+    SUM(ESTIMATED_COST_EUR) AS TOTAL_COST_EUR,
+    AVG(CASE WHEN DUE_DATE < CURRENT_DATE() THEN 1 ELSE 0 END) * 100 AS OVERDUE_PCT
+FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS
+WHERE STATUS NOT IN ('COMPLETED', 'CANCELLED')
+GROUP BY PRIORITY, STATUS
+ORDER BY 
+    CASE PRIORITY WHEN 'EMERGENCY' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 ELSE 4 END,
+    STATUS;
+
+-- ============================================================================
+-- KPI 4: Skill Gap Analysis
+-- ============================================================================
+
+SELECT 
+    sc.SKILL_CATEGORY_NAME,
+    COUNT(DISTINCT sm.EMPLOYEE_ID) AS EMPLOYEES_WITH_SKILL,
+    AVG(sm.PROFICIENCY_LEVEL) AS AVG_PROFICIENCY,
+    SUM(CASE WHEN sm.PROFICIENCY_LEVEL >= 4 THEN 1 ELSE 0 END) AS EXPERT_COUNT,
+    sc.CERTIFICATION_REQUIRED,
+    CASE 
+        WHEN COUNT(DISTINCT sm.EMPLOYEE_ID) < 50 THEN 'SHORTAGE'
+        WHEN COUNT(DISTINCT sm.EMPLOYEE_ID) < 100 THEN 'ADEQUATE'
+        ELSE 'SURPLUS'
+    END AS CAPACITY_STATUS
+FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
+LEFT JOIN TDF_DATA_PLATFORM.HR.SKILLS s ON sc.SKILL_CATEGORY_ID = s.SKILL_CATEGORY_ID
+LEFT JOIN TDF_DATA_PLATFORM.HR.SKILLS_MATRIX sm ON s.SKILL_ID = sm.SKILL_ID
+GROUP BY sc.SKILL_CATEGORY_NAME, sc.CERTIFICATION_REQUIRED
+ORDER BY EMPLOYEES_WITH_SKILL;
+
+-- ============================================================================
+-- KPI 5: Resource Utilization by Region
+-- ============================================================================
+
+SELECT 
+    r.REGION_NAME,
+    COUNT(DISTINCT e.EMPLOYEE_ID) AS HEADCOUNT,
+    SUM(e.FTE_PERCENTAGE) AS TOTAL_FTE,
+    COUNT(DISTINCT ra.ALLOCATION_ID) AS ACTIVE_ASSIGNMENTS,
+    SUM(ra.HOURS_ALLOCATED) AS TOTAL_HOURS_ALLOCATED,
+    SUM(ra.HOURS_WORKED) AS TOTAL_HOURS_WORKED,
+    ROUND(SUM(ra.HOURS_WORKED) / NULLIF(SUM(ra.HOURS_ALLOCATED), 0) * 100, 1) AS EFFICIENCY_PCT
+FROM TDF_DATA_PLATFORM.HR.EMPLOYEES e
+LEFT JOIN TDF_DATA_PLATFORM.CORE.REGIONS r ON e.REGION_ID = r.REGION_ID
+LEFT JOIN TDF_DATA_PLATFORM.OPERATIONS.RESOURCE_ALLOCATION ra ON e.EMPLOYEE_ID = ra.EMPLOYEE_ID
+WHERE e.EMPLOYMENT_STATUS = 'ACTIVE'
+GROUP BY r.REGION_NAME
+ORDER BY HEADCOUNT DESC;
+
+-- ============================================================================
+-- EXECUTIVE SUMMARY: Capacity Planning Dashboard
+-- ============================================================================
+
+SELECT 
+    'CAPACITY PLANNING SUMMARY' AS METRIC_TYPE,
+    (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') AS TOTAL_HEADCOUNT,
+    (SELECT SUM(FTE_AVAILABLE) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY WHERE YEAR_MONTH = DATE_TRUNC('MONTH', CURRENT_DATE())) AS CURRENT_FTE_AVAILABLE,
+    (SELECT SUM(DEMAND_FTE) FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST WHERE TARGET_MONTH = DATE_TRUNC('MONTH', CURRENT_DATE())) AS CURRENT_DEMAND_FTE,
+    (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS WHERE STATUS = 'OPEN') AS OPEN_WORK_ORDERS,
+    (SELECT AVG(UTILIZATION_PCT) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY WHERE YEAR_MONTH >= '2025-06-01') AS AVG_UTILIZATION_PCT;
+
