@@ -2005,9 +2005,8 @@ def page_capacity_planning():
         employee_data = run_query(f"""
             SELECT COUNT(*) as EMP_COUNT
             FROM TDF_DATA_PLATFORM.HR.EMPLOYEES e
-            JOIN TDF_DATA_PLATFORM.CORE.DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
-            WHERE d.REGION_ID = '{selected_region_id}'
-            AND e.STATUS = 'ACTIVE'
+            WHERE e.REGION_ID = '{selected_region_id}'
+            AND e.EMPLOYMENT_STATUS = 'ACTIVE'
         """)
         
         # Get real values with sensible fallbacks based on region population
