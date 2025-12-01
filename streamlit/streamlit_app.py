@@ -4606,7 +4606,214 @@ def page_digital_twin():
         """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
-    # ROW 4c: 3D Coverage by Region (Stacked Bar)
+    # ROW 4c: Live Sensor Dashboard + Alerts
+    # -------------------------------------------------------------------------
+    
+    st.markdown("---")
+    st.markdown(f"### 📡 Live Tower Data: {tower['id']}")
+    
+    sensor_col1, sensor_col2, sensor_col3, sensor_col4 = st.columns(4)
+    
+    # Simulated live sensor data (would come from IoT in production)
+    import random
+    random.seed(hash(tower['id']))  # Consistent per tower
+    
+    with sensor_col1:
+        temp = 22 + random.randint(-5, 15)
+        temp_color = '#27ae60' if temp < 30 else '#f39c12' if temp < 40 else '#e63946'
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {temp_color};">
+                <div style="font-size: 0.8rem; color: #888;">🌡️ Equipment Temp</div>
+                <div style="font-size: 2rem; font-weight: 700; color: {temp_color};">{temp}°C</div>
+                <div style="font-size: 0.7rem; color: #888;">Normal: &lt;35°C</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with sensor_col2:
+        power = 15 + random.randint(0, 25) + (len(tower['tenants']) * 5)
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #3498db;">
+                <div style="font-size: 0.8rem; color: #888;">⚡ Power Draw</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #3498db;">{power} kW</div>
+                <div style="font-size: 0.7rem; color: #888;">Capacity: 80 kW</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with sensor_col3:
+        wind = random.randint(5, 35)
+        wind_color = '#27ae60' if wind < 20 else '#f39c12' if wind < 40 else '#e63946'
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {wind_color};">
+                <div style="font-size: 0.8rem; color: #888;">💨 Wind Speed</div>
+                <div style="font-size: 2rem; font-weight: 700; color: {wind_color};">{wind} km/h</div>
+                <div style="font-size: 0.7rem; color: #888;">Alert: &gt;60 km/h</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with sensor_col4:
+        uptime = 99.0 + random.random() * 0.99
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #27ae60;">
+                <div style="font-size: 0.8rem; color: #888;">📶 Uptime (30d)</div>
+                <div style="font-size: 2rem; font-weight: 700; color: #27ae60;">{uptime:.2f}%</div>
+                <div style="font-size: 0.7rem; color: #888;">SLA: 99.9%</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 4d: Alerts + Revenue
+    # -------------------------------------------------------------------------
+    
+    alert_col, revenue_col = st.columns(2)
+    
+    with alert_col:
+        st.markdown("#### ⚠️ Active Alerts")
+        
+        # Generate alerts based on tower characteristics
+        alerts = []
+        if tower['current_load'] / tower['max_load'] > 0.8:
+            alerts.append({"type": "warning", "msg": "Load capacity at 90% - plan expansion", "time": "2h ago"})
+        if tower['year'] < 2010:
+            alerts.append({"type": "info", "msg": "Structural inspection due in 30 days", "time": "Today"})
+        if wind > 25:
+            alerts.append({"type": "warning", "msg": f"High wind alert: {wind} km/h", "time": "Live"})
+        if len(alerts) == 0:
+            alerts.append({"type": "success", "msg": "All systems operating normally", "time": "Live"})
+        
+        # Add some random alerts for variety
+        random_alerts = [
+            {"type": "info", "msg": "Scheduled maintenance: Dec 15", "time": "5d"},
+            {"type": "warning", "msg": "Backup power test required", "time": "1d ago"},
+            {"type": "success", "msg": "5G upgrade completed successfully", "time": "3d ago"},
+        ]
+        alerts.extend(random.sample(random_alerts, min(2, len(random_alerts))))
+        
+        for alert in alerts[:4]:
+            alert_color = '#e63946' if alert['type'] == 'critical' else '#f39c12' if alert['type'] == 'warning' else '#27ae60' if alert['type'] == 'success' else '#3498db'
+            alert_icon = '🔴' if alert['type'] == 'critical' else '🟡' if alert['type'] == 'warning' else '🟢' if alert['type'] == 'success' else '🔵'
+            st.markdown(f"""
+                <div style="background: {alert_color}10; border-left: 3px solid {alert_color}; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.85rem;">{alert_icon} {alert['msg']}</span>
+                        <span style="font-size: 0.7rem; color: #888;">{alert['time']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with revenue_col:
+        st.markdown("#### 💰 Revenue & ROI")
+        
+        # Calculate revenue based on tenants and tower size
+        base_revenue = tower['height'] * 500 + len(tower['tenants']) * 15000
+        monthly_revenue = base_revenue + random.randint(-5000, 10000)
+        annual_revenue = monthly_revenue * 12
+        years_operating = 2025 - tower['year']
+        total_revenue = annual_revenue * years_operating
+        construction_cost = tower['height'] * 8000 + 150000
+        roi = ((total_revenue - construction_cost) / construction_cost) * 100
+        
+        rev_col1, rev_col2 = st.columns(2)
+        with rev_col1:
+            st.metric("Monthly Revenue", f"€{monthly_revenue:,.0f}", f"+{random.randint(2,8)}% YoY")
+            st.metric("Total ROI", f"{roi:.0f}%", f"Since {tower['year']}")
+        with rev_col2:
+            st.metric("Annual Revenue", f"€{annual_revenue:,.0f}")
+            st.metric("Payback Period", f"{construction_cost/annual_revenue:.1f} yrs", "✓ Achieved")
+        
+        # Revenue by tenant pie
+        tenant_revenues = [base_revenue / len(tower['tenants']) + random.randint(-2000, 5000) for _ in tower['tenants']]
+        fig_rev = go.Figure(data=[go.Pie(
+            labels=[t['name'] for t in tower['tenants']],
+            values=tenant_revenues,
+            hole=0.5,
+            marker_colors=[t['color'] for t in tower['tenants']],
+            textinfo='percent',
+            textfont_size=10
+        )])
+        fig_rev.update_layout(
+            height=150,
+            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=False,
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_rev, use_container_width=True)
+        st.caption("Revenue split by tenant")
+    
+    # -------------------------------------------------------------------------
+    # ROW 4e: Drone Inspection + Tower Timeline
+    # -------------------------------------------------------------------------
+    
+    drone_col, timeline_col = st.columns(2)
+    
+    with drone_col:
+        st.markdown("#### 🚁 Drone Inspection Status")
+        
+        last_scan_days = random.randint(15, 120)
+        scan_status = "✅ Recent" if last_scan_days < 30 else "🟡 Due Soon" if last_scan_days < 90 else "🔴 Overdue"
+        scan_color = '#27ae60' if last_scan_days < 30 else '#f39c12' if last_scan_days < 90 else '#e63946'
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 600; color: #1a2b4a;">Last Inspection</span>
+                    <span style="background: {scan_color}20; color: {scan_color}; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{scan_status}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📅 {last_scan_days} days ago</div>
+                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📸 847 photos captured</div>
+                <div style="font-size: 0.85rem; color: #666;">🤖 AI Analysis: No anomalies detected</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Inspection findings
+        findings = [
+            {"item": "Structure integrity", "status": "✅ Good"},
+            {"item": "Antenna alignment", "status": "✅ Good"},
+            {"item": "Cable condition", "status": "🟡 Monitor"},
+            {"item": "Rust/corrosion", "status": "✅ None"},
+        ]
+        
+        for f in findings:
+            st.markdown(f"<span style='font-size: 0.85rem;'>{f['status']} {f['item']}</span>", unsafe_allow_html=True)
+        
+        st.button("🚁 Request New Scan", use_container_width=True)
+    
+    with timeline_col:
+        st.markdown("#### 📈 Tower Evolution Timeline")
+        
+        # Generate timeline based on tower year
+        events = [
+            {"year": tower['year'], "event": "🏗️ Tower constructed", "color": "#1a2b4a"},
+        ]
+        
+        # Add tenant events
+        for i, tenant in enumerate(tower['tenants']):
+            event_year = tower['year'] + 2 + i * 2 + random.randint(0, 3)
+            if event_year <= 2025:
+                events.append({"year": event_year, "event": f"📡 {tenant['name']} {tenant['tech']} installed", "color": tenant['color']})
+        
+        # Add some upgrade events
+        if tower['year'] < 2015:
+            events.append({"year": 2018, "event": "⚡ Power system upgraded", "color": "#f39c12"})
+        if tower['year'] < 2020:
+            events.append({"year": 2022, "event": "🔒 Security system added", "color": "#9b59b6"})
+        
+        events.append({"year": 2025, "event": "🔍 Current inspection", "color": "#27ae60"})
+        
+        # Sort by year
+        events = sorted(events, key=lambda x: x['year'])
+        
+        for event in events[-6:]:  # Show last 6 events
+            st.markdown(f"""
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <div style="background: {event['color']}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; min-width: 50px; text-align: center;">{event['year']}</div>
+                    <div style="font-size: 0.85rem; color: #666;">{event['event']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 4f: 3D Coverage by Region (Stacked Bar)
     # -------------------------------------------------------------------------
     
     st.markdown("### 📊 3D Model Status by Region")
