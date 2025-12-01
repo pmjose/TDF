@@ -4077,12 +4077,21 @@ def page_digital_twin():
             (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.FIBRE_NETWORK) as FIBRE_SEGMENTS
     """)
     
-    sites = infra_counts['SITES'].iloc[0] if not infra_counts.empty else 8785
-    towers = infra_counts['TOWERS'].iloc[0] if not infra_counts.empty else 7877
-    antennas = infra_counts['ANTENNAS'].iloc[0] if not infra_counts.empty else 24500
-    dcs = infra_counts['DATA_CENTERS'].iloc[0] if not infra_counts.empty else 12
-    transmitters = infra_counts['TRANSMITTERS'].iloc[0] if not infra_counts.empty else 1850
-    fibre = infra_counts['FIBRE_SEGMENTS'].iloc[0] if not infra_counts.empty else 4200
+    # Use realistic defaults for demo if tables are empty or have zero records
+    sites_raw = infra_counts['SITES'].iloc[0] if not infra_counts.empty else 0
+    towers_raw = infra_counts['TOWERS'].iloc[0] if not infra_counts.empty else 0
+    antennas_raw = infra_counts['ANTENNAS'].iloc[0] if not infra_counts.empty else 0
+    dcs_raw = infra_counts['DATA_CENTERS'].iloc[0] if not infra_counts.empty else 0
+    transmitters_raw = infra_counts['TRANSMITTERS'].iloc[0] if not infra_counts.empty else 0
+    fibre_raw = infra_counts['FIBRE_SEGMENTS'].iloc[0] if not infra_counts.empty else 0
+    
+    # Apply realistic defaults for demo when data is missing or zero
+    sites = sites_raw if sites_raw > 0 else 8785
+    towers = towers_raw if towers_raw > 0 else 7877
+    antennas = antennas_raw if antennas_raw > 0 else 24500
+    dcs = dcs_raw if dcs_raw > 0 else 12
+    transmitters = transmitters_raw if transmitters_raw > 0 else 1850
+    fibre = fibre_raw if fibre_raw > 0 else 4200
     
     inv_cols = st.columns(6)
     inventory_items = [
