@@ -4,8 +4,20 @@
 -- ~1,500 Employees, Skills, Workforce Capacity, Diversity Metrics
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA HR;
+
+-- ============================================================================
+-- TRUNCATE ALL HR TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS DIVERSITY_METRICS;
+TRUNCATE TABLE IF EXISTS WORKFORCE_CAPACITY;
+TRUNCATE TABLE IF EXISTS EMPLOYEE_SKILLS;
+TRUNCATE TABLE IF EXISTS EMPLOYEES;
+TRUNCATE TABLE IF EXISTS SKILLS;
 
 -- ============================================================================
 -- SKILLS

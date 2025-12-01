@@ -4,8 +4,19 @@
 -- Mobile Operators, Business Units, Equipment Types, Skill Categories
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA CORE;
+
+-- ============================================================================
+-- TRUNCATE ALL CORE TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS SKILL_CATEGORIES;
+TRUNCATE TABLE IF EXISTS EQUIPMENT_TYPES;
+TRUNCATE TABLE IF EXISTS BUSINESS_UNITS;
+TRUNCATE TABLE IF EXISTS OPERATORS;
 
 -- ============================================================================
 -- OPERATORS (4 Major French MNOs + Others)

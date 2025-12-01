@@ -5,8 +5,20 @@
 -- Based on TDF 2024 Investor Presentation
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA FINANCE;
+
+-- ============================================================================
+-- TRUNCATE ALL FINANCE TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS EBITDA_METRICS;
+TRUNCATE TABLE IF EXISTS CAPEX_PROJECTS;
+TRUNCATE TABLE IF EXISTS BUDGETS;
+TRUNCATE TABLE IF EXISTS ASSET_DEPRECIATION;
+TRUNCATE TABLE IF EXISTS REVENUE_BY_SEGMENT;
 
 -- ============================================================================
 -- REVENUE_BY_SEGMENT (TDF Revenue Structure - EUR 799.1M annualized)

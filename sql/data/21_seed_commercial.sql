@@ -11,6 +11,14 @@ USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA COMMERCIAL;
 
 -- ============================================================================
+-- TRUNCATE ALL COMMERCIAL TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS CONTRACTS;
+TRUNCATE TABLE IF EXISTS PROJECTS;
+TRUNCATE TABLE IF EXISTS DEMAND_FORECAST;
+
+-- ============================================================================
 -- DEMAND_FORECAST (18-month rolling forecast)
 -- ============================================================================
 

@@ -5,8 +5,20 @@
 -- Period: June 1, 2025 - December 19, 2025
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA OPERATIONS;
+
+-- ============================================================================
+-- TRUNCATE ALL OPERATIONS TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS RESOURCE_ALLOCATIONS;
+TRUNCATE TABLE IF EXISTS EQUIPMENT_STATUS;
+TRUNCATE TABLE IF EXISTS MAINTENANCE_RECORDS;
+TRUNCATE TABLE IF EXISTS WORK_ORDER_TASKS;
+TRUNCATE TABLE IF EXISTS WORK_ORDERS;
 
 -- ============================================================================
 -- WORK_ORDERS (~17,000 for the period)

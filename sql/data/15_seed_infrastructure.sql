@@ -5,8 +5,26 @@
 -- Realistic distribution across French regions
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA INFRASTRUCTURE;
+
+-- ============================================================================
+-- TRUNCATE ALL TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS POINTS_OF_SERVICE;
+TRUNCATE TABLE IF EXISTS FIBRE_NETWORK;
+TRUNCATE TABLE IF EXISTS CLIENT_INSTALLATIONS;
+TRUNCATE TABLE IF EXISTS BROADCAST_TRANSMITTERS;
+TRUNCATE TABLE IF EXISTS ANTENNAS;
+TRUNCATE TABLE IF EXISTS EQUIPMENT;
+TRUNCATE TABLE IF EXISTS DATA_CENTERS;
+TRUNCATE TABLE IF EXISTS INDOOR_SITES;
+TRUNCATE TABLE IF EXISTS ROOFTOPS;
+TRUNCATE TABLE IF EXISTS TOWERS;
+TRUNCATE TABLE IF EXISTS SITES;
 
 -- ============================================================================
 -- SITES (8,785 Active Sites)

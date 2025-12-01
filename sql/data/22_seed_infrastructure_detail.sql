@@ -16,6 +16,18 @@ USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA INFRASTRUCTURE;
 
 -- ============================================================================
+-- TRUNCATE INFRASTRUCTURE DETAIL TABLES (Idempotent - safe to re-run)
+-- Note: Main tables (SITES, TOWERS) are truncated in 15_seed_infrastructure.sql
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS POINTS_OF_SERVICE;
+TRUNCATE TABLE IF EXISTS FIBRE_NETWORK;
+TRUNCATE TABLE IF EXISTS BROADCAST_TRANSMITTERS;
+TRUNCATE TABLE IF EXISTS ANTENNAS;
+TRUNCATE TABLE IF EXISTS INDOOR_SITES;
+TRUNCATE TABLE IF EXISTS ROOFTOPS;
+
+-- ============================================================================
 -- ROOFTOPS (8,174 Building Rooftop Installations)
 -- ============================================================================
 

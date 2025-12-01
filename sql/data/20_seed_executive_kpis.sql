@@ -4,11 +4,22 @@
 -- Executive KPIs with traffic lights, Digital Twin data
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 
 -- ============================================================================
--- DIGITAL TWIN SCHEMA
+-- TRUNCATE ALL DIGITAL TWIN & ANALYTICS TABLES (Idempotent - safe to re-run)
 -- ============================================================================
+
+USE SCHEMA DIGITAL_TWIN;
+TRUNCATE TABLE IF EXISTS DATA_QUALITY_SCORES;
+TRUNCATE TABLE IF EXISTS SYNC_LOG;
+TRUNCATE TABLE IF EXISTS DISCREPANCY_LOG;
+TRUNCATE TABLE IF EXISTS ASSET_MODELS;
+
+USE SCHEMA ANALYTICS;
+TRUNCATE TABLE IF EXISTS EXECUTIVE_KPI_ACTUALS;
 
 USE SCHEMA DIGITAL_TWIN;
 

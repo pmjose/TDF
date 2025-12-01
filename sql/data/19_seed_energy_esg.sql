@@ -4,13 +4,29 @@
 -- Energy Consumption, Carbon Emissions, ESG Reports, Board Scorecard
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
+
+-- ============================================================================
+-- TRUNCATE ALL ENERGY & ESG TABLES (Idempotent - safe to re-run)
+-- ============================================================================
+
+USE SCHEMA ENERGY;
+TRUNCATE TABLE IF EXISTS RENEWABLE_CERTIFICATES;
+TRUNCATE TABLE IF EXISTS CONSUMPTION_READINGS;
+
+USE SCHEMA ESG;
+TRUNCATE TABLE IF EXISTS ESG_BOARD_SCORECARD;
+TRUNCATE TABLE IF EXISTS ESG_REPORTS;
+TRUNCATE TABLE IF EXISTS DIVERSITY_INDEX_DATA;
+TRUNCATE TABLE IF EXISTS CARBON_INVENTORY;
+
+USE SCHEMA ENERGY;
 
 -- ============================================================================
 -- ENERGY CONSUMPTION (~56,000 readings: 8K sites x 7 months)
 -- ============================================================================
-
-USE SCHEMA ENERGY;
 
 INSERT INTO CONSUMPTION_READINGS (
     READING_ID, SITE_ID, METER_ID, READING_DATE, YEAR_MONTH,
