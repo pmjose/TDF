@@ -84,6 +84,11 @@ FROM
     CROSS JOIN (SELECT * FROM TDF_DATA_PLATFORM.CORE.DEPARTMENTS ORDER BY RANDOM() LIMIT 1) d
 ORDER BY RANDOM();
 
+-- Calculate COLOCATION_RATE (was removed as computed column - Snowflake doesn't support GENERATED ALWAYS AS)
+UPDATE SITES
+SET COLOCATION_RATE = CURRENT_TENANTS / NULLIF(MAX_TENANTS, 0)
+WHERE MAX_TENANTS > 0;
+
 -- Update site distribution to match regional populations (weighted insert)
 -- Île-de-France gets more sites (15%), etc.
 
