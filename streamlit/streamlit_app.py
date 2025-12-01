@@ -1611,13 +1611,12 @@ def page_capacity_planning():
         except:
             return default
     
-    # TDF Employee Base = 1,850 (verified from corporate data)
-    # Use database count if available and > 0, otherwise default to 1,850
-    db_employee_count = safe_value(capacity_df, 'EMPLOYEE_COUNT', 0)
-    employee_count = db_employee_count if db_employee_count > 100 else 1850  # Fallback if DB empty
+    # TDF Employee Base = 1,850 (verified from TDF corporate website & investor presentation)
+    # Always use verified TDF employee count for consistency across dashboard
+    employee_count = 1850  # Fixed: TDF official headcount
     
     # Capacity = employees + contractors (≈10% extra) = 1,850 + 185 = ~2,035 FTE capacity
-    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = ~2,035 FTE
+    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = 2,035 FTE
     allocated_fte = int(total_capacity * 0.87)   # 87% allocated = ~1,770 FTE
     utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 87)
     
