@@ -4813,7 +4813,173 @@ def page_digital_twin():
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # ROW 4f: 3D Coverage by Region (Stacked Bar)
+    # ROW 4g: Photo-to-Product Reference Reconciliation (KEY PAIN POINT)
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔍 Photo-to-Product Reference Reconciliation")
+    st.caption("Cross-checking Digital Twin assets with Product Reference Master Data")
+    
+    # KPIs for reconciliation status
+    recon_col1, recon_col2, recon_col3, recon_col4 = st.columns(4)
+    
+    with recon_col1:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #3498db;">
+                <div style="font-size: 0.75rem; color: #888;">📸 Digital Twin Assets</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #1a2b4a;">247,834</div>
+                <div style="font-size: 0.7rem; color: #3498db;">Photos & 3D scans captured</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with recon_col2:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #27ae60;">
+                <div style="font-size: 0.75rem; color: #888;">✅ Matched to Reference</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #27ae60;">198,412</div>
+                <div style="font-size: 0.7rem; color: #27ae60;">80.1% reconciled</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with recon_col3:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #f39c12;">
+                <div style="font-size: 0.75rem; color: #888;">⚠️ Pending Review</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #f39c12;">35,847</div>
+                <div style="font-size: 0.7rem; color: #f39c12;">14.5% needs validation</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with recon_col4:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #e63946;">
+                <div style="font-size: 0.75rem; color: #888;">❌ Unmatched Items</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #e63946;">13,575</div>
+                <div style="font-size: 0.7rem; color: #e63946;">5.4% discrepancies</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Discrepancy Types + Reconciliation Queue
+    disc_col, queue_col = st.columns(2)
+    
+    with disc_col:
+        st.markdown("#### 📊 Discrepancy Breakdown")
+        
+        discrepancy_types = {
+            "Photo exists, no reference": 5234,
+            "Reference exists, no photo": 4891,
+            "Serial number mismatch": 1823,
+            "Model/type mismatch": 987,
+            "Location mismatch": 640
+        }
+        
+        fig_disc = go.Figure(data=[go.Bar(
+            y=list(discrepancy_types.keys()),
+            x=list(discrepancy_types.values()),
+            orientation='h',
+            marker_color=['#e63946', '#c0392b', '#f39c12', '#e67e22', '#d35400'],
+            text=list(discrepancy_types.values()),
+            textposition='outside'
+        )])
+        fig_disc.update_layout(
+            height=250,
+            margin=dict(l=10, r=60, t=10, b=10),
+            xaxis_title="Count",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_disc, use_container_width=True)
+        
+        st.markdown("""
+            <div style="background: #fff3cd; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                <span style="font-weight: 600;">💡 Root Cause:</span> Product reference list was last updated in March 2024. 
+                Digital Twin photos captured equipment installed since then.
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with queue_col:
+        st.markdown("#### 🔄 Priority Reconciliation Queue")
+        
+        queue_items = [
+            {"asset": "ANT-RF-4523", "site": "SITE-003421", "issue": "No reference entry", "priority": "High", "age": "45d"},
+            {"asset": "CAB-FO-8912", "site": "SITE-005892", "issue": "Serial mismatch", "priority": "High", "age": "32d"},
+            {"asset": "PWR-UPS-234", "site": "SITE-007234", "issue": "Model differs", "priority": "Med", "age": "28d"},
+            {"asset": "RAD-5G-1098", "site": "SITE-001256", "issue": "No photo found", "priority": "Med", "age": "21d"},
+            {"asset": "TRM-DVB-456", "site": "SITE-002891", "issue": "Location wrong", "priority": "Low", "age": "15d"},
+        ]
+        
+        for item in queue_items:
+            priority_color = '#e63946' if item['priority'] == 'High' else '#f39c12' if item['priority'] == 'Med' else '#27ae60'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {priority_color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 600; color: #1a2b4a;">{item['asset']}</span>
+                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">@ {item['site']}</span>
+                        </div>
+                        <span style="background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">{item['priority']}</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">⚠️ {item['issue']} · 📅 Open {item['age']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            st.button("📋 View Full Queue (847)", use_container_width=True)
+        with btn_col2:
+            st.button("📥 Export to Excel", use_container_width=True)
+    
+    # Product Reference Sync Status
+    st.markdown("#### 🔗 Product Reference System Integration")
+    
+    sys_col1, sys_col2, sys_col3 = st.columns(3)
+    
+    with sys_col1:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">📷 Digital Twin Platform</div>
+                <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Photos & 3D Models</div>
+                <div style="font-size: 0.75rem; opacity: 0.7;">Last sync: 2 hours ago</div>
+                <div style="background: #27ae60; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">● Connected</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with sys_col2:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border: 2px dashed #e63946;">
+                <div style="font-size: 2rem;">⚡</div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #e63946;">Reconciliation Engine</div>
+                <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">AI-powered matching</div>
+                <div style="font-size: 0.7rem; color: #666; margin-top: 0.5rem;">Processing 1,247 items/hour</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with sys_col3:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">📚 Product Reference Master</div>
+                <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Equipment Catalog</div>
+                <div style="font-size: 0.75rem; opacity: 0.7;">45,892 products registered</div>
+                <div style="background: #f39c12; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">⚠ Needs Update</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Recommendation box
+    st.markdown("""
+        <div style="background: linear-gradient(135deg, #e6394610 0%, #f39c1210 100%); border: 1px solid #e63946; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+            <div style="font-weight: 700; color: #e63946; margin-bottom: 0.5rem;">🎯 Recommended Actions</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div style="font-size: 0.85rem; color: #666;">1️⃣ <b>Sync Product Reference</b> - Update catalog with Q4 2024 installations</div>
+                <div style="font-size: 0.85rem; color: #666;">2️⃣ <b>Bulk Photo Upload</b> - 3,200 photos pending from October surveys</div>
+                <div style="font-size: 0.85rem; color: #666;">3️⃣ <b>Serial Number Audit</b> - 1,823 mismatches flagged for validation</div>
+                <div style="font-size: 0.85rem; color: #666;">4️⃣ <b>Train AI Model</b> - Improve auto-matching accuracy from 78% to 90%+</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 4h: 3D Coverage by Region (Stacked Bar)
     # -------------------------------------------------------------------------
     
     st.markdown("### 📊 3D Model Status by Region")
