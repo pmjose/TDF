@@ -777,8 +777,8 @@ def page_executive_dashboard():
     
     esg_deadline_df = run_query("""
         SELECT COUNT(*) as PENDING_COUNT
-        FROM TDF_DATA_PLATFORM.ESG.ESG_REPORTS
-        WHERE STATUS = 'IN_PROGRESS'
+        FROM TDF_DATA_PLATFORM.ESG.REGULATORY_REPORTS
+        WHERE STATUS IN ('DRAFT', 'REVIEW')
     """)
     
     # Build risk items
@@ -841,29 +841,26 @@ def page_executive_dashboard():
             'severity': 'green'
         })
     
-    # Render Risk Radar
-    risk_html = ""
-    for item in risk_items[:4]:  # Show max 4 items
-        severity_class = item.get('severity', 'amber')
-        risk_html += f"""
-            <div class="risk-item {severity_class}">
-                <div class="risk-icon">{item['icon']}</div>
-                <div class="risk-content">
-                    <div class="risk-title">{item['title']}</div>
-                    <div class="risk-detail">{item['detail']}</div>
-                </div>
-                <div class="risk-value {severity_class}">{item['value']}</div>
-            </div>
-        """
+    # Render Risk Radar using Streamlit columns for better compatibility
+    st.markdown("### 🚨 Risk Radar - Items Requiring Attention")
     
-    st.markdown(f"""
-        <div class="risk-radar">
-            <div class="risk-radar-title">🚨 Risk Radar - Items Requiring Attention</div>
-            <div class="risk-items">
-                {risk_html}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    # Create columns for risk items
+    risk_cols = st.columns(len(risk_items[:4]))
+    
+    for i, item in enumerate(risk_items[:4]):
+        with risk_cols[i]:
+            severity = item.get('severity', 'amber')
+            border_color = '#e63946' if severity == 'red' else '#f39c12' if severity == 'amber' else '#27ae60'
+            bg_color = 'rgba(230, 57, 70, 0.05)' if severity == 'red' else 'rgba(243, 156, 18, 0.05)' if severity == 'amber' else 'rgba(39, 174, 96, 0.05)'
+            
+            st.markdown(f"""
+                <div style="background: {bg_color}; border-left: 4px solid {border_color}; border-radius: 8px; padding: 1rem; height: 140px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{item['icon']}</div>
+                    <div style="font-weight: 600; color: #1a2b4a; font-size: 0.9rem; margin-bottom: 0.25rem;">{item['title']}</div>
+                    <div style="color: #666; font-size: 0.75rem; margin-bottom: 0.5rem;">{item['detail']}</div>
+                    <div style="background: {border_color}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{item['value']}</div>
+                </div>
+            """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
     # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
