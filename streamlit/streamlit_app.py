@@ -4454,46 +4454,18 @@ def page_digital_twin():
         pending = np.sum(site_grid == 0)
         total = grid_size * grid_size
         
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem;">
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <div style="width: 20px; height: 20px; background: #27ae60; border-radius: 4px;"></div>
-                        <span style="font-weight: 600; color: #27ae60;">Complete</span>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{complete/total*100:.0f}%</div>
-                    <div style="font-size: 0.75rem; color: #888;">{complete * 22:,} sites</div>
-                </div>
-                
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <div style="width: 20px; height: 20px; background: #f39c12; border-radius: 4px;"></div>
-                        <span style="font-weight: 600; color: #f39c12;">In Progress</span>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{in_progress/total*100:.0f}%</div>
-                    <div style="font-size: 0.75rem; color: #888;">{in_progress * 22:,} sites</div>
-                </div>
-                
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <div style="width: 20px; height: 20px; background: #e63946; border-radius: 4px;"></div>
-                        <span style="font-weight: 600; color: #e63946;">Pending Scan</span>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{pending/total*100:.0f}%</div>
-                    <div style="font-size: 0.75rem; color: #888;">{pending * 22:,} sites</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        complete_pct = int(complete/total*100)
+        progress_pct = int(in_progress/total*100)
+        pending_pct = int(pending/total*100)
+        
+        # Use native Streamlit metrics
+        st.metric("🟢 Complete", f"{complete_pct}%", f"{complete * 22:,} sites")
+        st.metric("🟡 In Progress", f"{progress_pct}%", f"{in_progress * 22:,} sites")
+        st.metric("🔴 Pending", f"{pending_pct}%", f"{pending * 22:,} sites")
         
         # Progress bar
-        st.markdown(f"""
-            <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin-top: 1rem; overflow: hidden; display: flex;">
-                <div style="background: #27ae60; width: {complete/total*100}%; height: 100%;"></div>
-                <div style="background: #f39c12; width: {in_progress/total*100}%; height: 100%;"></div>
-                <div style="background: #e63946; width: {pending/total*100}%; height: 100%;"></div>
-            </div>
-            <div style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 0.5rem;">Overall: {(complete + in_progress)/total*100:.0f}% covered or in progress</div>
-        """, unsafe_allow_html=True)
+        st.progress((complete + in_progress) / total)
+        st.caption(f"Overall: {complete_pct + progress_pct}% covered or in progress")
     
     st.markdown("---")
     
