@@ -4517,7 +4517,7 @@ def page_digital_twin():
     fig.add_trace(go.Bar(
         x=months, y=discrepancy_trend,
         name='Open Discrepancies',
-        marker=dict(color='#e6394640'),
+        marker=dict(color='rgba(230, 57, 70, 0.25)'),
         yaxis='y2'
     ), secondary_y=True)
     
