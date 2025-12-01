@@ -111,6 +111,7 @@ snowsql -f sql/data/13_seed_france_geo.sql
     18_seed_finance.sql
     19_seed_energy_esg.sql
     20_seed_executive_kpis.sql
+    21_seed_commercial.sql    # Demand forecast, projects, contracts
   
   /queries                    # Sample queries for demos
     uc1_capacity_planning.sql
@@ -118,6 +119,7 @@ snowsql -f sql/data/13_seed_france_geo.sql
     uc3_digital_twin.sql
     uc4_capex_lifecycle.sql
     executive_dashboard.sql
+    esg_regulatory_reports.sql # CSRD, French Equality Index, Bilan GES
 ```
 
 ## Use Cases
