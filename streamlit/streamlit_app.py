@@ -2664,7 +2664,173 @@ def page_esg_reporting():
             """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
-    # ROW 2: Key ESG Metrics
+    # ROW 2: Regulatory Calendar & Alerts
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📅 Regulatory Reporting Calendar 2025")
+    
+    # Calendar data with deadlines and status
+    calendar_data = [
+        {"report": "Index Égalité H/F", "due_date": "2025-03-01", "status": "on_track", "days_left": 90, "owner": "DRH", "priority": "High"},
+        {"report": "Bilan GES (BEGES)", "due_date": "2025-12-31", "status": "on_track", "days_left": 395, "owner": "RSE", "priority": "Medium"},
+        {"report": "CSRD / ESRS", "due_date": "2025-03-31", "status": "at_risk", "days_left": 120, "owner": "Finance", "priority": "Critical"},
+        {"report": "DPEF", "due_date": "2025-04-30", "status": "on_track", "days_left": 150, "owner": "RSE", "priority": "High"},
+        {"report": "EU Taxonomy", "due_date": "2025-06-30", "status": "on_track", "days_left": 211, "owner": "Finance", "priority": "High"},
+        {"report": "Article 29 LEC", "due_date": "2025-06-30", "status": "at_risk", "days_left": 211, "owner": "RSE", "priority": "Medium"},
+        {"report": "GRI Report", "due_date": "2025-05-31", "status": "not_started", "days_left": 181, "owner": "RSE", "priority": "Medium"},
+        {"report": "TCFD Disclosure", "due_date": "2025-04-30", "status": "on_track", "days_left": 150, "owner": "Finance", "priority": "High"},
+    ]
+    
+    # Sort by due date
+    calendar_data = sorted(calendar_data, key=lambda x: x['due_date'])
+    
+    # Alert summary
+    on_track = len([c for c in calendar_data if c['status'] == 'on_track'])
+    at_risk = len([c for c in calendar_data if c['status'] == 'at_risk'])
+    not_started = len([c for c in calendar_data if c['status'] == 'not_started'])
+    overdue = len([c for c in calendar_data if c['status'] == 'overdue'])
+    
+    alert_cols = st.columns(4)
+    with alert_cols[0]:
+        st.markdown(f"""
+            <div style="background: #27ae60; border-radius: 8px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700;">{on_track}</div>
+                <div style="font-size: 0.8rem;">✅ On Track</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with alert_cols[1]:
+        st.markdown(f"""
+            <div style="background: #f39c12; border-radius: 8px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700;">{at_risk}</div>
+                <div style="font-size: 0.8rem;">⚠️ At Risk</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with alert_cols[2]:
+        st.markdown(f"""
+            <div style="background: #3498db; border-radius: 8px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700;">{not_started}</div>
+                <div style="font-size: 0.8rem;">🔵 Not Started</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with alert_cols[3]:
+        st.markdown(f"""
+            <div style="background: #e63946; border-radius: 8px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700;">{overdue}</div>
+                <div style="font-size: 0.8rem;">🔴 Overdue</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("")
+    
+    # Visual timeline
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
+    # Create timeline chart
+    fig = go.Figure()
+    
+    # Add month grid
+    for i, month in enumerate(months):
+        fig.add_vrect(x0=i+0.5, x1=i+1.5, fillcolor='rgba(0,0,0,0.02)' if i % 2 == 0 else 'rgba(0,0,0,0)', line_width=0)
+    
+    # Add current date marker
+    current_month = 12  # December
+    fig.add_vline(x=current_month, line_width=3, line_dash="dash", line_color="#e63946", 
+                  annotation_text="Today", annotation_position="top")
+    
+    # Add report markers
+    y_positions = list(range(len(calendar_data)))
+    colors = []
+    for item in calendar_data:
+        if item['status'] == 'on_track':
+            colors.append('#27ae60')
+        elif item['status'] == 'at_risk':
+            colors.append('#f39c12')
+        elif item['status'] == 'not_started':
+            colors.append('#3498db')
+        else:
+            colors.append('#e63946')
+    
+    # Extract month from due date
+    x_positions = [int(item['due_date'].split('-')[1]) for item in calendar_data]
+    
+    fig.add_trace(go.Scatter(
+        x=x_positions,
+        y=[item['report'] for item in calendar_data],
+        mode='markers+text',
+        marker=dict(size=20, color=colors, symbol='circle'),
+        text=[f"{int(item['due_date'].split('-')[1])}/{item['due_date'].split('-')[2]}" for item in calendar_data],
+        textposition='middle right',
+        textfont=dict(size=10),
+        hovertemplate='<b>%{y}</b><br>Due: %{text}<br>Status: %{customdata}<extra></extra>',
+        customdata=[item['status'].replace('_', ' ').title() for item in calendar_data]
+    ))
+    
+    fig.update_layout(
+        height=350,
+        margin=dict(l=10, r=10, t=30, b=40),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(
+            tickmode='array',
+            tickvals=list(range(1, 13)),
+            ticktext=months,
+            showgrid=True,
+            gridcolor='#f0f0f0',
+            range=[0.5, 12.5]
+        ),
+        yaxis=dict(showgrid=False, categoryorder='array', categoryarray=[item['report'] for item in reversed(calendar_data)]),
+        showlegend=False
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Detailed table with next actions
+    st.markdown("#### 📋 Upcoming Deadlines & Actions")
+    
+    for item in calendar_data[:5]:  # Show next 5
+        if item['status'] == 'on_track':
+            status_color = '#27ae60'
+            status_icon = '✅'
+            status_text = 'On Track'
+        elif item['status'] == 'at_risk':
+            status_color = '#f39c12'
+            status_icon = '⚠️'
+            status_text = 'At Risk'
+        elif item['status'] == 'not_started':
+            status_color = '#3498db'
+            status_icon = '🔵'
+            status_text = 'Not Started'
+        else:
+            status_color = '#e63946'
+            status_icon = '🔴'
+            status_text = 'Overdue'
+        
+        priority_color = '#e63946' if item['priority'] == 'Critical' else '#f39c12' if item['priority'] == 'High' else '#3498db'
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid {status_color}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                <div style="flex: 2;">
+                    <div style="font-weight: 600; color: #1a2b4a; font-size: 0.95rem;">{item['report']}</div>
+                    <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">Owner: {item['owner']} • Priority: <span style="color: {priority_color}; font-weight: 600;">{item['priority']}</span></div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #888;">Due Date</div>
+                    <div style="font-weight: 600; color: #1a2b4a;">{item['due_date']}</div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #888;">Days Left</div>
+                    <div style="font-weight: 700; color: {status_color}; font-size: 1.2rem;">{item['days_left']}</div>
+                </div>
+                <div style="flex: 1; text-align: right;">
+                    <div style="background: {status_color}20; color: {status_color}; padding: 0.4rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;">
+                        {status_icon} {status_text}
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 3: Key ESG Metrics
     # -------------------------------------------------------------------------
     
     st.markdown("### 🌱 Environmental, Social & Governance Metrics")
