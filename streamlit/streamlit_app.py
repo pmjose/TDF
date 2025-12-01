@@ -4271,140 +4271,188 @@ def page_digital_twin():
         st.plotly_chart(fig, use_container_width=True)
     
     # -------------------------------------------------------------------------
-    # ROW 4b: 3D Tower Visualization
+    # ROW 4b: 3D Cell Tower Model
     # -------------------------------------------------------------------------
     
-    st.markdown("### 🗼 3D Infrastructure Visualization")
-    st.caption("Interactive 3D view of tower infrastructure • Height, capacity, and antenna load")
+    st.markdown("### 🗼 3D Cell Tower Model - Interactive Viewer")
+    st.caption("Detailed 3D representation of TDF tower infrastructure • Rotate and zoom to explore")
     
     viz_col1, viz_col2 = st.columns([2, 1])
     
     with viz_col1:
-        # Generate sample tower data for 3D visualization
         import numpy as np
-        np.random.seed(42)
         
-        # Sample tower locations across France (lat/lon converted to x/y for visualization)
-        n_towers = 150
+        # Create a detailed 3D cell tower model
+        fig_tower = go.Figure()
         
-        # Cluster towers around major French cities
-        cities = [
-            {"name": "Paris", "x": 2.35, "y": 48.85, "count": 40},
-            {"name": "Lyon", "x": 4.83, "y": 45.76, "count": 25},
-            {"name": "Marseille", "x": 5.37, "y": 43.30, "count": 20},
-            {"name": "Toulouse", "x": 1.44, "y": 43.60, "count": 15},
-            {"name": "Bordeaux", "x": -0.58, "y": 44.84, "count": 15},
-            {"name": "Nantes", "x": -1.55, "y": 47.22, "count": 12},
-            {"name": "Lille", "x": 3.06, "y": 50.63, "count": 12},
-            {"name": "Strasbourg", "x": 7.75, "y": 48.58, "count": 11},
+        tower_height = 65  # meters
+        
+        # === TOWER STRUCTURE (Lattice Tower) ===
+        # Main vertical legs
+        leg_offset = 1.5
+        for x, y in [(-leg_offset, -leg_offset), (leg_offset, -leg_offset), 
+                     (leg_offset, leg_offset), (-leg_offset, leg_offset)]:
+            # Tapered legs
+            z_points = list(range(0, tower_height + 1, 5))
+            taper = [1 - (z / tower_height) * 0.6 for z in z_points]
+            x_points = [x * t for t in taper]
+            y_points = [y * t for t in taper]
+            
+            fig_tower.add_trace(go.Scatter3d(
+                x=x_points, y=y_points, z=z_points,
+                mode='lines',
+                line=dict(color='#e63946', width=8),
+                name='Tower Leg',
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+        
+        # Cross bracing
+        for z in range(5, tower_height, 10):
+            taper = 1 - (z / tower_height) * 0.6
+            offset = leg_offset * taper
+            # Horizontal ring
+            ring_x = [-offset, offset, offset, -offset, -offset]
+            ring_y = [-offset, -offset, offset, offset, -offset]
+            ring_z = [z] * 5
+            fig_tower.add_trace(go.Scatter3d(
+                x=ring_x, y=ring_y, z=ring_z,
+                mode='lines',
+                line=dict(color='#c0392b', width=4),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+            # Diagonal braces
+            fig_tower.add_trace(go.Scatter3d(
+                x=[-offset, offset], y=[-offset, offset], z=[z, z+10],
+                mode='lines', line=dict(color='#95a5a6', width=2),
+                showlegend=False, hoverinfo='skip'
+            ))
+        
+        # === ANTENNA PLATFORMS ===
+        platform_heights = [25, 40, 55, 65]
+        platform_colors = ['#3498db', '#27ae60', '#f39c12', '#9b59b6']
+        
+        for i, (ph, pc) in enumerate(zip(platform_heights, platform_colors)):
+            taper = 1 - (ph / tower_height) * 0.6
+            platform_size = 2.5
+            # Platform surface
+            fig_tower.add_trace(go.Mesh3d(
+                x=[-platform_size, platform_size, platform_size, -platform_size],
+                y=[-platform_size, -platform_size, platform_size, platform_size],
+                z=[ph, ph, ph, ph],
+                color=pc,
+                opacity=0.7,
+                name=f'Platform {i+1}',
+                hoverinfo='name'
+            ))
+        
+        # === ANTENNA PANELS ===
+        antenna_configs = [
+            {"height": 25, "count": 3, "color": "#3498db", "name": "Orange 4G"},
+            {"height": 40, "count": 3, "color": "#27ae60", "name": "SFR 5G"},
+            {"height": 55, "count": 3, "color": "#f39c12", "name": "Bouygues 4G"},
+            {"height": 65, "count": 2, "color": "#9b59b6", "name": "Free 5G"},
         ]
         
-        x_coords = []
-        y_coords = []
-        heights = []
-        capacities = []
-        tower_names = []
-        model_status = []
+        for config in antenna_configs:
+            angles = np.linspace(0, 2*np.pi, config["count"], endpoint=False)
+            for angle in angles:
+                ax = 3 * np.cos(angle)
+                ay = 3 * np.sin(angle)
+                # Antenna panel (vertical rectangle represented as lines)
+                panel_h = 2
+                panel_w = 0.4
+                fig_tower.add_trace(go.Scatter3d(
+                    x=[ax, ax, ax, ax, ax],
+                    y=[ay, ay, ay, ay, ay],
+                    z=[config["height"], config["height"]+panel_h, config["height"]+panel_h, 
+                       config["height"], config["height"]],
+                    mode='lines',
+                    line=dict(color=config["color"], width=12),
+                    name=config["name"],
+                    hovertemplate=f'<b>{config["name"]}</b><br>Height: {config["height"]}m<extra></extra>'
+                ))
         
-        for city in cities:
-            for i in range(city["count"]):
-                x_coords.append(city["x"] + np.random.normal(0, 0.5))
-                y_coords.append(city["y"] + np.random.normal(0, 0.3))
-                h = np.random.randint(25, 85)
-                heights.append(h)
-                capacities.append(np.random.randint(40, 100))
-                tower_names.append(f"{city['name']}-T{i+1:03d}")
-                model_status.append("3D Ready" if np.random.random() > 0.15 else "Pending")
+        # === GROUND BASE ===
+        base_size = 4
+        fig_tower.add_trace(go.Mesh3d(
+            x=[-base_size, base_size, base_size, -base_size],
+            y=[-base_size, -base_size, base_size, base_size],
+            z=[0, 0, 0, 0],
+            color='#7f8c8d',
+            opacity=0.8,
+            name='Base',
+            hoverinfo='name'
+        ))
         
-        # Create 3D scatter plot
-        fig_3d = go.Figure(data=[go.Scatter3d(
-            x=x_coords,
-            y=y_coords,
-            z=heights,
+        # === TOP BEACON ===
+        fig_tower.add_trace(go.Scatter3d(
+            x=[0], y=[0], z=[tower_height + 2],
             mode='markers',
-            marker=dict(
-                size=[c/15 for c in capacities],
-                color=heights,
-                colorscale='Viridis',
-                colorbar=dict(title="Height (m)", x=1.02),
-                opacity=0.8,
-                line=dict(width=1, color='white')
-            ),
-            text=[f"<b>{name}</b><br>Height: {h}m<br>Capacity: {c}%<br>Status: {s}" 
-                  for name, h, c, s in zip(tower_names, heights, capacities, model_status)],
-            hoverinfo='text',
-            name='Towers'
-        )])
+            marker=dict(size=10, color='red', symbol='diamond'),
+            name='Aviation Light',
+            hovertemplate='<b>Aviation Warning Light</b><br>Height: 67m<extra></extra>'
+        ))
         
-        fig_3d.update_layout(
-            height=450,
+        fig_tower.update_layout(
+            height=500,
             margin=dict(l=0, r=0, t=30, b=0),
             scene=dict(
-                xaxis=dict(title='Longitude', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd'),
-                yaxis=dict(title='Latitude', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd'),
-                zaxis=dict(title='Height (m)', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd', range=[0, 100]),
-                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2)),
-                bgcolor='rgba(248,249,250,1)'
+                xaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
+                yaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
+                zaxis=dict(title='Height (m)', range=[-5, 75], showgrid=True, gridcolor='#eee'),
+                camera=dict(eye=dict(x=1.8, y=1.8, z=0.8)),
+                bgcolor='rgba(248,249,250,1)',
+                aspectratio=dict(x=1, y=1, z=2)
             ),
             paper_bgcolor='rgba(0,0,0,0)',
+            showlegend=True,
+            legend=dict(x=0, y=1, bgcolor='rgba(255,255,255,0.8)')
         )
         
-        st.plotly_chart(fig_3d, use_container_width=True)
-        st.caption("🖱️ Drag to rotate • Scroll to zoom • Hover for details")
+        st.plotly_chart(fig_tower, use_container_width=True)
+        st.caption("🖱️ Drag to rotate • Scroll to zoom • Click legend to toggle layers")
     
     with viz_col2:
-        st.markdown("#### 📊 Visualization Legend")
+        st.markdown("#### 🗼 Tower: SITE-003421")
+        st.markdown("**Location:** Paris 15ème")
         
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-                <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.75rem;">Marker Size = Capacity %</div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <div style="width: 12px; height: 12px; background: #440154; border-radius: 50%;"></div>
-                    <span style="font-size: 0.8rem; color: #666;">Low height (25-40m)</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <div style="width: 12px; height: 12px; background: #21918c; border-radius: 50%;"></div>
-                    <span style="font-size: 0.8rem; color: #666;">Medium height (40-60m)</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="width: 12px; height: 12px; background: #fde725; border-radius: 50%;"></div>
-                    <span style="font-size: 0.8rem; color: #666;">High height (60-85m)</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # Tower specifications
+        st.markdown("##### Specifications")
+        spec_data = {
+            "Tower Type": "Lattice",
+            "Total Height": "65m",
+            "Year Built": "2008",
+            "Last Inspection": "Oct 2025",
+            "Max Load": "2,500 kg",
+            "Current Load": "1,847 kg (74%)"
+        }
         
-        # Quick stats
-        modeled_count = len([s for s in model_status if s == "3D Ready"])
-        pending_count = len([s for s in model_status if s == "Pending"])
+        for key, value in spec_data.items():
+            st.markdown(f"**{key}:** {value}")
         
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-                <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.75rem;">Sample View Stats</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666; font-size: 0.85rem;">Towers Shown</span>
-                    <span style="font-weight: 600; color: #1a2b4a;">{len(heights)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666; font-size: 0.85rem;">3D Ready</span>
-                    <span style="font-weight: 600; color: #27ae60;">{modeled_count}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="color: #666; font-size: 0.85rem;">Pending Scan</span>
-                    <span style="font-weight: 600; color: #f39c12;">{pending_count}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #666; font-size: 0.85rem;">Avg Height</span>
-                    <span style="font-weight: 600; color: #1a2b4a;">{np.mean(heights):.0f}m</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("##### 📶 Tenants (4)")
+        
+        tenants = [
+            {"name": "Orange", "tech": "4G/5G", "height": "25m", "color": "#3498db"},
+            {"name": "SFR", "tech": "5G", "height": "40m", "color": "#27ae60"},
+            {"name": "Bouygues", "tech": "4G", "height": "55m", "color": "#f39c12"},
+            {"name": "Free", "tech": "5G", "height": "65m", "color": "#9b59b6"},
+        ]
+        
+        for t in tenants:
+            st.markdown(f"<span style='color:{t['color']};'>●</span> **{t['name']}** - {t['tech']} @ {t['height']}", unsafe_allow_html=True)
+        
+        st.markdown("---")
         
         # Open 3D Viewer button
         st.markdown("""
-            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 10px; padding: 1rem; text-align: center; color: white; cursor: pointer;">
+            <div style="background: linear-gradient(135deg, #e63946, #c0392b); border-radius: 10px; padding: 1rem; text-align: center; color: white; cursor: pointer;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🖥️</div>
-                <div style="font-weight: 600;">Open Full 3D Viewer</div>
-                <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">Launch Autodesk Viewer</div>
+                <div style="font-weight: 600;">Open Full 3D Model</div>
+                <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">High-resolution CAD viewer</div>
             </div>
         """, unsafe_allow_html=True)
     
