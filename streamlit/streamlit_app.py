@@ -7501,12 +7501,1011 @@ def page_capex_lifecycle():
 def page_architecture():
     render_header(
         "Architecture",
-        "Database schema and system overview"
+        "Data Platform Architecture • ETL Pipelines • Schema Documentation • Data Lineage"
     )
-    render_placeholder(
-        "Architecture",
-        "Database schema diagram, table counts, data freshness, and deployment information"
+    
+    # -------------------------------------------------------------------------
+    # ROW 1: Platform Overview KPIs
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🏗️ TDF Data Platform Overview")
+    
+    kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5, kpi_col6 = st.columns(6)
+    
+    with kpi_col1:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">📊 Schemas</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">10</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col2:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">📋 Tables</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">47</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col3:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">👁️ Views</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">15</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col4:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">🔄 Pipelines</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">12</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col5:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">🔗 Integrations</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">8</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_col6:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.7rem; opacity: 0.8;">👥 Roles</div>
+                <div style="font-size: 1.8rem; font-weight: 700;">7</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 2: High-Level System Architecture (Graphviz)
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🌐 High-Level System Architecture")
+    st.caption("End-to-end data platform architecture with source systems, processing, and consumption layers")
+    
+    # System architecture using Graphviz
+    system_arch = """
+    digraph G {
+        rankdir=LR;
+        bgcolor="transparent";
+        node [fontname="Helvetica", fontsize=11];
+        edge [fontname="Helvetica", fontsize=9];
+        
+        // Subgraphs for layers
+        subgraph cluster_sources {
+            label="📥 SOURCE SYSTEMS";
+            style=filled;
+            fillcolor="#e3f2fd";
+            color="#1a2b4a";
+            fontcolor="#1a2b4a";
+            fontsize=12;
+            
+            asset_mgmt [label="Asset Management\\n(SAP)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+            hr_system [label="HR System\\n(Workday)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+            finance [label="Finance\\n(Oracle)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+            scada [label="SCADA/IoT\\n(Real-time)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+            digital_twin [label="Digital Twin\\n(3D Platform)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+            ops [label="Operations\\n(ServiceNow)", shape=box, style=filled, fillcolor="#fff3e0", color="#e67e22"];
+        }
+        
+        subgraph cluster_ingestion {
+            label="🔄 INGESTION LAYER";
+            style=filled;
+            fillcolor="#e8f5e9";
+            color="#27ae60";
+            fontcolor="#1a2b4a";
+            fontsize=12;
+            
+            kafka [label="Kafka\\nStreaming", shape=cylinder, style=filled, fillcolor="#c8e6c9", color="#27ae60"];
+            fivetran [label="Fivetran\\nBatch ETL", shape=cylinder, style=filled, fillcolor="#c8e6c9", color="#27ae60"];
+            api_gw [label="API Gateway\\nREST/GraphQL", shape=cylinder, style=filled, fillcolor="#c8e6c9", color="#27ae60"];
+        }
+        
+        subgraph cluster_snowflake {
+            label="❄️ SNOWFLAKE DATA PLATFORM";
+            style=filled;
+            fillcolor="#e3f2fd";
+            color="#3498db";
+            fontcolor="#1a2b4a";
+            fontsize=12;
+            
+            raw [label="RAW\\n(Landing Zone)", shape=folder, style=filled, fillcolor="#bbdefb", color="#1976d2"];
+            staging [label="STAGING\\n(Cleansed)", shape=folder, style=filled, fillcolor="#90caf9", color="#1976d2"];
+            dwh [label="TDF_DATA_PLATFORM\\n(Curated)", shape=folder, style=filled, fillcolor="#64b5f6", color="#1976d2"];
+            analytics [label="ANALYTICS\\n(Aggregates)", shape=folder, style=filled, fillcolor="#42a5f5", color="#1976d2"];
+        }
+        
+        subgraph cluster_consume {
+            label="📊 CONSUMPTION LAYER";
+            style=filled;
+            fillcolor="#fce4ec";
+            color="#e63946";
+            fontcolor="#1a2b4a";
+            fontsize=12;
+            
+            streamlit [label="Streamlit\\nDashboards", shape=box, style=filled, fillcolor="#f8bbd9", color="#c2185b"];
+            powerbi [label="Power BI\\nReports", shape=box, style=filled, fillcolor="#f8bbd9", color="#c2185b"];
+            ml [label="ML Models\\n(Python)", shape=box, style=filled, fillcolor="#f8bbd9", color="#c2185b"];
+            api_out [label="Data APIs\\n(Partners)", shape=box, style=filled, fillcolor="#f8bbd9", color="#c2185b"];
+        }
+        
+        // Edges
+        asset_mgmt -> fivetran;
+        hr_system -> fivetran;
+        finance -> fivetran;
+        scada -> kafka;
+        digital_twin -> api_gw;
+        ops -> fivetran;
+        
+        kafka -> raw;
+        fivetran -> raw;
+        api_gw -> raw;
+        
+        raw -> staging [label="dbt"];
+        staging -> dwh [label="dbt"];
+        dwh -> analytics [label="dbt"];
+        
+        analytics -> streamlit;
+        analytics -> powerbi;
+        dwh -> ml;
+        dwh -> api_out;
+    }
+    """
+    
+    st.graphviz_chart(system_arch, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 3: Database Schema (ERD)
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📐 Database Schema (Entity Relationship Diagram)")
+    
+    schema_tab1, schema_tab2, schema_tab3 = st.tabs(["🗂️ Full Schema", "📊 Schema Details", "📋 Table Inventory"])
+    
+    with schema_tab1:
+        # ERD using Graphviz
+        erd_diagram = """
+        digraph ERD {
+            rankdir=TB;
+            bgcolor="transparent";
+            node [shape=record, fontname="Helvetica", fontsize=10];
+            edge [fontname="Helvetica", fontsize=8];
+            
+            // CORE Schema
+            subgraph cluster_core {
+                label="CORE Schema";
+                style=filled;
+                fillcolor="#e8f5e9";
+                color="#27ae60";
+                
+                regions [label="{REGIONS|region_id PK\\lregion_name\\lpopulation\\l}"];
+                departments [label="{DEPARTMENTS|department_id PK\\ldepartment_name\\lregion_id FK\\l}"];
+                operators [label="{OPERATORS|operator_id PK\\loperator_name\\loperator_type\\l}"];
+                business_units [label="{BUSINESS_UNITS|bu_id PK\\lbu_name\\lbu_head\\l}"];
+            }
+            
+            // INFRASTRUCTURE Schema
+            subgraph cluster_infra {
+                label="INFRASTRUCTURE Schema";
+                style=filled;
+                fillcolor="#e3f2fd";
+                color="#3498db";
+                
+                sites [label="{SITES|site_id PK\\lsite_name\\ldepartment_id FK\\lsite_type\\llatitude\\llongitude\\l}"];
+                towers [label="{TOWERS|tower_id PK\\lsite_id FK\\lheight_m\\ltower_type\\l}"];
+                equipment [label="{EQUIPMENT|equipment_id PK\\lsite_id FK\\lequipment_type\\linstall_date\\l}"];
+                antennas [label="{ANTENNAS|antenna_id PK\\lequipment_id FK\\lfrequency\\l}"];
+            }
+            
+            // HR Schema
+            subgraph cluster_hr {
+                label="HR Schema";
+                style=filled;
+                fillcolor="#fff3e0";
+                color="#e67e22";
+                
+                employees [label="{EMPLOYEES|employee_id PK\\lname\\lregion_id FK\\lskill_category\\l}"];
+                workforce [label="{WORKFORCE_CAPACITY|capacity_id PK\\lregion_id FK\\lyear_month\\lfte_available\\l}"];
+                skills [label="{SKILL_CATEGORIES|skill_id PK\\lskill_name\\lcategory\\l}"];
+            }
+            
+            // OPERATIONS Schema
+            subgraph cluster_ops {
+                label="OPERATIONS Schema";
+                style=filled;
+                fillcolor="#fce4ec";
+                color="#e63946";
+                
+                work_orders [label="{WORK_ORDERS|wo_id PK\\lsite_id FK\\lwo_type\\lstatus\\lpriority\\l}"];
+                maintenance [label="{MAINTENANCE_SCHEDULE|schedule_id PK\\lequipment_id FK\\lnext_date\\l}"];
+            }
+            
+            // FINANCE Schema  
+            subgraph cluster_finance {
+                label="FINANCE Schema";
+                style=filled;
+                fillcolor="#f3e5f5";
+                color="#9b59b6";
+                
+                capex [label="{CAPEX_PROJECTS|project_id PK\\lsite_id FK\\lbudget\\lactual\\l}"];
+                revenue [label="{REVENUE|revenue_id PK\\lsite_id FK\\lperiod\\lamount\\l}"];
+            }
+            
+            // ESG Schema
+            subgraph cluster_esg {
+                label="ESG Schema";
+                style=filled;
+                fillcolor="#e0f2f1";
+                color="#009688";
+                
+                emissions [label="{CARBON_EMISSIONS|emission_id PK\\lsite_id FK\\lscope\\lco2_tons\\l}"];
+                energy [label="{ENERGY_CONSUMPTION|consumption_id PK\\lsite_id FK\\lkwh\\l}"];
+            }
+            
+            // Relationships
+            departments -> regions [label="region_id"];
+            sites -> departments [label="department_id"];
+            towers -> sites [label="site_id"];
+            equipment -> sites [label="site_id"];
+            antennas -> equipment [label="equipment_id"];
+            employees -> regions [label="region_id"];
+            workforce -> regions [label="region_id"];
+            work_orders -> sites [label="site_id"];
+            maintenance -> equipment [label="equipment_id"];
+            capex -> sites [label="site_id"];
+            revenue -> sites [label="site_id"];
+            emissions -> sites [label="site_id"];
+            energy -> sites [label="site_id"];
+        }
+        """
+        
+        st.graphviz_chart(erd_diagram, use_container_width=True)
+    
+    with schema_tab2:
+        # Schema details in columns
+        schema_data = [
+            {"schema": "CORE", "tables": 6, "desc": "Reference data, regions, operators, business units", "color": "#27ae60"},
+            {"schema": "INFRASTRUCTURE", "tables": 11, "desc": "Sites, towers, equipment, antennas, fibre", "color": "#3498db"},
+            {"schema": "HR", "tables": 5, "desc": "Employees, skills, workforce capacity, training", "color": "#e67e22"},
+            {"schema": "COMMERCIAL", "tables": 4, "desc": "Contracts, clients, demand forecast, projects", "color": "#9b59b6"},
+            {"schema": "OPERATIONS", "tables": 5, "desc": "Work orders, maintenance, SLA tracking", "color": "#e63946"},
+            {"schema": "FINANCE", "tables": 5, "desc": "CAPEX, OPEX, budgets, revenue, accounting", "color": "#f39c12"},
+            {"schema": "ENERGY", "tables": 3, "desc": "Power consumption, renewable sources", "color": "#1abc9c"},
+            {"schema": "ESG", "tables": 4, "desc": "Emissions, sustainability metrics, reports", "color": "#2ecc71"},
+            {"schema": "DIGITAL_TWIN", "tables": 3, "desc": "3D models, discrepancies, data quality", "color": "#3498db"},
+            {"schema": "ANALYTICS", "tables": 1, "desc": "Executive views and aggregations", "color": "#1a2b4a"},
+        ]
+        
+        cols = st.columns(2)
+        for i, schema in enumerate(schema_data):
+            with cols[i % 2]:
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 5px solid {schema['color']};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: #1a2b4a; font-size: 1.1rem;">{schema['schema']}</span>
+                            <span style="background: {schema['color']}20; color: {schema['color']}; padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">{schema['tables']} tables</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">{schema['desc']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+    with schema_tab3:
+        # Full table inventory
+        tables_inventory = [
+            {"schema": "CORE", "table": "REGIONS", "rows": "18", "desc": "French administrative regions"},
+            {"schema": "CORE", "table": "DEPARTMENTS", "rows": "96", "desc": "French departments with coordinates"},
+            {"schema": "CORE", "table": "OPERATORS", "rows": "6", "desc": "Telecom operators (Orange, SFR, etc.)"},
+            {"schema": "CORE", "table": "BUSINESS_UNITS", "rows": "5", "desc": "TDF business divisions"},
+            {"schema": "CORE", "table": "EQUIPMENT_TYPES", "rows": "25", "desc": "Equipment categorization"},
+            {"schema": "CORE", "table": "CALENDAR", "rows": "365", "desc": "Date dimension table"},
+            {"schema": "INFRASTRUCTURE", "table": "SITES", "rows": "8,785", "desc": "All TDF infrastructure sites"},
+            {"schema": "INFRASTRUCTURE", "table": "TOWERS", "rows": "7,877", "desc": "Tower structures"},
+            {"schema": "INFRASTRUCTURE", "table": "EQUIPMENT", "rows": "45,892", "desc": "All equipment inventory"},
+            {"schema": "INFRASTRUCTURE", "table": "ANTENNAS", "rows": "25,000+", "desc": "Antenna installations"},
+            {"schema": "HR", "table": "EMPLOYEES", "rows": "1,850", "desc": "TDF workforce"},
+            {"schema": "HR", "table": "WORKFORCE_CAPACITY", "rows": "216", "desc": "Monthly capacity by region"},
+            {"schema": "OPERATIONS", "table": "WORK_ORDERS", "rows": "15,000+", "desc": "Maintenance work orders"},
+            {"schema": "FINANCE", "table": "CAPEX_PROJECTS", "rows": "850", "desc": "Capital expenditure projects"},
+            {"schema": "ESG", "table": "CARBON_EMISSIONS", "rows": "1,200", "desc": "CO2 emissions by scope"},
+        ]
+        
+        # Header
+        header_cols = st.columns([1, 2, 1, 3])
+        with header_cols[0]:
+            st.markdown("**Schema**")
+        with header_cols[1]:
+            st.markdown("**Table**")
+        with header_cols[2]:
+            st.markdown("**Rows**")
+        with header_cols[3]:
+            st.markdown("**Description**")
+        
+        for t in tables_inventory:
+            cols = st.columns([1, 2, 1, 3])
+            with cols[0]:
+                st.markdown(f"`{t['schema']}`")
+            with cols[1]:
+                st.markdown(f"**{t['table']}**")
+            with cols[2]:
+                st.markdown(t['rows'])
+            with cols[3]:
+                st.markdown(t['desc'])
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 4: ETL Pipeline Architecture
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔄 ETL Pipeline Architecture")
+    st.caption("Data transformation workflows using dbt")
+    
+    etl_col1, etl_col2 = st.columns([2, 1])
+    
+    with etl_col1:
+        # ETL Pipeline diagram
+        etl_diagram = """
+        digraph ETL {
+            rankdir=LR;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10];
+            edge [fontname="Helvetica", fontsize=9];
+            
+            subgraph cluster_extract {
+                label="EXTRACT";
+                style=filled;
+                fillcolor="#fff3e0";
+                color="#e67e22";
+                
+                src_sap [label="SAP\\n(Assets)", shape=box];
+                src_workday [label="Workday\\n(HR)", shape=box];
+                src_oracle [label="Oracle\\n(Finance)", shape=box];
+                src_iot [label="IoT Sensors\\n(Real-time)", shape=box];
+                src_api [label="External APIs\\n(Weather, etc.)", shape=box];
+            }
+            
+            subgraph cluster_load {
+                label="LOAD (ELT)";
+                style=filled;
+                fillcolor="#e8f5e9";
+                color="#27ae60";
+                
+                raw_assets [label="RAW_ASSETS"];
+                raw_hr [label="RAW_HR"];
+                raw_finance [label="RAW_FINANCE"];
+                raw_iot [label="RAW_IOT"];
+                raw_external [label="RAW_EXTERNAL"];
+            }
+            
+            subgraph cluster_transform {
+                label="TRANSFORM (dbt)";
+                style=filled;
+                fillcolor="#e3f2fd";
+                color="#3498db";
+                
+                stg [label="STAGING\\nmodels", shape=folder];
+                int [label="INTERMEDIATE\\nmodels", shape=folder];
+                mart [label="MART\\nmodels", shape=folder];
+            }
+            
+            subgraph cluster_serve {
+                label="SERVE";
+                style=filled;
+                fillcolor="#fce4ec";
+                color="#e63946";
+                
+                core [label="CORE"];
+                infra [label="INFRASTRUCTURE"];
+                hr [label="HR"];
+                finance [label="FINANCE"];
+                analytics [label="ANALYTICS"];
+            }
+            
+            // Extract to Load
+            src_sap -> raw_assets [label="Fivetran\\n4h sync"];
+            src_workday -> raw_hr [label="Fivetran\\n6h sync"];
+            src_oracle -> raw_finance [label="Fivetran\\n1h sync"];
+            src_iot -> raw_iot [label="Kafka\\nReal-time"];
+            src_api -> raw_external [label="API\\nDaily"];
+            
+            // Load to Transform
+            raw_assets -> stg;
+            raw_hr -> stg;
+            raw_finance -> stg;
+            raw_iot -> stg;
+            raw_external -> stg;
+            
+            stg -> int [label="Clean\\nDedupe"];
+            int -> mart [label="Join\\nAggregate"];
+            
+            // Transform to Serve
+            mart -> core;
+            mart -> infra;
+            mart -> hr;
+            mart -> finance;
+            mart -> analytics;
+        }
+        """
+        
+        st.graphviz_chart(etl_diagram, use_container_width=True)
+    
+    with etl_col2:
+        st.markdown("#### 📋 Pipeline Schedule")
+        
+        pipelines = [
+            {"name": "Asset Sync", "schedule": "Every 4h", "status": "✅ Running", "last": "10 min ago"},
+            {"name": "HR Data", "schedule": "Every 6h", "status": "✅ Running", "last": "2h ago"},
+            {"name": "Finance", "schedule": "Hourly", "status": "✅ Running", "last": "45 min ago"},
+            {"name": "IoT Stream", "schedule": "Real-time", "status": "✅ Running", "last": "Now"},
+            {"name": "dbt Models", "schedule": "Every 2h", "status": "✅ Running", "last": "1h ago"},
+            {"name": "Analytics", "schedule": "Daily 6AM", "status": "✅ Complete", "last": "Today"},
+        ]
+        
+        for p in pipelines:
+            status_color = '#27ae60' if '✅' in p['status'] else '#e63946'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 3px solid {status_color};">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600; font-size: 0.9rem;">{p['name']}</span>
+                        <span style="font-size: 0.75rem; color: {status_color};">{p['status']}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #888; margin-top: 0.2rem;">
+                        🕐 {p['schedule']} • Last: {p['last']}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("""
+            <div style="background: #1a2b4a; border-radius: 8px; padding: 0.75rem; color: white; margin-top: 1rem; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">Pipeline Health</div>
+                <div style="font-size: 1.5rem; font-weight: 700;">99.7%</div>
+                <div style="font-size: 0.7rem; opacity: 0.7;">Last 30 days</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 5: Data Lineage
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔗 Data Lineage & Dependencies")
+    st.caption("Track data flow from source to consumption")
+    
+    lineage_selector = st.selectbox(
+        "Select a metric to trace lineage:",
+        ["Executive Revenue", "Site Colocation Rate", "Carbon Emissions", "Workforce Capacity", "Equipment Age"]
     )
+    
+    if lineage_selector == "Executive Revenue":
+        lineage_graph = """
+        digraph Lineage {
+            rankdir=LR;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10, shape=box, style=filled];
+            
+            // Sources
+            oracle [label="Oracle\\nFinance", fillcolor="#fff3e0", color="#e67e22"];
+            contracts [label="Contract\\nSystem", fillcolor="#fff3e0", color="#e67e22"];
+            
+            // Raw
+            raw_revenue [label="RAW.REVENUE", fillcolor="#e8f5e9", color="#27ae60"];
+            raw_contracts [label="RAW.CONTRACTS", fillcolor="#e8f5e9", color="#27ae60"];
+            
+            // Staging
+            stg_revenue [label="STG_REVENUE", fillcolor="#e3f2fd", color="#3498db"];
+            stg_contracts [label="STG_CONTRACTS", fillcolor="#e3f2fd", color="#3498db"];
+            
+            // Intermediate
+            int_revenue [label="INT_REVENUE_DAILY", fillcolor="#bbdefb", color="#1976d2"];
+            
+            // Mart
+            mart_revenue [label="FINANCE.REVENUE", fillcolor="#90caf9", color="#1976d2"];
+            
+            // Analytics
+            vw_revenue [label="VW_REVENUE_EXECUTIVE", fillcolor="#64b5f6", color="#1976d2"];
+            
+            // Consumption
+            dashboard [label="Executive\\nDashboard", fillcolor="#fce4ec", color="#e63946"];
+            powerbi [label="Power BI\\nReports", fillcolor="#fce4ec", color="#e63946"];
+            
+            // Edges
+            oracle -> raw_revenue;
+            contracts -> raw_contracts;
+            raw_revenue -> stg_revenue;
+            raw_contracts -> stg_contracts;
+            stg_revenue -> int_revenue;
+            stg_contracts -> int_revenue;
+            int_revenue -> mart_revenue;
+            mart_revenue -> vw_revenue;
+            vw_revenue -> dashboard;
+            vw_revenue -> powerbi;
+        }
+        """
+    elif lineage_selector == "Carbon Emissions":
+        lineage_graph = """
+        digraph Lineage {
+            rankdir=LR;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10, shape=box, style=filled];
+            
+            // Sources
+            energy_meters [label="Energy\\nMeters", fillcolor="#fff3e0", color="#e67e22"];
+            emission_factors [label="Emission\\nFactors", fillcolor="#fff3e0", color="#e67e22"];
+            fleet [label="Fleet\\nManagement", fillcolor="#fff3e0", color="#e67e22"];
+            
+            // Raw
+            raw_energy [label="RAW.ENERGY", fillcolor="#e8f5e9", color="#27ae60"];
+            raw_factors [label="RAW.FACTORS", fillcolor="#e8f5e9", color="#27ae60"];
+            raw_fleet [label="RAW.FLEET", fillcolor="#e8f5e9", color="#27ae60"];
+            
+            // Mart
+            emissions [label="ESG.CARBON_EMISSIONS", fillcolor="#90caf9", color="#1976d2"];
+            
+            // Views
+            vw_csrd [label="VW_CSRD_REPORT", fillcolor="#64b5f6", color="#1976d2"];
+            
+            // Consumption
+            esg_dash [label="ESG\\nDashboard", fillcolor="#fce4ec", color="#e63946"];
+            csrd_report [label="CSRD\\nReport", fillcolor="#fce4ec", color="#e63946"];
+            
+            energy_meters -> raw_energy;
+            emission_factors -> raw_factors;
+            fleet -> raw_fleet;
+            raw_energy -> emissions;
+            raw_factors -> emissions;
+            raw_fleet -> emissions;
+            emissions -> vw_csrd;
+            vw_csrd -> esg_dash;
+            vw_csrd -> csrd_report;
+        }
+        """
+    else:
+        lineage_graph = """
+        digraph Lineage {
+            rankdir=LR;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10, shape=box, style=filled];
+            
+            source [label="Source\\nSystem", fillcolor="#fff3e0", color="#e67e22"];
+            raw [label="RAW Layer", fillcolor="#e8f5e9", color="#27ae60"];
+            staging [label="Staging", fillcolor="#e3f2fd", color="#3498db"];
+            mart [label="Data Mart", fillcolor="#90caf9", color="#1976d2"];
+            view [label="Analytics View", fillcolor="#64b5f6", color="#1976d2"];
+            dashboard [label="Dashboard", fillcolor="#fce4ec", color="#e63946"];
+            
+            source -> raw -> staging -> mart -> view -> dashboard;
+        }
+        """
+    
+    st.graphviz_chart(lineage_graph, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 6: Security & Access Control
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔐 Security & Access Control")
+    
+    security_col1, security_col2 = st.columns(2)
+    
+    with security_col1:
+        st.markdown("#### 👥 Role-Based Access Control")
+        
+        # RBAC diagram
+        rbac_diagram = """
+        digraph RBAC {
+            rankdir=TB;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10, shape=box, style=filled];
+            
+            // Roles
+            accountadmin [label="ACCOUNTADMIN", fillcolor="#e63946", fontcolor="white"];
+            sysadmin [label="SYSADMIN", fillcolor="#c0392b", fontcolor="white"];
+            securityadmin [label="SECURITYADMIN", fillcolor="#c0392b", fontcolor="white"];
+            
+            tdf_admin [label="TDF_ADMIN", fillcolor="#3498db", fontcolor="white"];
+            tdf_analyst [label="TDF_ANALYST", fillcolor="#27ae60", fontcolor="white"];
+            tdf_engineer [label="TDF_ENGINEER", fillcolor="#9b59b6", fontcolor="white"];
+            tdf_executive [label="TDF_EXECUTIVE", fillcolor="#e67e22", fontcolor="white"];
+            
+            // Hierarchy
+            accountadmin -> sysadmin;
+            accountadmin -> securityadmin;
+            sysadmin -> tdf_admin;
+            tdf_admin -> tdf_analyst;
+            tdf_admin -> tdf_engineer;
+            tdf_admin -> tdf_executive;
+        }
+        """
+        
+        st.graphviz_chart(rbac_diagram, use_container_width=True)
+    
+    with security_col2:
+        st.markdown("#### 🔑 Permission Matrix")
+        
+        permissions = [
+            {"role": "TDF_ADMIN", "read": "✅", "write": "✅", "delete": "✅", "admin": "✅"},
+            {"role": "TDF_ENGINEER", "read": "✅", "write": "✅", "delete": "❌", "admin": "❌"},
+            {"role": "TDF_ANALYST", "read": "✅", "write": "❌", "delete": "❌", "admin": "❌"},
+            {"role": "TDF_EXECUTIVE", "read": "✅", "write": "❌", "delete": "❌", "admin": "❌"},
+        ]
+        
+        perm_cols = st.columns([2, 1, 1, 1, 1])
+        with perm_cols[0]:
+            st.markdown("**Role**")
+        with perm_cols[1]:
+            st.markdown("**Read**")
+        with perm_cols[2]:
+            st.markdown("**Write**")
+        with perm_cols[3]:
+            st.markdown("**Delete**")
+        with perm_cols[4]:
+            st.markdown("**Admin**")
+        
+        for p in permissions:
+            cols = st.columns([2, 1, 1, 1, 1])
+            with cols[0]:
+                st.markdown(f"`{p['role']}`")
+            with cols[1]:
+                st.markdown(p['read'])
+            with cols[2]:
+                st.markdown(p['write'])
+            with cols[3]:
+                st.markdown(p['delete'])
+            with cols[4]:
+                st.markdown(p['admin'])
+        
+        st.markdown("---")
+        
+        st.markdown("#### 🛡️ Security Features")
+        security_features = [
+            "🔒 Column-level encryption (PII data)",
+            "🎭 Dynamic data masking",
+            "📝 Row-level security policies",
+            "🔑 SSO via SAML 2.0",
+            "📊 Query audit logging",
+            "🌐 Network policies (IP whitelisting)",
+        ]
+        for f in security_features:
+            st.markdown(f"• {f}")
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 7: Data Quality Framework
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### ✅ Data Quality Framework")
+    
+    dq_col1, dq_col2, dq_col3 = st.columns(3)
+    
+    with dq_col1:
+        st.markdown("#### 📊 Quality Dimensions")
+        
+        dimensions = [
+            {"dim": "Completeness", "score": 98.5, "target": 99},
+            {"dim": "Accuracy", "score": 99.2, "target": 99},
+            {"dim": "Timeliness", "score": 97.8, "target": 98},
+            {"dim": "Consistency", "score": 99.5, "target": 99},
+            {"dim": "Uniqueness", "score": 99.9, "target": 99.5},
+        ]
+        
+        for d in dimensions:
+            color = '#27ae60' if d['score'] >= d['target'] else '#f39c12'
+            pct = d['score'] / 100
+            st.markdown(f"""
+                <div style="margin-bottom: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                        <span style="font-size: 0.85rem;">{d['dim']}</span>
+                        <span style="font-weight: 600; color: {color};">{d['score']}%</span>
+                    </div>
+                    <div style="background: #eee; border-radius: 4px; height: 8px; overflow: hidden;">
+                        <div style="background: {color}; width: {pct*100}%; height: 100%;"></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with dq_col2:
+        st.markdown("#### 🧪 Automated Tests")
+        
+        tests = [
+            {"test": "Schema validation", "count": 47, "passed": 47},
+            {"test": "Null checks", "count": 156, "passed": 154},
+            {"test": "Referential integrity", "count": 89, "passed": 89},
+            {"test": "Business rules", "count": 234, "passed": 231},
+            {"test": "Freshness checks", "count": 12, "passed": 12},
+        ]
+        
+        total_tests = sum(t['count'] for t in tests)
+        total_passed = sum(t['passed'] for t in tests)
+        
+        st.markdown(f"""
+            <div style="background: #27ae60; border-radius: 10px; padding: 1rem; color: white; text-align: center; margin-bottom: 1rem;">
+                <div style="font-size: 2rem; font-weight: 700;">{total_passed}/{total_tests}</div>
+                <div style="font-size: 0.8rem; opacity: 0.9;">Tests Passing</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        for t in tests:
+            status = "✅" if t['passed'] == t['count'] else "⚠️"
+            st.markdown(f"• {status} {t['test']}: {t['passed']}/{t['count']}")
+    
+    with dq_col3:
+        st.markdown("#### 🚨 Active Alerts")
+        
+        alerts = [
+            {"level": "warning", "msg": "2 null checks failed in RAW_HR", "time": "2h ago"},
+            {"level": "warning", "msg": "3 business rules need review", "time": "5h ago"},
+            {"level": "info", "msg": "New schema version deployed", "time": "1d ago"},
+        ]
+        
+        for a in alerts:
+            color = '#f39c12' if a['level'] == 'warning' else '#3498db'
+            icon = '⚠️' if a['level'] == 'warning' else 'ℹ️'
+            st.markdown(f"""
+                <div style="background: {color}15; border-left: 3px solid {color}; padding: 0.6rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0;">
+                    <div style="font-size: 0.85rem;">{icon} {a['msg']}</div>
+                    <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">{a['time']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.button("📊 View Full DQ Dashboard", use_container_width=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 8: Infrastructure & Deployment
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🖥️ Infrastructure & Deployment")
+    
+    infra_col1, infra_col2 = st.columns([2, 1])
+    
+    with infra_col1:
+        # Deployment architecture
+        deploy_diagram = """
+        digraph Deploy {
+            rankdir=TB;
+            bgcolor="transparent";
+            node [fontname="Helvetica", fontsize=10];
+            
+            subgraph cluster_dev {
+                label="DEV Environment";
+                style=filled;
+                fillcolor="#e3f2fd";
+                color="#3498db";
+                
+                dev_db [label="TDF_DEV\\nDatabase", shape=cylinder];
+                dev_wh [label="TDF_DEV_WH\\nXS Warehouse", shape=box3d];
+            }
+            
+            subgraph cluster_qa {
+                label="QA Environment";
+                style=filled;
+                fillcolor="#fff3e0";
+                color="#e67e22";
+                
+                qa_db [label="TDF_QA\\nDatabase", shape=cylinder];
+                qa_wh [label="TDF_QA_WH\\nS Warehouse", shape=box3d];
+            }
+            
+            subgraph cluster_prod {
+                label="PROD Environment";
+                style=filled;
+                fillcolor="#e8f5e9";
+                color="#27ae60";
+                
+                prod_db [label="TDF_DATA_PLATFORM\\nDatabase", shape=cylinder];
+                prod_wh [label="TDF_WH\\nM Warehouse", shape=box3d];
+                prod_wh_large [label="TDF_WH_LARGE\\nL Warehouse", shape=box3d];
+            }
+            
+            subgraph cluster_cicd {
+                label="CI/CD Pipeline";
+                style=filled;
+                fillcolor="#fce4ec";
+                color="#e63946";
+                
+                github [label="GitHub\\nRepository", shape=box];
+                actions [label="GitHub\\nActions", shape=box];
+                dbt_cloud [label="dbt Cloud", shape=box];
+            }
+            
+            // Edges
+            github -> actions [label="Push"];
+            actions -> dev_db [label="Deploy"];
+            actions -> qa_db [label="Test"];
+            actions -> prod_db [label="Release"];
+            dbt_cloud -> dev_db [label="Models"];
+            dbt_cloud -> qa_db;
+            dbt_cloud -> prod_db;
+        }
+        """
+        
+        st.graphviz_chart(deploy_diagram, use_container_width=True)
+    
+    with infra_col2:
+        st.markdown("#### ☁️ Snowflake Resources")
+        
+        resources = [
+            {"name": "TDF_WH", "size": "Medium", "status": "Running", "cost": "€2.4K/mo"},
+            {"name": "TDF_WH_LARGE", "size": "Large", "status": "Suspended", "cost": "€0/mo"},
+            {"name": "TDF_DEV_WH", "size": "X-Small", "status": "Running", "cost": "€0.3K/mo"},
+            {"name": "TDF_QA_WH", "size": "Small", "status": "Suspended", "cost": "€0/mo"},
+        ]
+        
+        for r in resources:
+            status_color = '#27ae60' if r['status'] == 'Running' else '#888'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 3px solid {status_color};">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 600;">{r['name']}</span>
+                        <span style="font-size: 0.8rem; color: #888;">{r['size']}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.2rem;">
+                        <span style="font-size: 0.75rem; color: {status_color};">● {r['status']}</span>
+                        <span style="font-size: 0.75rem; color: #666;">{r['cost']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        st.markdown("#### 📦 Git Repository")
+        st.markdown("""
+            <div style="background: #1a2b4a; border-radius: 8px; padding: 1rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.8;">Repository</div>
+                <div style="font-family: monospace; font-size: 0.9rem; margin: 0.25rem 0;">github.com/pmjose/TDF</div>
+                <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">Branch: main • Last commit: 2h ago</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 9: API & Integration Layer
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔌 API & Integration Layer")
+    
+    api_col1, api_col2 = st.columns(2)
+    
+    with api_col1:
+        st.markdown("#### 📡 Active Integrations")
+        
+        integrations = [
+            {"system": "SAP (Asset Management)", "type": "Batch", "freq": "4h", "status": "✅ Active"},
+            {"system": "Workday (HR)", "type": "Batch", "freq": "6h", "status": "✅ Active"},
+            {"system": "Oracle Financials", "type": "Batch", "freq": "1h", "status": "✅ Active"},
+            {"system": "ServiceNow (Ops)", "type": "Batch", "freq": "15min", "status": "✅ Active"},
+            {"system": "IoT Sensors (SCADA)", "type": "Stream", "freq": "Real-time", "status": "✅ Active"},
+            {"system": "Digital Twin Platform", "type": "API", "freq": "On-demand", "status": "✅ Active"},
+            {"system": "Weather API", "type": "API", "freq": "Hourly", "status": "✅ Active"},
+            {"system": "Grid Operator", "type": "SFTP", "freq": "Daily", "status": "⚠️ Delayed"},
+        ]
+        
+        for i in integrations:
+            status_color = '#27ae60' if '✅' in i['status'] else '#f39c12'
+            type_color = '#3498db' if i['type'] == 'Batch' else '#9b59b6' if i['type'] == 'Stream' else '#e67e22'
+            st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                    <div>
+                        <span style="font-weight: 500;">{i['system']}</span>
+                        <span style="background: {type_color}20; color: {type_color}; padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.65rem; margin-left: 0.5rem;">{i['type']}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.75rem; color: #888; margin-right: 0.5rem;">{i['freq']}</span>
+                        <span style="color: {status_color};">{i['status']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with api_col2:
+        st.markdown("#### 📊 Integration Metrics")
+        
+        metrics_data = {
+            "dates": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            "success": [1245, 1302, 1189, 1356, 1278, 890, 756],
+            "failed": [12, 8, 23, 5, 15, 3, 2],
+        }
+        
+        fig_int = go.Figure()
+        
+        fig_int.add_trace(go.Bar(
+            x=metrics_data['dates'],
+            y=metrics_data['success'],
+            name='Success',
+            marker_color='#27ae60'
+        ))
+        
+        fig_int.add_trace(go.Bar(
+            x=metrics_data['dates'],
+            y=metrics_data['failed'],
+            name='Failed',
+            marker_color='#e63946'
+        ))
+        
+        fig_int.update_layout(
+            barmode='stack',
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_int, use_container_width=True)
+        
+        # Summary stats
+        total_calls = sum(metrics_data['success']) + sum(metrics_data['failed'])
+        success_rate = sum(metrics_data['success']) / total_calls * 100
+        
+        stat_cols = st.columns(3)
+        with stat_cols[0]:
+            st.metric("Total Calls", f"{total_calls:,}")
+        with stat_cols[1]:
+            st.metric("Success Rate", f"{success_rate:.1f}%")
+        with stat_cols[2]:
+            st.metric("Avg Latency", "245ms")
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 10: Documentation & Support
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📚 Documentation & Support")
+    
+    doc_col1, doc_col2, doc_col3, doc_col4 = st.columns(4)
+    
+    with doc_col1:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; text-align: center; border: 1px solid #eee; height: 180px;">
+                <div style="font-size: 2.5rem;">📖</div>
+                <div style="font-weight: 700; margin: 0.5rem 0;">Data Dictionary</div>
+                <div style="font-size: 0.8rem; color: #666;">Complete schema documentation with business definitions</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.button("Open Dictionary", key="doc1", use_container_width=True)
+    
+    with doc_col2:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; text-align: center; border: 1px solid #eee; height: 180px;">
+                <div style="font-size: 2.5rem;">🔄</div>
+                <div style="font-weight: 700; margin: 0.5rem 0;">ETL Documentation</div>
+                <div style="font-size: 0.8rem; color: #666;">Pipeline configurations, schedules, and dependencies</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.button("View Pipelines", key="doc2", use_container_width=True)
+    
+    with doc_col3:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; text-align: center; border: 1px solid #eee; height: 180px;">
+                <div style="font-size: 2.5rem;">🔐</div>
+                <div style="font-weight: 700; margin: 0.5rem 0;">Security Guide</div>
+                <div style="font-size: 0.8rem; color: #666;">Access control, encryption, and compliance</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.button("Security Docs", key="doc3", use_container_width=True)
+    
+    with doc_col4:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; text-align: center; border: 1px solid #eee; height: 180px;">
+                <div style="font-size: 2.5rem;">💬</div>
+                <div style="font-weight: 700; margin: 0.5rem 0;">Support</div>
+                <div style="font-size: 0.8rem; color: #666;">Contact data engineering team for assistance</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.button("Get Help", key="doc4", use_container_width=True)
 
 # ==============================================================================
 # MAIN ROUTING
