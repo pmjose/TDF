@@ -143,6 +143,11 @@ EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data
 EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data/20_seed_executive_kpis.sql;
 
 -- ============================================================================
+-- SECTION 21: SEED DATA - COMMERCIAL (Demand Forecast, Projects, Contracts)
+-- ============================================================================
+EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/data/21_seed_commercial.sql;
+
+-- ============================================================================
 -- DEPLOYMENT VALIDATION
 -- ============================================================================
 
