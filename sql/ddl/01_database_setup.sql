@@ -2,7 +2,26 @@
 -- TDF DATA PLATFORM - DATABASE SETUP
 -- ============================================================================
 -- Creates the database, schemas, roles, and warehouse
+-- Run this script first with ACCOUNTADMIN privileges
 -- ============================================================================
+
+-- ============================================================================
+-- STEP 0: USE ACCOUNTADMIN AND CREATE DATABASE FIRST
+-- ============================================================================
+
+USE ROLE ACCOUNTADMIN;
+
+-- Drop and recreate database for clean setup (comment out if you want to preserve data)
+-- DROP DATABASE IF EXISTS TDF_DATA_PLATFORM;
+
+-- Create database as ACCOUNTADMIN
+CREATE DATABASE IF NOT EXISTS TDF_DATA_PLATFORM
+    COMMENT = 'TDF Infrastructure Data Platform - Single Source of Truth for Telecom Operations';
+
+-- Grant full privileges to SYSADMIN and SECURITYADMIN
+GRANT ALL PRIVILEGES ON DATABASE TDF_DATA_PLATFORM TO ROLE SYSADMIN;
+GRANT CREATE SCHEMA ON DATABASE TDF_DATA_PLATFORM TO ROLE SYSADMIN;
+GRANT USAGE ON DATABASE TDF_DATA_PLATFORM TO ROLE SECURITYADMIN;
 
 -- ============================================================================
 -- ROLES
@@ -45,11 +64,8 @@ GRANT USAGE ON WAREHOUSE TDF_WH TO ROLE TDF_ENGINEER;
 GRANT USAGE ON WAREHOUSE TDF_WH TO ROLE TDF_EXECUTIVE;
 
 -- ============================================================================
--- DATABASE
+-- DATABASE (Already created above with ACCOUNTADMIN)
 -- ============================================================================
-
-CREATE DATABASE IF NOT EXISTS TDF_DATA_PLATFORM
-    COMMENT = 'TDF Infrastructure Data Platform - Single Source of Truth for Telecom Operations';
 
 USE DATABASE TDF_DATA_PLATFORM;
 
