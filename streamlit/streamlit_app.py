@@ -368,6 +368,199 @@ st.markdown("""
         font-weight: 600;
         color: #1a2b4a;
     }
+    
+    /* Risk Radar Styles */
+    .risk-radar {
+        background: linear-gradient(135deg, #1a2b4a 0%, #2d3436 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(26, 43, 74, 0.2);
+    }
+    
+    .risk-radar-title {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .risk-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .risk-item {
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-left: 3px solid #e63946;
+    }
+    
+    .risk-item.amber {
+        border-left-color: #f39c12;
+    }
+    
+    .risk-item.green {
+        border-left-color: #27ae60;
+    }
+    
+    .risk-icon {
+        font-size: 1.5rem;
+    }
+    
+    .risk-content {
+        flex: 1;
+    }
+    
+    .risk-title {
+        color: #ffffff;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .risk-detail {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+    
+    .risk-value {
+        background: rgba(230, 57, 70, 0.2);
+        color: #ff6b6b;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .risk-value.amber {
+        background: rgba(243, 156, 18, 0.2);
+        color: #ffd93d;
+    }
+    
+    .risk-value.green {
+        background: rgba(39, 174, 96, 0.2);
+        color: #6bcb77;
+    }
+    
+    /* Client Health Styles */
+    .client-health-card {
+        background: white;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-left: 4px solid #27ae60;
+    }
+    
+    .client-health-card.warning {
+        border-left-color: #f39c12;
+    }
+    
+    .client-health-card.risk {
+        border-left-color: #e63946;
+    }
+    
+    .client-logo {
+        width: 40px;
+        height: 40px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #1a2b4a;
+        font-size: 0.85rem;
+    }
+    
+    .client-info {
+        flex: 1;
+    }
+    
+    .client-name {
+        font-weight: 600;
+        color: #1a2b4a;
+        font-size: 0.95rem;
+    }
+    
+    .client-meta {
+        color: #888;
+        font-size: 0.8rem;
+    }
+    
+    .client-metrics {
+        text-align: right;
+    }
+    
+    .client-revenue {
+        font-weight: 700;
+        color: #1a2b4a;
+        font-size: 1rem;
+    }
+    
+    .client-status {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        margin-top: 0.25rem;
+        display: inline-block;
+    }
+    
+    .client-status.healthy {
+        background: rgba(39, 174, 96, 0.1);
+        color: #27ae60;
+    }
+    
+    .client-status.expiring {
+        background: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+    }
+    
+    .client-status.at-risk {
+        background: rgba(230, 57, 70, 0.1);
+        color: #e63946;
+    }
+    
+    /* Map container */
+    .map-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    
+    .map-legend {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -549,6 +742,308 @@ def page_executive_dashboard():
             </div>
         </div>
     """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # 🚨 RISK RADAR - Critical Alerts for Executive Attention
+    # -------------------------------------------------------------------------
+    
+    # Fetch risk data
+    contract_risk_df = run_query("""
+        SELECT 
+            o.OPERATOR_NAME,
+            o.CONTRACT_END_DATE,
+            o.ANNUAL_REVENUE_EUR / 1000000 as REVENUE_M,
+            DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY
+        FROM TDF_DATA_PLATFORM.CORE.OPERATORS o
+        WHERE o.CONTRACT_END_DATE IS NOT NULL
+        AND o.ANNUAL_REVENUE_EUR > 0
+        ORDER BY o.CONTRACT_END_DATE ASC
+        LIMIT 5
+    """)
+    
+    equipment_risk_df = run_query("""
+        SELECT COUNT(*) as AT_RISK_COUNT
+        FROM TDF_DATA_PLATFORM.OPERATIONS.EQUIPMENT_STATUS
+        WHERE FAILURE_RISK_SCORE > 70
+    """)
+    
+    sla_breach_df = run_query("""
+        SELECT COUNT(*) as BREACH_COUNT
+        FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS
+        WHERE SLA_MET = FALSE 
+        AND STATUS = 'COMPLETED'
+        AND CREATED_DATE >= DATEADD(MONTH, -1, CURRENT_DATE())
+    """)
+    
+    esg_deadline_df = run_query("""
+        SELECT COUNT(*) as PENDING_COUNT
+        FROM TDF_DATA_PLATFORM.ESG.ESG_REPORTS
+        WHERE STATUS = 'IN_PROGRESS'
+    """)
+    
+    # Build risk items
+    risk_items = []
+    
+    # Contract renewals
+    if not contract_risk_df.empty:
+        expiring_soon = contract_risk_df[contract_risk_df['DAYS_TO_EXPIRY'] < 365]
+        if len(expiring_soon) > 0:
+            total_at_risk = expiring_soon['REVENUE_M'].sum()
+            next_expiry = expiring_soon.iloc[0]
+            risk_items.append({
+                'icon': '📋',
+                'title': f"Contract Renewal: {next_expiry['OPERATOR_NAME']}",
+                'detail': f"€{next_expiry['REVENUE_M']:.0f}M revenue • Expires in {next_expiry['DAYS_TO_EXPIRY']:.0f} days",
+                'value': f"€{total_at_risk:.0f}M at risk",
+                'severity': 'red' if next_expiry['DAYS_TO_EXPIRY'] < 180 else 'amber'
+            })
+    
+    # Equipment at risk
+    at_risk_count = equipment_risk_df['AT_RISK_COUNT'].iloc[0] if not equipment_risk_df.empty else 0
+    if at_risk_count > 0:
+        risk_items.append({
+            'icon': '⚠️',
+            'title': 'Equipment at High Risk',
+            'detail': 'Equipment with failure risk score > 70 requiring attention',
+            'value': f"{at_risk_count:,} items",
+            'severity': 'red' if at_risk_count > 100 else 'amber'
+        })
+    
+    # SLA breaches
+    breach_count = sla_breach_df['BREACH_COUNT'].iloc[0] if not sla_breach_df.empty else 0
+    if breach_count > 0:
+        risk_items.append({
+            'icon': '🎯',
+            'title': 'SLA Breaches (Last 30 Days)',
+            'detail': 'Work orders that missed SLA targets',
+            'value': f"{breach_count} breaches",
+            'severity': 'red' if breach_count > 50 else 'amber'
+        })
+    
+    # ESG deadlines
+    pending_esg = esg_deadline_df['PENDING_COUNT'].iloc[0] if not esg_deadline_df.empty else 0
+    if pending_esg > 0:
+        risk_items.append({
+            'icon': '🌱',
+            'title': 'ESG Reports In Progress',
+            'detail': 'Regulatory reports awaiting completion',
+            'value': f"{pending_esg} pending",
+            'severity': 'amber'
+        })
+    
+    # Add a green item if things are good
+    if len(risk_items) < 3:
+        risk_items.append({
+            'icon': '✅',
+            'title': 'Infrastructure Health',
+            'detail': 'Network availability and performance on target',
+            'value': '99.8% uptime',
+            'severity': 'green'
+        })
+    
+    # Render Risk Radar
+    risk_html = ""
+    for item in risk_items[:4]:  # Show max 4 items
+        severity_class = item.get('severity', 'amber')
+        risk_html += f"""
+            <div class="risk-item {severity_class}">
+                <div class="risk-icon">{item['icon']}</div>
+                <div class="risk-content">
+                    <div class="risk-title">{item['title']}</div>
+                    <div class="risk-detail">{item['detail']}</div>
+                </div>
+                <div class="risk-value {severity_class}">{item['value']}</div>
+            </div>
+        """
+    
+    st.markdown(f"""
+        <div class="risk-radar">
+            <div class="risk-radar-title">🚨 Risk Radar - Items Requiring Attention</div>
+            <div class="risk-items">
+                {risk_html}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
+    # -------------------------------------------------------------------------
+    
+    col_map, col_clients = st.columns([3, 2])
+    
+    with col_map:
+        st.markdown("### 🗺️ Infrastructure by Region")
+        
+        # Fetch regional data
+        regional_df = run_query("""
+            SELECT 
+                r.REGION_NAME,
+                r.REGION_CODE,
+                r.LATITUDE,
+                r.LONGITUDE,
+                COUNT(DISTINCT s.SITE_ID) as SITE_COUNT,
+                SUM(s.ANNUAL_REVENUE_EUR) / 1000000 as REVENUE_M,
+                AVG(s.COLOCATION_RATE) * 100 as AVG_COLOCATION
+            FROM TDF_DATA_PLATFORM.CORE.REGIONS r
+            LEFT JOIN TDF_DATA_PLATFORM.CORE.DEPARTMENTS d ON r.REGION_ID = d.REGION_ID
+            LEFT JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES s ON d.DEPARTMENT_ID = s.DEPARTMENT_ID
+            WHERE s.STATUS = 'ACTIVE'
+            GROUP BY r.REGION_NAME, r.REGION_CODE, r.LATITUDE, r.LONGITUDE
+            ORDER BY SITE_COUNT DESC
+        """)
+        
+        if not regional_df.empty:
+            # Create bubble map for France
+            fig = go.Figure()
+            
+            # Scale bubble sizes
+            max_sites = regional_df['SITE_COUNT'].max()
+            regional_df['bubble_size'] = (regional_df['SITE_COUNT'] / max_sites) * 60 + 15
+            
+            # Color by revenue
+            fig.add_trace(go.Scattergeo(
+                lon=regional_df['LONGITUDE'],
+                lat=regional_df['LATITUDE'],
+                mode='markers+text',
+                marker=dict(
+                    size=regional_df['bubble_size'],
+                    color=regional_df['REVENUE_M'],
+                    colorscale=[[0, '#d4e6f1'], [0.5, '#3498db'], [1, '#1a2b4a']],
+                    showscale=True,
+                    colorbar=dict(
+                        title=dict(text='Revenue<br>(€M)', font=dict(size=11)),
+                        thickness=15,
+                        len=0.6
+                    ),
+                    line=dict(color='white', width=1),
+                    opacity=0.85
+                ),
+                text=regional_df['REGION_CODE'],
+                textposition='middle center',
+                textfont=dict(color='white', size=9, family='Arial Black'),
+                hovertemplate=(
+                    '<b>%{customdata[0]}</b><br>' +
+                    'Sites: %{customdata[1]:,}<br>' +
+                    'Revenue: €%{customdata[2]:.1f}M<br>' +
+                    'Colocation: %{customdata[3]:.0f}%<extra></extra>'
+                ),
+                customdata=regional_df[['REGION_NAME', 'SITE_COUNT', 'REVENUE_M', 'AVG_COLOCATION']].values
+            ))
+            
+            # Focus on France
+            fig.update_geos(
+                scope='europe',
+                center=dict(lat=46.6, lon=2.5),
+                projection_scale=5,
+                showland=True,
+                landcolor='#f8f9fa',
+                showocean=True,
+                oceancolor='#e8f4f8',
+                showcountries=True,
+                countrycolor='#ddd',
+                showcoastlines=True,
+                coastlinecolor='#ccc',
+                showlakes=False,
+                showrivers=False,
+                showframe=False
+            )
+            
+            fig.update_layout(
+                height=400,
+                margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor='rgba(0,0,0,0)',
+                geo=dict(bgcolor='rgba(0,0,0,0)')
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Summary stats below map
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Top Region", regional_df.iloc[0]['REGION_NAME'], f"{regional_df.iloc[0]['SITE_COUNT']:,} sites")
+            with col2:
+                total_revenue = regional_df['REVENUE_M'].sum()
+                st.metric("Total Revenue", f"€{total_revenue:.0f}M")
+            with col3:
+                avg_coloc = regional_df['AVG_COLOCATION'].mean()
+                st.metric("Avg Colocation", f"{avg_coloc:.0f}%")
+        else:
+            st.info("Loading regional data...")
+    
+    with col_clients:
+        st.markdown("### 💰 Client Health Monitor")
+        
+        # Fetch client health data
+        client_health_df = run_query("""
+            SELECT 
+                o.OPERATOR_NAME,
+                o.OPERATOR_CODE,
+                o.ANNUAL_REVENUE_EUR / 1000000 as REVENUE_M,
+                o.CONTRACT_END_DATE,
+                o.CREDIT_RATING,
+                DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY,
+                COALESCE(
+                    (SELECT COUNT(*) 
+                     FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS wo 
+                     JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES s ON wo.SITE_ID = s.SITE_ID
+                     JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.CLIENT_INSTALLATIONS ci ON s.SITE_ID = ci.SITE_ID
+                     WHERE ci.OPERATOR_ID = o.OPERATOR_ID
+                     AND wo.STATUS = 'OPEN'
+                     AND wo.PRIORITY IN ('CRITICAL', 'HIGH')), 0
+                ) as OPEN_ISSUES
+            FROM TDF_DATA_PLATFORM.CORE.OPERATORS o
+            WHERE o.ANNUAL_REVENUE_EUR > 0
+            ORDER BY o.ANNUAL_REVENUE_EUR DESC
+            LIMIT 6
+        """)
+        
+        if not client_health_df.empty:
+            for _, client in client_health_df.iterrows():
+                # Determine health status
+                days_to_expiry = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
+                
+                if days_to_expiry < 365:
+                    health_class = 'risk'
+                    status_class = 'at-risk'
+                    status_text = f'Expires {days_to_expiry}d'
+                elif days_to_expiry < 730:
+                    health_class = 'warning'
+                    status_class = 'expiring'
+                    status_text = f'Renewal in {days_to_expiry//30}mo'
+                else:
+                    health_class = ''
+                    status_class = 'healthy'
+                    status_text = 'Secured'
+                
+                # Logo initials
+                initials = ''.join([w[0] for w in client['OPERATOR_NAME'].split()[:2]]).upper()
+                
+                st.markdown(f"""
+                    <div class="client-health-card {health_class}">
+                        <div class="client-logo">{initials}</div>
+                        <div class="client-info">
+                            <div class="client-name">{client['OPERATOR_NAME']}</div>
+                            <div class="client-meta">Rating: {client['CREDIT_RATING']} • {client['OPEN_ISSUES']} open issues</div>
+                        </div>
+                        <div class="client-metrics">
+                            <div class="client-revenue">€{client['REVENUE_M']:.0f}M</div>
+                            <div class="client-status {status_class}">{status_text}</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # Revenue at risk summary
+            at_risk = client_health_df[client_health_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
+            secured = client_health_df[client_health_df['DAYS_TO_EXPIRY'] >= 730]['REVENUE_M'].sum()
+            
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Revenue Secured", f"€{secured:.0f}M", delta="Contracted 2+ yrs")
+            with col2:
+                st.metric("Revenue to Renew", f"€{at_risk:.0f}M", delta="Within 24 months", delta_color="inverse")
+        else:
+            st.info("Loading client data...")
     
     # -------------------------------------------------------------------------
     # MONTHLY FINANCIAL PERFORMANCE - Revenue vs Costs
