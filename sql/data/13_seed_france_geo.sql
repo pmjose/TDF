@@ -4,8 +4,19 @@
 -- 13 Metropolitan Regions, 96 Departments
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA CORE;
+
+-- ============================================================================
+-- TRUNCATE GEOGRAPHY TABLES (Idempotent - safe to re-run)
+-- Order matters due to foreign key dependencies
+-- ============================================================================
+
+TRUNCATE TABLE IF EXISTS CALENDAR;
+TRUNCATE TABLE IF EXISTS DEPARTMENTS;
+TRUNCATE TABLE IF EXISTS REGIONS;
 
 -- ============================================================================
 -- REGIONS (13 Metropolitan French Regions)
