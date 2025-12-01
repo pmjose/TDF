@@ -10,6 +10,7 @@ from snowflake.snowpark.context import get_active_session
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import pydeck as pdk
 
 # ==============================================================================
 # PAGE CONFIGURATION
@@ -899,84 +900,88 @@ def page_executive_dashboard():
         """)
         
         if not regional_df.empty:
-            # Create geographic scatter plot (works offline in SiS)
-            # Scale bubble size by site count
+            # Prepare data for PyDeck
+            # Scale radius by site count (min 10000, max 80000 meters)
             max_sites = max(regional_df['SITE_COUNT'].max(), 1)
-            regional_df['bubble_size'] = (regional_df['SITE_COUNT'] / max_sites) * 50 + 10
+            regional_df['radius'] = (regional_df['SITE_COUNT'] / max_sites) * 70000 + 10000
             
-            fig = go.Figure()
+            # Color by revenue: blue gradient (RGB)
+            max_rev = max(regional_df['REVENUE_M'].max(), 1)
+            regional_df['color_r'] = 26  # TDF navy R
+            regional_df['color_g'] = (43 + (1 - regional_df['REVENUE_M'] / max_rev) * 150).astype(int)
+            regional_df['color_b'] = (74 + (1 - regional_df['REVENUE_M'] / max_rev) * 180).astype(int)
             
-            # Add bubbles for each region at their geographic location
-            fig.add_trace(go.Scatter(
-                x=regional_df['LONGITUDE'],
-                y=regional_df['LATITUDE'],
-                mode='markers+text',
-                marker=dict(
-                    size=regional_df['bubble_size'],
-                    color=regional_df['REVENUE_M'],
-                    colorscale=[[0, '#e8f4f8'], [0.3, '#3498db'], [0.7, '#1a2b4a'], [1, '#0d1b2a']],
-                    showscale=True,
-                    colorbar=dict(
-                        title=dict(text='Revenue (€M)', font=dict(size=10)),
-                        thickness=12,
-                        len=0.6,
-                        y=0.5
-                    ),
-                    line=dict(color='white', width=2),
-                    opacity=0.85
-                ),
-                text=regional_df['REGION_CODE'],
-                textposition='middle center',
-                textfont=dict(size=8, color='white', family='Arial Black'),
-                hovertemplate=(
-                    '<b>%{customdata[0]}</b><br>' +
-                    '📡 Sites: %{customdata[1]:,}<br>' +
-                    '💰 Revenue: €%{customdata[2]:.1f}M<br>' +
-                    '🏢 Colocation: %{customdata[3]:.0f}%<br>' +
-                    '👥 Population: %{customdata[4]:.1f}M<extra></extra>'
-                ),
-                customdata=regional_df[['REGION_NAME', 'SITE_COUNT', 'REVENUE_M', 'AVG_COLOCATION', 'POPULATION_M']].values
-            ))
+            # Rename columns for PyDeck (needs lowercase)
+            map_df = regional_df.rename(columns={
+                'LATITUDE': 'lat', 
+                'LONGITUDE': 'lon',
+                'REGION_NAME': 'region_name',
+                'REGION_CODE': 'region_code',
+                'SITE_COUNT': 'sites',
+                'REVENUE_M': 'revenue',
+                'AVG_COLOCATION': 'colocation',
+                'POPULATION_M': 'population'
+            })
             
-            # Add France outline (approximate polygon)
-            france_lon = [-4.8, -1.5, 2.5, 8.2, 9.5, 7.5, 6.0, 3.0, 1.5, -1.8, -4.8]
-            france_lat = [48.5, 48.8, 51.0, 49.0, 43.8, 43.5, 43.0, 42.4, 43.5, 46.5, 48.5]
-            
-            fig.add_trace(go.Scatter(
-                x=france_lon,
-                y=france_lat,
-                mode='lines',
-                line=dict(color='#ccc', width=1.5, dash='dot'),
-                hoverinfo='skip',
-                showlegend=False
-            ))
-            
-            fig.update_layout(
-                height=380,
-                margin=dict(l=0, r=0, t=10, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='#f8fafc',
-                xaxis=dict(
-                    showgrid=False,
-                    showticklabels=False,
-                    zeroline=False,
-                    range=[-6, 11],
-                    title=None,
-                    fixedrange=True
-                ),
-                yaxis=dict(
-                    showgrid=False,
-                    showticklabels=False,
-                    zeroline=False,
-                    range=[41, 52],
-                    scaleanchor='x',
-                    title=None,
-                    fixedrange=True
-                ),
-                showlegend=False
+            # Create PyDeck ScatterplotLayer
+            layer = pdk.Layer(
+                "ScatterplotLayer",
+                data=map_df,
+                get_position=["lon", "lat"],
+                get_radius="radius",
+                get_fill_color=["color_r", "color_g", "color_b", 200],
+                pickable=True,
+                auto_highlight=True,
+                highlight_color=[230, 57, 70, 255],  # TDF red on hover
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # Text layer for region codes
+            text_layer = pdk.Layer(
+                "TextLayer",
+                data=map_df,
+                get_position=["lon", "lat"],
+                get_text="region_code",
+                get_size=14,
+                get_color=[255, 255, 255, 255],
+                get_alignment_baseline="'center'",
+                font_family='"Arial Black", sans-serif',
+                pickable=False,
+            )
+            
+            # Set view centered on France
+            view_state = pdk.ViewState(
+                latitude=46.6,
+                longitude=2.5,
+                zoom=4.8,
+                pitch=0,
+            )
+            
+            # Tooltip with details
+            tooltip = {
+                "html": """
+                    <div style="background: #1a2b4a; padding: 12px; border-radius: 8px; font-family: Arial, sans-serif;">
+                        <div style="font-size: 16px; font-weight: bold; color: white; margin-bottom: 8px;">{region_name}</div>
+                        <div style="color: #aaa; font-size: 12px;">
+                            📡 <b style="color: white;">{sites}</b> Sites<br/>
+                            💰 <b style="color: white;">€{revenue:.1f}M</b> Revenue<br/>
+                            🏢 <b style="color: white;">{colocation:.0f}%</b> Colocation<br/>
+                            👥 <b style="color: white;">{population:.1f}M</b> Population
+                        </div>
+                    </div>
+                """,
+                "style": {"backgroundColor": "transparent", "color": "white"}
+            }
+            
+            # Render the map
+            st.pydeck_chart(
+                pdk.Deck(
+                    layers=[layer, text_layer],
+                    initial_view_state=view_state,
+                    tooltip=tooltip,
+                    map_style="mapbox://styles/mapbox/light-v10",  # Clean light basemap
+                ),
+                use_container_width=True
+            )
             
             # Summary stats below map
             col1, col2, col3 = st.columns(3)
