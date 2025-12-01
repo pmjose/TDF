@@ -2741,7 +2741,262 @@ def page_esg_reporting():
         st.markdown("</div>", unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
-    # ROW 3: Regulatory Calendar & Alerts
+    # ROW 3: Board ESG Scorecard - Executive Summary
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📊 Board ESG Scorecard")
+    st.caption("Executive summary for board reporting • Updated quarterly")
+    
+    # Scorecard data with YoY comparison
+    scorecard_metrics = [
+        {"category": "🌍 Environmental", "metrics": [
+            {"name": "Carbon Intensity", "value": "78.9", "unit": "kgCO₂e/MWh", "target": "70.0", "yoy": -8.5, "status": "on_track"},
+            {"name": "Renewable Energy", "value": "47", "unit": "%", "target": "50", "yoy": 5.0, "status": "on_track"},
+            {"name": "Energy Efficiency", "value": "92", "unit": "PUE avg", "target": "90", "yoy": -2.1, "status": "at_risk"},
+            {"name": "Waste Recycling", "value": "89", "unit": "%", "target": "90", "yoy": 3.0, "status": "on_track"},
+        ]},
+        {"category": "👥 Social", "metrics": [
+            {"name": "Gender Pay Gap", "value": "2.3", "unit": "%", "target": "<5", "yoy": -1.2, "status": "achieved"},
+            {"name": "Women in Leadership", "value": "32", "unit": "%", "target": "35", "yoy": 3.0, "status": "on_track"},
+            {"name": "Training Investment", "value": "1,850", "unit": "€/employee", "target": "1,500", "yoy": 12.0, "status": "achieved"},
+            {"name": "Lost Time Injury Rate", "value": "3.2", "unit": "per million hrs", "target": "<4", "yoy": -15.0, "status": "achieved"},
+        ]},
+        {"category": "🏛️ Governance", "metrics": [
+            {"name": "Board Independence", "value": "60", "unit": "%", "target": "50", "yoy": 0, "status": "achieved"},
+            {"name": "Ethics Training", "value": "95", "unit": "% completed", "target": "100", "yoy": 5.0, "status": "on_track"},
+            {"name": "Supplier ESG Audits", "value": "78", "unit": "% coverage", "target": "80", "yoy": 12.0, "status": "on_track"},
+            {"name": "Data Breaches", "value": "0", "unit": "incidents", "target": "0", "yoy": 0, "status": "achieved"},
+        ]},
+    ]
+    
+    for category in scorecard_metrics:
+        cat_color = '#27ae60' if 'Environmental' in category['category'] else '#3498db' if 'Social' in category['category'] else '#9b59b6'
+        
+        st.markdown(f"""
+            <div style="background: {cat_color}10; border-left: 4px solid {cat_color}; padding: 0.5rem 1rem; margin: 1rem 0 0.5rem 0; border-radius: 0 8px 8px 0;">
+                <span style="font-weight: 600; color: {cat_color};">{category['category']}</span>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        metric_cols = st.columns(4)
+        for i, metric in enumerate(category['metrics']):
+            with metric_cols[i]:
+                status_color = '#27ae60' if metric['status'] == 'achieved' else '#3498db' if metric['status'] == 'on_track' else '#f39c12'
+                status_icon = '✅' if metric['status'] == 'achieved' else '🔵' if metric['status'] == 'on_track' else '⚠️'
+                yoy_color = '#27ae60' if metric['yoy'] > 0 else '#e63946' if metric['yoy'] < 0 else '#888'
+                yoy_arrow = '↑' if metric['yoy'] > 0 else '↓' if metric['yoy'] < 0 else '→'
+                
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); height: 120px;">
+                        <div style="font-size: 0.7rem; color: #888; margin-bottom: 0.25rem;">{metric['name']}</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: #1a2b4a;">{metric['value']}<span style="font-size: 0.7rem; color: #888; font-weight: 400;"> {metric['unit']}</span></div>
+                        <div style="font-size: 0.65rem; color: #888; margin-top: 0.25rem;">Target: {metric['target']}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                            <span style="color: {yoy_color}; font-size: 0.7rem; font-weight: 600;">{yoy_arrow} {abs(metric['yoy'])}% YoY</span>
+                            <span style="font-size: 0.7rem;">{status_icon}</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 4: ESG Ratings & Peer Benchmarks
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🏆 ESG Ratings & Industry Benchmarks")
+    st.caption("External ESG ratings and comparison with telecom infrastructure peers")
+    
+    rating_col1, rating_col2 = st.columns([1, 2])
+    
+    with rating_col1:
+        st.markdown("#### 📈 External Ratings")
+        
+        ratings = [
+            {"agency": "MSCI ESG", "rating": "AA", "score": 7.2, "max": 10, "trend": "up", "date": "Nov 2025"},
+            {"agency": "Sustainalytics", "rating": "Low Risk", "score": 18.5, "max": 40, "trend": "up", "date": "Oct 2025"},
+            {"agency": "CDP Climate", "rating": "A-", "score": None, "max": None, "trend": "stable", "date": "Dec 2025"},
+            {"agency": "EcoVadis", "rating": "Gold", "score": 68, "max": 100, "trend": "up", "date": "Sep 2025"},
+            {"agency": "ISS ESG", "rating": "B", "score": None, "max": None, "trend": "up", "date": "Nov 2025"},
+        ]
+        
+        for r in ratings:
+            trend_icon = '📈' if r['trend'] == 'up' else '📉' if r['trend'] == 'down' else '➡️'
+            rating_color = '#27ae60' if r['rating'] in ['AA', 'AAA', 'A', 'A-', 'Gold', 'Low Risk'] else '#3498db' if r['rating'] in ['A', 'B+', 'B', 'Silver'] else '#f39c12'
+            
+            score_text = f"{r['score']}/{r['max']}" if r['score'] else ""
+            
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem;">{r['agency']}</div>
+                        <div style="font-size: 0.65rem; color: #888;">{r['date']}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="background: {rating_color}; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.9rem; display: inline-block;">{r['rating']}</div>
+                        <div style="font-size: 0.65rem; color: #888; margin-top: 0.25rem;">{score_text} {trend_icon}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with rating_col2:
+        st.markdown("#### 📊 Peer Comparison - Telecom Infrastructure")
+        
+        # Peer comparison data
+        peers = ['TDF', 'Cellnex', 'Vantage Towers', 'INWIT', 'Telxius', 'Industry Avg']
+        environmental = [72, 68, 75, 65, 62, 58]
+        social = [78, 72, 70, 68, 65, 62]
+        governance = [82, 78, 80, 75, 72, 70]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name='Environmental',
+            x=peers,
+            y=environmental,
+            marker_color='#27ae60',
+            text=environmental,
+            textposition='outside'
+        ))
+        fig.add_trace(go.Bar(
+            name='Social',
+            x=peers,
+            y=social,
+            marker_color='#3498db',
+            text=social,
+            textposition='outside'
+        ))
+        fig.add_trace(go.Bar(
+            name='Governance',
+            x=peers,
+            y=governance,
+            marker_color='#9b59b6',
+            text=governance,
+            textposition='outside'
+        ))
+        
+        fig.update_layout(
+            barmode='group',
+            height=300,
+            margin=dict(l=20, r=20, t=30, b=40),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Score', range=[0, 100]),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
+        )
+        
+        # Highlight TDF bar
+        fig.add_annotation(x='TDF', y=85, text="⭐ TDF", showarrow=False, font=dict(size=12, color='#1a2b4a'))
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.markdown("""
+            <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                <span style="color: #27ae60; font-weight: 600;">🏆 TDF ranks #2 among European tower companies in overall ESG performance</span>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 5: Net Zero Pathway Tracker
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🎯 Net Zero Pathway 2030-2050")
+    st.caption("Progress toward science-based targets aligned with Paris Agreement")
+    
+    nz_col1, nz_col2 = st.columns([2, 1])
+    
+    with nz_col1:
+        # Net Zero trajectory chart
+        years = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2035, 2040, 2045, 2050]
+        baseline = [55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000, 55000]
+        target_path = [55000, 53000, 51000, 49000, 47000, 44000, 41000, 38000, 35000, 32000, 30000, 33000, 22000, 11000, 5500, 0]
+        actual = [55000, 54200, 52800, 51500, 50100, 49200, 48500, None, None, None, None, None, None, None, None, None]
+        
+        fig = go.Figure()
+        
+        # Baseline
+        fig.add_trace(go.Scatter(
+            x=years, y=baseline,
+            mode='lines',
+            name='Baseline (2019)',
+            line=dict(color='#e0e0e0', width=2, dash='dot')
+        ))
+        
+        # Target pathway
+        fig.add_trace(go.Scatter(
+            x=years, y=target_path,
+            mode='lines+markers',
+            name='Target Pathway',
+            line=dict(color='#27ae60', width=3),
+            marker=dict(size=8),
+            fill='tonexty',
+            fillcolor='rgba(39, 174, 96, 0.1)'
+        ))
+        
+        # Actual emissions (only up to 2025)
+        actual_clean = [a for a in actual if a is not None]
+        years_actual = years[:len(actual_clean)]
+        fig.add_trace(go.Scatter(
+            x=years_actual, y=actual_clean,
+            mode='lines+markers',
+            name='Actual Emissions',
+            line=dict(color='#1a2b4a', width=3),
+            marker=dict(size=10, symbol='circle')
+        ))
+        
+        # Key milestones
+        fig.add_vline(x=2030, line_width=2, line_dash="dash", line_color="#e63946", annotation_text="2030 Target: -40%", annotation_position="top")
+        fig.add_vline(x=2050, line_width=2, line_dash="dash", line_color="#27ae60", annotation_text="Net Zero", annotation_position="top")
+        
+        fig.update_layout(
+            height=350,
+            margin=dict(l=20, r=20, t=40, b=40),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', dtick=5),
+            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='tCO₂e', tickformat=','),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+            hovermode='x unified'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with nz_col2:
+        st.markdown("#### 🎯 Key Milestones")
+        
+        milestones = [
+            {"year": "2025", "target": "-15%", "actual": "-12%", "status": "on_track", "action": "Renewable PPA signed"},
+            {"year": "2027", "target": "-25%", "actual": "-", "status": "planned", "action": "Fleet electrification 80%"},
+            {"year": "2030", "target": "-40%", "actual": "-", "status": "planned", "action": "SBTi validated"},
+            {"year": "2040", "target": "-80%", "actual": "-", "status": "planned", "action": "100% renewable"},
+            {"year": "2050", "target": "Net Zero", "actual": "-", "status": "planned", "action": "Full decarbonization"},
+        ]
+        
+        for m in milestones:
+            status_color = '#27ae60' if m['status'] == 'achieved' else '#3498db' if m['status'] == 'on_track' else '#888'
+            status_icon = '✅' if m['status'] == 'achieved' else '🔵' if m['status'] == 'on_track' else '⏳'
+            
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {status_color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; color: #1a2b4a;">{m['year']}</span>
+                        <span style="font-size: 0.85rem;">{status_icon} {m['target']}</span>
+                    </div>
+                    <div style="font-size: 0.7rem; color: #888; margin-top: 0.25rem;">{m['action']}</div>
+                    {f'<div style="font-size: 0.7rem; color: #27ae60; margin-top: 0.25rem;">Actual: {m["actual"]}</div>' if m['actual'] != '-' else ''}
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # SBTi commitment badge
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); border-radius: 8px; padding: 1rem; margin-top: 1rem; text-align: center; color: white;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🌍</div>
+                <div style="font-weight: 600;">Science Based Targets</div>
+                <div style="font-size: 0.75rem; color: #aaa; margin-top: 0.25rem;">Committed • Validation Q2 2026</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 6: Regulatory Calendar & Alerts
     # -------------------------------------------------------------------------
     
     st.markdown("### 📅 Regulatory Reporting Calendar 2025")
