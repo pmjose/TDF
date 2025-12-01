@@ -9,11 +9,41 @@
 -- Data Period: June 1, 2025 - December 19, 2025
 -- ============================================================================
 
--- Set context
+-- ============================================================================
+-- PRE-REQUISITE: CREATE DATABASE (Must exist before Git repo can be accessed)
+-- ============================================================================
+
 USE ROLE SYSADMIN;
 
+-- Create database if not exists
+CREATE DATABASE IF NOT EXISTS TDF_DATA_PLATFORM
+    COMMENT = 'TDF Infrastructure Data Platform - Single Source of Truth';
+
+USE DATABASE TDF_DATA_PLATFORM;
+
+-- Create schemas
+CREATE SCHEMA IF NOT EXISTS PUBLIC;
+CREATE SCHEMA IF NOT EXISTS CORE COMMENT = 'Master data: regions, departments, business units, operators';
+CREATE SCHEMA IF NOT EXISTS HR COMMENT = 'Human Resources: employees, skills, capacity, diversity';
+CREATE SCHEMA IF NOT EXISTS COMMERCIAL COMMENT = 'Commercial: demand forecast, projects, investment scenarios';
+CREATE SCHEMA IF NOT EXISTS OPERATIONS COMMENT = 'Operations: work orders, maintenance, broadcast coverage';
+CREATE SCHEMA IF NOT EXISTS INFRASTRUCTURE COMMENT = 'Infrastructure: 8,785 sites, towers, rooftops, equipment';
+CREATE SCHEMA IF NOT EXISTS FINANCE COMMENT = 'Finance: CAPEX, budgets, accounting, revenue (EUR 799.1M)';
+CREATE SCHEMA IF NOT EXISTS ENERGY COMMENT = 'Energy: consumption readings, carbon emissions';
+CREATE SCHEMA IF NOT EXISTS ESG COMMENT = 'ESG: regulatory reports, audit trails, compliance';
+CREATE SCHEMA IF NOT EXISTS DIGITAL_TWIN COMMENT = 'Digital Twin: asset models, discrepancy detection';
+CREATE SCHEMA IF NOT EXISTS ANALYTICS COMMENT = 'Analytics: operational and executive dashboard views';
+
+-- Create warehouse if not exists
+CREATE WAREHOUSE IF NOT EXISTS TDF_WH
+    WAREHOUSE_SIZE = 'SMALL'
+    AUTO_SUSPEND = 300
+    AUTO_RESUME = TRUE;
+
+USE WAREHOUSE TDF_WH;
+
 -- ============================================================================
--- SECTION 1: DATABASE, SCHEMAS, ROLES, AND WAREHOUSE
+-- SECTION 1: DATABASE, SCHEMAS, ROLES, AND WAREHOUSE (Full setup)
 -- ============================================================================
 EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/ddl/01_database_setup.sql;
 
