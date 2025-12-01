@@ -2686,15 +2686,26 @@ def page_esg_reporting():
         LIMIT 1
     """)
     
-    # Default values if no data
-    carbon = esg_metrics['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_metrics.empty else 48500
-    carbon_reduction = esg_metrics['CARBON_REDUCTION_PCT'].iloc[0] if not esg_metrics.empty else -12
-    renewable = esg_metrics['RENEWABLE_ENERGY_PCT'].iloc[0] if not esg_metrics.empty else 47
-    equality = esg_metrics['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_metrics.empty else 88
-    female_pct = esg_metrics['FEMALE_EMPLOYEES_PCT'].iloc[0] if not esg_metrics.empty else 28
-    female_mgmt = esg_metrics['FEMALE_MANAGEMENT_PCT'].iloc[0] if not esg_metrics.empty else 32
-    training_hrs = esg_metrics['TRAINING_HOURS_PER_EMPLOYEE'].iloc[0] if not esg_metrics.empty else 24
-    accident_rate = esg_metrics['ACCIDENT_FREQUENCY_RATE'].iloc[0] if not esg_metrics.empty else 3.2
+    # Default values if no data or NaN
+    import math
+    
+    def safe_esg_value(df, column, default):
+        """Safely extract value from dataframe, returning default if empty or NaN"""
+        if df.empty:
+            return default
+        val = df[column].iloc[0]
+        if val is None or (isinstance(val, float) and math.isnan(val)):
+            return default
+        return val
+    
+    carbon = safe_esg_value(esg_metrics, 'CARBON_EMISSIONS_TONNES', 48500)
+    carbon_reduction = safe_esg_value(esg_metrics, 'CARBON_REDUCTION_PCT', -12)
+    renewable = safe_esg_value(esg_metrics, 'RENEWABLE_ENERGY_PCT', 47)
+    equality = safe_esg_value(esg_metrics, 'EQUALITY_INDEX_SCORE', 88)
+    female_pct = safe_esg_value(esg_metrics, 'FEMALE_EMPLOYEES_PCT', 28)
+    female_mgmt = safe_esg_value(esg_metrics, 'FEMALE_MANAGEMENT_PCT', 32)
+    training_hrs = safe_esg_value(esg_metrics, 'TRAINING_HOURS_PER_EMPLOYEE', 24)
+    accident_rate = safe_esg_value(esg_metrics, 'ACCIDENT_FREQUENCY_RATE', 3.2)
     
     col_e, col_s, col_g = st.columns(3)
     
