@@ -7106,6 +7106,393 @@ def page_capex_lifecycle():
                 <div style="font-size: 0.75rem; opacity: 0.8;">Among European peers</div>
             </div>
         """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 17: Site Economics - Top/Bottom Performers
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📍 Site Economics & Profitability")
+    st.caption("CAPEX, OPEX, and Revenue analysis at site level")
+    
+    # Generate realistic site data
+    import random
+    random.seed(42)
+    
+    site_economics_data = []
+    regions = ["Île-de-France", "Auvergne-Rhône-Alpes", "PACA", "Occitanie", "Nouvelle-Aquitaine", "Hauts-de-France"]
+    cities = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux", "Lille", "Nantes", "Strasbourg", "Nice", "Rennes"]
+    site_types = ["Urban Tower", "Rural Tower", "Rooftop", "Data Center", "Broadcast Site"]
+    
+    for i in range(50):
+        site_id = f"SITE-{str(i+1).zfill(6)}"
+        city = random.choice(cities)
+        region = random.choice(regions)
+        site_type = random.choice(site_types)
+        
+        # Revenue based on site type and location
+        base_revenue = 800000 if "Paris" in city else 500000 if "Lyon" in city or "Marseille" in city else 300000
+        if site_type == "Data Center":
+            base_revenue *= 3
+        elif site_type == "Broadcast Site":
+            base_revenue *= 2
+        elif site_type == "Rural Tower":
+            base_revenue *= 0.3
+        
+        revenue = base_revenue + random.randint(-100000, 200000)
+        
+        # CAPEX - past 3 years
+        capex_y1 = random.randint(50000, 500000) if random.random() > 0.3 else 0
+        capex_y2 = random.randint(30000, 300000) if random.random() > 0.4 else 0
+        capex_y3 = random.randint(20000, 200000) if random.random() > 0.5 else 0
+        total_capex = capex_y1 + capex_y2 + capex_y3
+        
+        # OPEX - annual
+        opex_maintenance = int(revenue * random.uniform(0.08, 0.15))
+        opex_energy = int(revenue * random.uniform(0.05, 0.12))
+        opex_lease = int(revenue * random.uniform(0.03, 0.08))
+        opex_other = int(revenue * random.uniform(0.02, 0.05))
+        total_opex = opex_maintenance + opex_energy + opex_lease + opex_other
+        
+        # Calculate margin
+        ebitda = revenue - total_opex
+        margin = (ebitda / revenue * 100) if revenue > 0 else 0
+        
+        # Tenants
+        tenants = random.randint(1, 5)
+        
+        site_economics_data.append({
+            "site_id": site_id,
+            "city": city,
+            "region": region,
+            "type": site_type,
+            "revenue": revenue,
+            "capex_y1": capex_y1,
+            "capex_y2": capex_y2,
+            "capex_y3": capex_y3,
+            "total_capex": total_capex,
+            "opex_maintenance": opex_maintenance,
+            "opex_energy": opex_energy,
+            "opex_lease": opex_lease,
+            "opex_other": opex_other,
+            "total_opex": total_opex,
+            "ebitda": ebitda,
+            "margin": margin,
+            "tenants": tenants
+        })
+    
+    # Sort for top/bottom
+    sorted_by_margin = sorted(site_economics_data, key=lambda x: x['margin'], reverse=True)
+    top_sites = sorted_by_margin[:10]
+    bottom_sites = sorted_by_margin[-10:][::-1]  # Reverse to show worst first
+    
+    top_col, bottom_col = st.columns(2)
+    
+    with top_col:
+        st.markdown("#### 🏆 Top 10 Most Profitable Sites")
+        
+        for i, site in enumerate(top_sites[:5]):
+            margin_color = '#27ae60' if site['margin'] > 60 else '#3498db'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color}; cursor: pointer;" 
+                     onclick="document.getElementById('site_selector').value='{site['site_id']}'">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
+                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
+                            <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
+                        <span>💰 €{site['revenue']/1000:.0f}K rev</span>
+                        <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
+                        <span>👥 {site['tenants']} tenants</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with bottom_col:
+        st.markdown("#### ⚠️ Bottom 10 - Needs Attention")
+        
+        for i, site in enumerate(bottom_sites[:5]):
+            margin_color = '#e63946' if site['margin'] < 30 else '#f39c12'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
+                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
+                            <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
+                        <span>💰 €{site['revenue']/1000:.0f}K rev</span>
+                        <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
+                        <span>👥 {site['tenants']} tenants</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # ROW 18: Site Detail Deep Dive
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔍 Site Detail Analysis")
+    
+    # Site selector
+    site_options = {f"{s['site_id']} - {s['city']} ({s['type']})": s for s in site_economics_data}
+    
+    selector_col, summary_col = st.columns([2, 1])
+    
+    with selector_col:
+        selected_site_key = st.selectbox(
+            "🏢 Select a Site for Detailed Analysis",
+            options=list(site_options.keys()),
+            index=0
+        )
+    
+    selected_site = site_options[selected_site_key]
+    
+    with summary_col:
+        margin_color = '#27ae60' if selected_site['margin'] > 50 else '#f39c12' if selected_site['margin'] > 30 else '#e63946'
+        st.markdown(f"""
+            <div style="background: {margin_color}; border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9;">Site Margin</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">{selected_site['margin']:.1f}%</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Site details in 4 columns
+    detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
+    
+    with detail_col1:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.75rem; opacity: 0.8;">📍 Site Info</div>
+                <div style="font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0;">{selected_site['site_id']}</div>
+                <div style="font-size: 0.8rem; opacity: 0.9;">{selected_site['city']}, {selected_site['region']}</div>
+                <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">{selected_site['type']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with detail_col2:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.75rem; opacity: 0.8;">💰 Annual Revenue</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['revenue']/1000:.0f}K</div>
+                <div style="font-size: 0.75rem; opacity: 0.9;">👥 {selected_site['tenants']} tenant(s)</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with detail_col3:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.75rem; opacity: 0.8;">📊 Annual OPEX</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_opex']/1000:.0f}K</div>
+                <div style="font-size: 0.75rem; opacity: 0.9;">{(selected_site['total_opex']/selected_site['revenue']*100):.0f}% of revenue</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with detail_col4:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 10px; padding: 1rem; color: white;">
+                <div style="font-size: 0.75rem; opacity: 0.8;">🏗️ 3-Year CAPEX</div>
+                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_capex']/1000:.0f}K</div>
+                <div style="font-size: 0.75rem; opacity: 0.9;">Total investment</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    
+    # Detailed breakdowns
+    opex_detail_col, capex_detail_col, pnl_col = st.columns(3)
+    
+    with opex_detail_col:
+        st.markdown("#### 📊 OPEX Breakdown")
+        
+        opex_items = [
+            {"name": "Maintenance", "value": selected_site['opex_maintenance'], "color": "#e63946"},
+            {"name": "Energy", "value": selected_site['opex_energy'], "color": "#f39c12"},
+            {"name": "Site Lease", "value": selected_site['opex_lease'], "color": "#3498db"},
+            {"name": "Other", "value": selected_site['opex_other'], "color": "#9b59b6"},
+        ]
+        
+        fig_opex = go.Figure(data=[go.Pie(
+            labels=[o['name'] for o in opex_items],
+            values=[o['value'] for o in opex_items],
+            hole=0.6,
+            marker_colors=[o['color'] for o in opex_items],
+            textinfo='label+percent',
+            textfont_size=10,
+            hovertemplate='<b>%{label}</b><br>€%{value:,.0f}<br>%{percent}<extra></extra>'
+        )])
+        
+        fig_opex.add_annotation(
+            text=f"<b>€{selected_site['total_opex']/1000:.0f}K</b><br><span style='font-size:10px'>Total OPEX</span>",
+            x=0.5, y=0.5, font_size=14, showarrow=False
+        )
+        
+        fig_opex.update_layout(
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=False,
+            paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_opex, use_container_width=True)
+    
+    with capex_detail_col:
+        st.markdown("#### 🏗️ CAPEX History (3 Years)")
+        
+        years = ['2023', '2024', '2025']
+        capex_values = [selected_site['capex_y3'], selected_site['capex_y2'], selected_site['capex_y1']]
+        
+        fig_capex = go.Figure()
+        
+        fig_capex.add_trace(go.Bar(
+            x=years,
+            y=capex_values,
+            marker_color=['#1a2b4a', '#3498db', '#27ae60'],
+            text=[f'€{v/1000:.0f}K' if v > 0 else '€0' for v in capex_values],
+            textposition='outside'
+        ))
+        
+        fig_capex.update_layout(
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            xaxis_title="Year",
+            yaxis_title="CAPEX (€)",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_capex, use_container_width=True)
+    
+    with pnl_col:
+        st.markdown("#### 💵 P&L Waterfall")
+        
+        # Waterfall chart
+        fig_waterfall = go.Figure(go.Waterfall(
+            orientation="v",
+            measure=["absolute", "relative", "relative", "relative", "relative", "total"],
+            x=["Revenue", "Maintenance", "Energy", "Lease", "Other", "EBITDA"],
+            y=[selected_site['revenue'], 
+               -selected_site['opex_maintenance'], 
+               -selected_site['opex_energy'],
+               -selected_site['opex_lease'],
+               -selected_site['opex_other'],
+               selected_site['ebitda']],
+            text=[f"€{selected_site['revenue']/1000:.0f}K",
+                  f"-€{selected_site['opex_maintenance']/1000:.0f}K",
+                  f"-€{selected_site['opex_energy']/1000:.0f}K",
+                  f"-€{selected_site['opex_lease']/1000:.0f}K",
+                  f"-€{selected_site['opex_other']/1000:.0f}K",
+                  f"€{selected_site['ebitda']/1000:.0f}K"],
+            textposition="outside",
+            connector={"line": {"color": "#888"}},
+            decreasing={"marker": {"color": "#e63946"}},
+            increasing={"marker": {"color": "#27ae60"}},
+            totals={"marker": {"color": "#1a2b4a"}}
+        ))
+        
+        fig_waterfall.update_layout(
+            height=250,
+            margin=dict(l=10, r=10, t=10, b=10),
+            showlegend=False,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig_waterfall, use_container_width=True)
+    
+    # Site recommendations
+    st.markdown("#### 💡 Site-Specific Recommendations")
+    
+    rec_col1, rec_col2, rec_col3 = st.columns(3)
+    
+    if selected_site['margin'] > 60:
+        rec_type = "expand"
+        rec_color = "#27ae60"
+        rec_icon = "🚀"
+        rec_title = "Expansion Candidate"
+        rec_actions = ["Add tenant capacity", "Upgrade to 5G", "Consider tower strengthening"]
+    elif selected_site['margin'] > 40:
+        rec_type = "optimize"
+        rec_color = "#3498db"
+        rec_icon = "⚡"
+        rec_title = "Optimization Opportunity"
+        rec_actions = ["Negotiate energy contracts", "Review maintenance costs", "Attract new tenants"]
+    elif selected_site['margin'] > 20:
+        rec_type = "review"
+        rec_color = "#f39c12"
+        rec_icon = "⚠️"
+        rec_title = "Needs Review"
+        rec_actions = ["Audit all costs", "Renegotiate site lease", "Consider decommissioning equipment"]
+    else:
+        rec_type = "critical"
+        rec_color = "#e63946"
+        rec_icon = "🔴"
+        rec_title = "Critical - Action Required"
+        rec_actions = ["Full cost audit", "Decommissioning analysis", "Tenant renegotiation"]
+    
+    with rec_col1:
+        st.markdown(f"""
+            <div style="background: {rec_color}15; border-radius: 10px; padding: 1rem; border-left: 4px solid {rec_color};">
+                <div style="font-size: 1.5rem;">{rec_icon}</div>
+                <div style="font-weight: 700; color: {rec_color}; margin: 0.5rem 0;">{rec_title}</div>
+                <div style="font-size: 0.85rem; color: #666;">Based on {selected_site['margin']:.0f}% margin</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with rec_col2:
+        st.markdown("**Recommended Actions:**")
+        for action in rec_actions:
+            st.markdown(f"• {action}")
+    
+    with rec_col3:
+        # Potential improvement
+        if selected_site['margin'] < 60:
+            opex_reduction = selected_site['total_opex'] * 0.1
+            new_margin = ((selected_site['revenue'] - selected_site['total_opex'] + opex_reduction) / selected_site['revenue']) * 100
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
+                    <div style="font-size: 0.8rem; color: #666;">💰 If 10% OPEX reduction:</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
+                        {selected_site['margin']:.0f}% → {new_margin:.0f}%
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">
+                        Saves €{opex_reduction/1000:.0f}K/year
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            tenant_revenue = selected_site['revenue'] / selected_site['tenants'] if selected_site['tenants'] > 0 else 0
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
+                    <div style="font-size: 0.8rem; color: #666;">📈 Add 1 more tenant:</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
+                        +€{tenant_revenue/1000:.0f}K/year
+                    </div>
+                    <div style="font-size: 0.8rem; color: #666;">
+                        Revenue potential
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # Export button
+    btn_col1, btn_col2, btn_col3, _ = st.columns([1, 1, 1, 2])
+    with btn_col1:
+        st.button("📥 Export Site Report", key="export_site", use_container_width=True)
+    with btn_col2:
+        st.button("📧 Share with Team", key="share_site", use_container_width=True)
+    with btn_col3:
+        st.button("📅 Schedule Review", key="schedule_site", use_container_width=True)
 
 # ==============================================================================
 # PAGE: ARCHITECTURE
