@@ -98,15 +98,25 @@ SELECT
         ELSE 'DISCREPANCY'
     END AS DIGITAL_TWIN_STATUS
 FROM 
-    TABLE(GENERATOR(ROWCOUNT => 8785)) g
-    INNER JOIN (
-        -- Distribute sites across departments based on population (weighted)
+    (
+        -- Distribute 8785 sites across departments weighted by population
+        -- Higher population = more sites
         SELECT 
-            d.*,
-            ROW_NUMBER() OVER (ORDER BY d.POPULATION DESC, d.DEPARTMENT_ID) as dept_rank
-        FROM TDF_DATA_PLATFORM.CORE.DEPARTMENTS d
-    ) d ON MOD(SEQ4(), 96) + 1 = d.dept_rank
-ORDER BY RANDOM();
+            ROW_NUMBER() OVER (ORDER BY RANDOM()) as site_seq,
+            d.*
+        FROM (
+            -- Repeat each department proportional to its population share
+            SELECT dep.*, gen.seq as gen_seq
+            FROM TDF_DATA_PLATFORM.CORE.DEPARTMENTS dep
+            CROSS JOIN (
+                SELECT SEQ4() as seq FROM TABLE(GENERATOR(ROWCOUNT => 200))
+            ) gen
+            WHERE gen.seq <= GREATEST(10, ROUND(dep.POPULATION / 670000.0 * 100))
+            -- ~670K avg population per dept, gives ~100 base * 96 deps = ~9600 rows
+        ) d
+        ORDER BY RANDOM()
+    ) d
+WHERE d.site_seq <= 8785;
 
 -- Calculate COLOCATION_RATE (was removed as computed column - Snowflake doesn't support GENERATED ALWAYS AS)
 UPDATE SITES
