@@ -30,26 +30,30 @@ This database platform provides a single source of truth for:
 |--------|---------|
 | `CORE` | Master data (regions, departments, business units, operators) |
 | `HR` | Workforce, skills, capacity planning, diversity metrics |
-| `COMMERCIAL` | Demand forecasting, projects, investment scenarios |
-| `OPERATIONS` | Work orders, maintenance, resource allocation |
-| `INFRASTRUCTURE` | Sites, towers, rooftops, antennas, equipment |
-| `FINANCE` | CAPEX, budgets, accounting, revenue by segment |
-| `ENERGY` | Consumption readings, carbon emissions |
-| `ESG` | Regulatory reports, audit trails, board scorecard |
-| `DIGITAL_TWIN` | 3D models, discrepancy detection |
+| `COMMERCIAL` | Demand forecasting, projects, contracts, investment scenarios |
+| `OPERATIONS` | Work orders, maintenance, resource allocation, incidents |
+| `INFRASTRUCTURE` | Sites, towers, rooftops, antennas, equipment, fibre |
+| `FINANCE` | CAPEX, budgets, accounting, revenue by segment/client |
+| `ENERGY` | Consumption readings, carbon emissions, renewables |
+| `ESG` | Regulatory reports, audit trails, board scorecard, compliance |
+| `DIGITAL_TWIN` | 3D models, discrepancy detection, data quality |
 | `ANALYTICS` | Pre-built views for dashboards |
 
-### Key Metrics (Real TDF Scale)
+### Data Scale (Per TDF 2025 Investor Presentation)
 
 | Category | Count |
 |----------|-------|
 | Active Sites | 8,785 |
 | Towers | 7,877 |
 | Rooftops (PoS) | 8,174 |
-| Indoor Sites | 908 |
+| Indoor Sites (DAS) | 908 |
 | Edge Data Centers | 102 |
 | Regional Data Centers | 4 |
 | Points of Service | 21,244 |
+| Antennas | ~25,000 |
+| Broadcast Transmitters | ~3,500 |
+| Equipment Pieces | ~80,000 |
+| Client Installations | ~20,000 |
 | Fibre Network | 5,500 km |
 | Employees | ~1,500 |
 
@@ -73,12 +77,13 @@ EXECUTE IMMEDIATE FROM @TDF_DATA_PLATFORM.PUBLIC.TDF_REPO/branches/main/sql/00_M
 
 Run scripts in order using Snowflake worksheet or SnowSQL:
 
-```bash
-snowsql -f sql/ddl/01_database_setup.sql
-snowsql -f sql/ddl/02_core_tables.sql
-# ... continue with all DDL files
-snowsql -f sql/data/13_seed_france_geo.sql
-# ... continue with all seed files
+```sql
+-- DDL Files (01-12)
+USE ROLE SYSADMIN;
+-- Run each DDL file in order...
+
+-- Data Files (13-22)
+-- Run each seed file in order...
 ```
 
 ## File Structure
@@ -88,9 +93,9 @@ snowsql -f sql/data/13_seed_france_geo.sql
   00_MASTER_DEPLOY.sql        # Orchestrator script
   00_GIT_SETUP.sql            # Git integration setup
   
-  /ddl                        # Table definitions
-    01_database_setup.sql
-    02_core_tables.sql
+  /ddl                        # Table definitions (12 files)
+    01_database_setup.sql     # Database, schemas, roles, warehouse
+    02_core_tables.sql        # Regions, departments, operators
     03_infrastructure_tables.sql
     04_hr_tables.sql
     05_commercial_tables.sql
@@ -102,25 +107,25 @@ snowsql -f sql/data/13_seed_france_geo.sql
     11_analytics_views.sql
     12_executive_views.sql
   
-  /data                       # Seed data
-    13_seed_france_geo.sql    # 13 regions, 96 departments
-    14_seed_operators.sql     # Orange, SFR, Bouygues, Free
-    15_seed_infrastructure.sql
-    16_seed_hr_data.sql
-    17_seed_operations.sql
-    18_seed_finance.sql
-    19_seed_energy_esg.sql
-    20_seed_executive_kpis.sql
+  /data                       # Seed data (10 files)
+    13_seed_france_geo.sql    # 13 regions, 96 departments, calendar
+    14_seed_operators.sql     # Orange, SFR, Bouygues, Free + reference data
+    15_seed_infrastructure.sql # Sites, towers, DCs, equipment
+    16_seed_hr_data.sql       # Employees, skills, diversity
+    17_seed_operations.sql    # Work orders, maintenance, incidents
+    18_seed_finance.sql       # Revenue, CAPEX, accounting
+    19_seed_energy_esg.sql    # Energy, carbon, ESG reports
+    20_seed_executive_kpis.sql # Digital twin, scenarios
     21_seed_commercial.sql    # Demand forecast, projects, contracts
     22_seed_infrastructure_detail.sql  # Rooftops, antennas, fibre, PoS
   
-  /queries                    # Sample queries for demos
+  /queries                    # Sample queries for demos (6 files)
     uc1_capacity_planning.sql
     uc2_esg_reporting.sql
     uc3_digital_twin.sql
     uc4_capex_lifecycle.sql
     executive_dashboard.sql
-    esg_regulatory_reports.sql # CSRD, French Equality Index, Bilan GES
+    esg_regulatory_reports.sql
 ```
 
 ## Use Cases
@@ -133,7 +138,7 @@ snowsql -f sql/data/13_seed_france_geo.sql
 
 **Key Tables:**
 - `HR.EMPLOYEES`, `HR.SKILLS_MATRIX`, `HR.WORKFORCE_CAPACITY`
-- `COMMERCIAL.DEMAND_FORECAST`, `COMMERCIAL.PROJECTS`
+- `COMMERCIAL.DEMAND_FORECAST`, `COMMERCIAL.PROJECTS`, `COMMERCIAL.CONTRACTS`
 - `OPERATIONS.WORK_ORDERS`, `OPERATIONS.RESOURCE_ALLOCATION`
 
 **Sample Query:**
@@ -143,31 +148,54 @@ SELECT * FROM ANALYTICS.VW_CAPACITY_VS_DEMAND WHERE YEAR_MONTH >= '2025-06-01';
 
 ### UC2: ESG Regulatory Reporting
 
-**Business Challenge:** High-stakes regulatory reports (ESG, Carbon Footprint, H/F Equality) requiring manual aggregation with perfect data lineage for external audit.
+**Business Challenge:** High-stakes regulatory reports requiring manual aggregation with perfect data lineage for external audit.
 
 **Solution:** Traced, auditable reporting engine with data traceability to source entries.
 
+**Supported Regulations:**
+
+| Regulation | Type | View |
+|------------|------|------|
+| CSRD | EU 2022/2464 | `VW_CSRD_REPORT` |
+| Index Égalité H/F | French Law 2018-771 | `VW_INDEX_EGALITE_PROFESSIONNELLE` |
+| Bilan GES | Art L229-25 | `VW_BILAN_GES` |
+| DPEF | Art L225-102-1 | `VW_DPEF_REPORT` |
+| EU Taxonomy | EU 2020/852 | `VW_EU_TAXONOMY` |
+
 **Key Tables:**
 - `FINANCE.ACCOUNTING_ENTRIES` (with full audit trail)
-- `ENERGY.CONSUMPTION_READINGS`, `ENERGY.CARBON_EMISSIONS`
+- `ENERGY.CONSUMPTION_READINGS`, `ENERGY.CARBON_EMISSIONS`, `ENERGY.RENEWABLE_ENERGY`
 - `HR.DIVERSITY_METRICS`
 - `ESG.REGULATORY_REPORTS`, `ESG.AUDIT_TRAIL`, `ESG.BOARD_SCORECARD`
+- `ESG.COMPLIANCE_REQUIREMENTS`, `ESG.ESG_TARGETS`
 
-**Sample Query:**
+**Sample Queries:**
 ```sql
-SELECT * FROM ESG.AUDIT_TRAIL WHERE REPORT_ID = 'RPT-2025-001';
+-- French Gender Equality Index (mandatory publication)
+SELECT * FROM ANALYTICS.VW_INDEX_EGALITE_SUMMARY;
+
+-- CSRD Report (EU comprehensive ESG)
+SELECT * FROM ANALYTICS.VW_CSRD_REPORT;
+
+-- Carbon Footprint (Bilan GES)
+SELECT * FROM ANALYTICS.VW_BILAN_GES;
+
+-- Compliance Dashboard
+SELECT * FROM ANALYTICS.VW_ESG_COMPLIANCE_DASHBOARD;
 ```
 
 ### UC3: Infrastructure Data Mastery & Digital Twin
 
-**Business Challenge:** Data coherence issues and lack of single source of truth for 2,000+ pylons limiting Digital Twin value.
+**Business Challenge:** Data coherence issues and lack of single source of truth for 7,877 towers limiting Digital Twin value.
 
 **Solution:** Infrastructure Data Control Tower with real-time discrepancy detection.
 
 **Key Tables:**
-- `INFRASTRUCTURE.SITES`, `INFRASTRUCTURE.TOWERS`, `INFRASTRUCTURE.EQUIPMENT`
+- `INFRASTRUCTURE.SITES`, `INFRASTRUCTURE.TOWERS`, `INFRASTRUCTURE.ROOFTOPS`
+- `INFRASTRUCTURE.EQUIPMENT`, `INFRASTRUCTURE.ANTENNAS`, `INFRASTRUCTURE.BROADCAST_TRANSMITTERS`
+- `INFRASTRUCTURE.FIBRE_NETWORK`, `INFRASTRUCTURE.POINTS_OF_SERVICE`
 - `DIGITAL_TWIN.ASSET_MODELS`, `DIGITAL_TWIN.DISCREPANCY_LOG`
-- `DIGITAL_TWIN.DATA_QUALITY_SCORES`
+- `DIGITAL_TWIN.DATA_QUALITY_SCORES`, `DIGITAL_TWIN.VALIDATION_RULES`
 
 **Sample Query:**
 ```sql
@@ -192,16 +220,37 @@ SELECT * FROM ANALYTICS.VW_RENEWAL_FORECAST_SUMMARY WHERE REPLACEMENT_YEAR BETWE
 
 ## C-Level Executive Views
 
-Pre-built views for executive dashboards:
+Pre-built views for executive dashboards with traffic light indicators:
 
 | View | Purpose |
 |------|---------|
 | `VW_EXECUTIVE_KPIS` | Single-view KPI summary with traffic lights |
 | `VW_REVENUE_EXECUTIVE` | Revenue by segment with YoY comparison |
-| `VW_EBITDA_BY_BU` | EBITDA margin by business unit |
-| `VW_RISK_DASHBOARD` | Consolidated risk view |
+| `VW_REVENUE_BY_CLIENT_EXECUTIVE` | Client revenue concentration analysis |
+| `VW_EBITDA_BY_BU` | EBITDA margin by business unit (42-53% target) |
+| `VW_RISK_DASHBOARD` | Consolidated risk view (equipment, compliance, data quality) |
 | `VW_CLIENT_CONCENTRATION` | Client revenue dependency analysis |
 | `VW_INVESTMENT_SCENARIOS` | What-if analysis for CAPEX decisions |
+| `VW_COST_PER_TOWER` | Total cost of ownership analysis |
+| `VW_REVENUE_PER_SITE` | Site profitability metrics |
+| `VW_MARKET_SHARE` | Regional market position |
+
+## ESG Regulatory Compliance
+
+### French Regulations
+
+| Regulation | Description | Frequency |
+|------------|-------------|-----------|
+| **Index Égalité H/F** | Gender equality index (must score ≥75/100) | Annual (March 1) |
+| **Bilan GES** | Greenhouse gas emissions report | Every 4 years |
+| **DPEF** | Extra-financial performance declaration | Annual |
+
+### EU Regulations
+
+| Regulation | Description | Frequency |
+|------------|-------------|-----------|
+| **CSRD** | Corporate Sustainability Reporting Directive | Annual |
+| **EU Taxonomy** | Taxonomy-aligned revenue/CAPEX/OPEX | Annual |
 
 ## France Geographic Coverage
 
@@ -216,30 +265,66 @@ Pre-built views for executive dashboards:
 - **Tour Eiffel** (75) - Major broadcast site
 - **Pic du Midi** (65) - High-altitude broadcast site
 - **Mont Ventoux** (84) - Strategic broadcast location
+- **Bordeaux, Lille, Marseille, Rennes** - Regional Data Centers
 
 ## Mobile Operators (Clients)
 
-| Operator | Revenue Share |
-|----------|--------------|
-| Orange | ~31% |
-| SFR | ~27% |
-| Bouygues Telecom | ~24% |
-| Free Mobile | ~18% |
+| Operator | Revenue Share | Contract Status |
+|----------|--------------|-----------------|
+| Orange | ~31% | Strategic Client |
+| SFR | ~27% | Strategic Client |
+| Bouygues Telecom | ~24% | Strategic Client |
+| Free Mobile | ~18% | Strategic Client |
+
+## Broadcast Clients
+
+- **France Télévisions** (France 2, France 3, etc.)
+- **Radio France** (France Inter, France Info, France Culture)
+- **NRJ Group** (NRJ, Nostalgie, Chérie FM)
+- **RTL Group**
 
 ## Technical Notes
 
 ### Snowflake Features Used
 
-- **Git Integration:** Native repository connection for CI/CD
-- **Virtual Columns:** Computed columns (e.g., COLOCATION_RATE, AGE_YEARS)
-- **Views:** Pre-built analytics views for dashboard consumption
+- **Git Integration:** Native repository connection for CI/CD deployment
+- **Views:** 20+ pre-built analytics views for dashboard consumption
 - **Future Grants:** Automatic permissions for new objects
+- **Window Functions:** For time-series analysis and rankings
 
 ### Data Quality
 
 - ~3% intentional discrepancies for Digital Twin demo
 - Seasonal energy patterns (winter +30%, summer +15%)
 - Realistic equipment age distribution (1-15 years)
+- Full audit trail for ESG compliance
+
+### Roles
+
+| Role | Purpose |
+|------|---------|
+| `TDF_ADMIN` | Full database administration |
+| `TDF_ANALYST` | Read access to all schemas |
+| `TDF_ENGINEER` | Infrastructure and operations access |
+| `TDF_EXECUTIVE` | Executive dashboard access |
+
+## Quick Start Queries
+
+```sql
+-- Executive KPIs
+SELECT * FROM ANALYTICS.VW_EXECUTIVE_KPIS ORDER BY PERIOD_DATE DESC LIMIT 1;
+
+-- Infrastructure Summary
+SELECT SITE_TYPE, COUNT(*) AS COUNT, AVG(COLOCATION_RATE) AS AVG_COLOCATION
+FROM INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE' GROUP BY SITE_TYPE;
+
+-- ESG Board Scorecard
+SELECT * FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1;
+
+-- Equipment at Risk
+SELECT COUNT(*) AS CRITICAL_EQUIPMENT
+FROM OPERATIONS.EQUIPMENT_STATUS WHERE FAILURE_RISK_SCORE >= 80;
+```
 
 ## License
 
@@ -248,4 +333,3 @@ Proprietary - TDF Infrastructure demonstration database
 ## Contact
 
 For questions about this demo database, contact your TDF/Snowflake account team.
-
