@@ -1683,9 +1683,10 @@ def page_capacity_planning():
     st.markdown("### 📈 18-Month Capacity vs Demand Forecast")
     
     # Generate forecast data - based on ~1,500 employees (~1,650 FTE with contractors)
+    # Starting from December 2025
     forecast_df = run_query(f"""
         WITH months AS (
-            SELECT DATEADD(MONTH, SEQ4(), DATE_TRUNC('MONTH', CURRENT_DATE())) as FORECAST_MONTH
+            SELECT DATEADD(MONTH, SEQ4(), TO_DATE('2025-12-01')) as FORECAST_MONTH
             FROM TABLE(GENERATOR(ROWCOUNT => 18))
         ),
         capacity_trend AS (
