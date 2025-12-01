@@ -726,7 +726,6 @@ def page_executive_dashboard():
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='#f0f0f0',
-                    title='Revenue (EUR Millions)',
                     title=dict(text='Revenue (EUR Millions)', font=dict(size=12, color='#666'))
                 ),
                 yaxis=dict(
