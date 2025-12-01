@@ -198,15 +198,8 @@ CREATE OR REPLACE TABLE CALENDAR (
     FISCAL_QUARTER INTEGER
 );
 
--- ============================================================================
--- INDEXES
--- ============================================================================
-
--- Create indexes for common lookups
-CREATE OR REPLACE INDEX IDX_DEPARTMENTS_REGION ON DEPARTMENTS(REGION_ID);
-CREATE OR REPLACE INDEX IDX_COMMUNES_DEPARTMENT ON COMMUNES(DEPARTMENT_ID);
-CREATE OR REPLACE INDEX IDX_BU_PARENT ON BUSINESS_UNITS(PARENT_BU_ID);
-CREATE OR REPLACE INDEX IDX_COST_CENTER_BU ON COST_CENTERS(BU_ID);
+-- Note: Snowflake automatically optimizes queries via micro-partitions
+-- No explicit indexes needed for standard tables
 
 SELECT 'CORE TABLES CREATED' AS STATUS, CURRENT_TIMESTAMP() AS CREATED_AT;
 
