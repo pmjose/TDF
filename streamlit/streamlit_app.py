@@ -2747,16 +2747,51 @@ def page_esg_reporting():
     st.markdown("### 📅 Regulatory Reporting Calendar 2025")
     
     # Calendar data with deadlines and status
-    calendar_data = [
-        {"report": "Index Égalité H/F", "due_date": "2025-03-01", "status": "on_track", "days_left": 90, "owner": "DRH", "priority": "High"},
-        {"report": "Bilan GES (BEGES)", "due_date": "2025-12-31", "status": "on_track", "days_left": 395, "owner": "RSE", "priority": "Medium"},
-        {"report": "CSRD / ESRS", "due_date": "2025-03-31", "status": "at_risk", "days_left": 120, "owner": "Finance", "priority": "Critical"},
-        {"report": "DPEF", "due_date": "2025-04-30", "status": "on_track", "days_left": 150, "owner": "RSE", "priority": "High"},
-        {"report": "EU Taxonomy", "due_date": "2025-06-30", "status": "on_track", "days_left": 211, "owner": "Finance", "priority": "High"},
-        {"report": "Article 29 LEC", "due_date": "2025-06-30", "status": "at_risk", "days_left": 211, "owner": "RSE", "priority": "Medium"},
-        {"report": "GRI Report", "due_date": "2025-05-31", "status": "not_started", "days_left": 181, "owner": "RSE", "priority": "Medium"},
-        {"report": "TCFD Disclosure", "due_date": "2025-04-30", "status": "on_track", "days_left": 150, "owner": "Finance", "priority": "High"},
+    # Current date for demo: December 1, 2025
+    # All 2025 reports are complete - showing upcoming 2026 deadlines
+    from datetime import datetime, date
+    
+    today = date(2025, 12, 1)  # Demo date
+    
+    # Regulatory deadlines for 2026 (FY2025 reporting)
+    raw_calendar = [
+        {"report": "Index Égalité H/F 2026", "due_date": "2026-03-01", "owner": "DRH", "priority": "High", "progress": 45},
+        {"report": "CSRD / ESRS (FY2025)", "due_date": "2026-04-30", "owner": "Finance", "priority": "Critical", "progress": 28},
+        {"report": "DPEF 2026", "due_date": "2026-04-30", "owner": "RSE", "priority": "High", "progress": 35},
+        {"report": "TCFD Disclosure 2026", "due_date": "2026-04-30", "owner": "Finance", "priority": "High", "progress": 40},
+        {"report": "GRI Report 2025", "due_date": "2026-05-31", "owner": "RSE", "priority": "Medium", "progress": 15},
+        {"report": "EU Taxonomy (FY2025)", "due_date": "2026-06-30", "owner": "Finance", "priority": "High", "progress": 22},
+        {"report": "Article 29 LEC 2026", "due_date": "2026-06-30", "owner": "RSE", "priority": "Medium", "progress": 18},
+        {"report": "Bilan GES 2026", "due_date": "2026-12-31", "owner": "RSE", "priority": "Medium", "progress": 5},
     ]
+    
+    # Calculate days left and determine status dynamically
+    calendar_data = []
+    for item in raw_calendar:
+        due = datetime.strptime(item["due_date"], "%Y-%m-%d").date()
+        days_left = (due - today).days
+        
+        # Determine status based on progress and time remaining
+        expected_progress = max(0, 100 - (days_left / 3.65))  # ~1% per 3.65 days for annual reports
+        
+        if days_left < 0:
+            status = "overdue"
+        elif item["progress"] >= expected_progress - 10:
+            status = "on_track"
+        elif item["progress"] >= expected_progress - 25:
+            status = "at_risk"
+        else:
+            status = "not_started" if item["progress"] < 20 else "at_risk"
+        
+        calendar_data.append({
+            "report": item["report"],
+            "due_date": item["due_date"],
+            "days_left": days_left,
+            "owner": item["owner"],
+            "priority": item["priority"],
+            "status": status,
+            "progress": item["progress"]
+        })
     
     # Sort by due date
     calendar_data = sorted(calendar_data, key=lambda x: x['due_date'])
