@@ -4409,63 +4409,96 @@ def page_digital_twin():
         """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
-    # ROW 4c: 3D Coverage Status Map
+    # ROW 4c: 3D Coverage by Region (Stacked Bar)
     # -------------------------------------------------------------------------
     
-    st.markdown("### 🗺️ 3D Model Coverage Status by Site")
-    st.caption("Green = 3D model complete • Yellow = In progress • Red = Pending scan")
+    st.markdown("### 📊 3D Model Status by Region")
     
-    # Create a visual grid representing sites and their 3D status
-    coverage_col1, coverage_col2 = st.columns([3, 1])
+    cov_col1, cov_col2 = st.columns([2, 1])
     
-    with coverage_col1:
-        # Generate grid data representing sites
-        np.random.seed(123)
-        grid_size = 20
-        site_grid = np.random.choice([0, 1, 2], size=(grid_size, grid_size), p=[0.10, 0.08, 0.82])
-        # 0 = Pending (red), 1 = In Progress (yellow), 2 = Complete (green)
+    with cov_col1:
+        # Regional 3D status breakdown
+        regions_3d = ['Île-de-France', 'Auvergne-RA', 'Nouvelle-Aquit.', 'Occitanie', 'Hauts-de-Fr.', 
+                      'Grand Est', 'PACA', 'Pays de Loire', 'Bretagne', 'Normandie']
+        complete_3d = [1220, 856, 710, 649, 587, 545, 518, 454, 400, 330]
+        in_progress_3d = [15, 25, 30, 35, 40, 45, 50, 55, 60, 65]
+        pending_3d = [10, 11, 16, 14, 18, 22, 21, 25, 27, 28]
         
-        # Custom colorscale: red, yellow, green
-        colorscale = [[0, '#e63946'], [0.5, '#f39c12'], [1, '#27ae60']]
+        fig_stack = go.Figure()
         
-        fig_heatmap = go.Figure(data=go.Heatmap(
-            z=site_grid,
-            colorscale=colorscale,
-            showscale=False,
-            hovertemplate='Site Block<br>Status: %{z}<extra></extra>',
+        fig_stack.add_trace(go.Bar(
+            name='✅ Complete',
+            y=regions_3d,
+            x=complete_3d,
+            orientation='h',
+            marker_color='#27ae60',
+            text=complete_3d,
+            textposition='inside'
         ))
         
-        fig_heatmap.update_layout(
+        fig_stack.add_trace(go.Bar(
+            name='🔄 In Progress',
+            y=regions_3d,
+            x=in_progress_3d,
+            orientation='h',
+            marker_color='#f39c12',
+        ))
+        
+        fig_stack.add_trace(go.Bar(
+            name='⏳ Pending',
+            y=regions_3d,
+            x=pending_3d,
+            orientation='h',
+            marker_color='#e63946',
+        ))
+        
+        fig_stack.update_layout(
+            barmode='stack',
             height=350,
-            margin=dict(l=20, r=20, t=20, b=20),
+            margin=dict(l=10, r=20, t=30, b=40),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-            yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Number of Sites'),
+            yaxis=dict(showgrid=False, categoryorder='total ascending'),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
         )
         
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+        st.plotly_chart(fig_stack, use_container_width=True)
     
-    with coverage_col2:
-        st.markdown("#### Coverage Summary")
+    with cov_col2:
+        st.markdown("#### Overall Status")
         
-        complete = np.sum(site_grid == 2)
-        in_progress = np.sum(site_grid == 1)
-        pending = np.sum(site_grid == 0)
-        total = grid_size * grid_size
+        total_complete = sum(complete_3d)
+        total_progress = sum(in_progress_3d)
+        total_pending = sum(pending_3d)
+        total_all = total_complete + total_progress + total_pending
         
-        complete_pct = int(complete/total*100)
-        progress_pct = int(in_progress/total*100)
-        pending_pct = int(pending/total*100)
+        st.metric("✅ 3D Complete", f"{total_complete:,}", f"{total_complete/total_all*100:.0f}%")
+        st.metric("🔄 In Progress", f"{total_progress:,}", f"{total_progress/total_all*100:.0f}%")
+        st.metric("⏳ Pending Scan", f"{total_pending:,}", f"{total_pending/total_all*100:.0f}%")
         
-        # Use native Streamlit metrics
-        st.metric("🟢 Complete", f"{complete_pct}%", f"{complete * 22:,} sites")
-        st.metric("🟡 In Progress", f"{progress_pct}%", f"{in_progress * 22:,} sites")
-        st.metric("🔴 Pending", f"{pending_pct}%", f"{pending * 22:,} sites")
+        st.markdown("---")
         
-        # Progress bar
-        st.progress((complete + in_progress) / total)
-        st.caption(f"Overall: {complete_pct + progress_pct}% covered or in progress")
+        # Progress donut
+        fig_donut = go.Figure(data=[go.Pie(
+            labels=['Complete', 'In Progress', 'Pending'],
+            values=[total_complete, total_progress, total_pending],
+            hole=0.6,
+            marker_colors=['#27ae60', '#f39c12', '#e63946'],
+            textinfo='percent',
+            textfont_size=12
+        )])
+        
+        fig_donut.update_layout(
+            height=180,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor='rgba(0,0,0,0)',
+            showlegend=False,
+            annotations=[dict(text=f'{total_complete/total_all*100:.0f}%', x=0.5, y=0.5, font_size=20, showarrow=False)]
+        )
+        
+        st.plotly_chart(fig_donut, use_container_width=True)
+        st.caption("3D Model Coverage Rate")
     
     st.markdown("---")
     
