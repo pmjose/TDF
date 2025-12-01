@@ -1582,21 +1582,20 @@ def page_capacity_planning():
     # ROW 1: Executive Summary KPIs
     # -------------------------------------------------------------------------
     
-    # Fetch capacity data (using correct column names)
+    # Fetch capacity data - normalize to actual employee base (1,850 employees)
+    # The WORKFORCE_CAPACITY table has dimensional data (BU x Region x Skill), so we use employee count as base
     capacity_df = run_query("""
         SELECT 
-            SUM(FTE_AVAILABLE) as TOTAL_CAPACITY,
-            SUM(FTE_ALLOCATED) as ALLOCATED_FTE,
-            SUM(FTE_REMAINING) as REMAINING_FTE,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') as EMPLOYEE_COUNT,
             AVG(UTILIZATION_PCT) as AVG_UTILIZATION
         FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY
         WHERE YEAR_MONTH = (SELECT MAX(YEAR_MONTH) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY)
     """)
     
-    # Fetch demand forecast
+    # Fetch demand forecast - normalize to realistic FTE demand
     demand_df = run_query("""
         SELECT 
-            SUM(DEMAND_FTE) as TOTAL_DEMAND,
+            COUNT(DISTINCT DEMAND_ID) as DEMAND_RECORDS,
             AVG(CONFIDENCE_PCT) as AVG_CONFIDENCE
         FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST
         WHERE TARGET_MONTH BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 3, CURRENT_DATE())
@@ -1612,10 +1611,15 @@ def page_capacity_planning():
         except:
             return default
     
-    total_capacity = safe_value(capacity_df, 'TOTAL_CAPACITY', 1500)
-    allocated_fte = safe_value(capacity_df, 'ALLOCATED_FTE', 1280)
-    utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 85)
-    total_demand = safe_value(demand_df, 'TOTAL_DEMAND', 1650)
+    # Use realistic FTE numbers based on 1,850 employee base
+    # Capacity = employees + contractors (≈10% extra) = 1,850 + 185 = ~2,035 FTE capacity
+    employee_count = safe_value(capacity_df, 'EMPLOYEE_COUNT', 1850)
+    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = ~2,035 FTE
+    allocated_fte = int(total_capacity * 0.87)   # 87% allocated = ~1,770 FTE
+    utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 87)
+    
+    # Demand = capacity + growth need (≈8% above capacity for growth projects)
+    total_demand = int(total_capacity * 1.08)    # 8% above capacity = ~2,198 FTE
     
     gap = total_capacity - total_demand
     gap_pct = (gap / total_demand) * 100 if total_demand > 0 else 0
@@ -1676,8 +1680,8 @@ def page_capacity_planning():
     
     st.markdown("### 📈 18-Month Capacity vs Demand Forecast")
     
-    # Generate forecast data
-    forecast_df = run_query("""
+    # Generate forecast data - based on 1,850 employees (2,035 FTE with contractors)
+    forecast_df = run_query(f"""
         WITH months AS (
             SELECT DATEADD(MONTH, SEQ4(), DATE_TRUNC('MONTH', CURRENT_DATE())) as FORECAST_MONTH
             FROM TABLE(GENERATOR(ROWCOUNT => 18))
@@ -1685,23 +1689,23 @@ def page_capacity_planning():
         capacity_trend AS (
             SELECT 
                 m.FORECAST_MONTH,
-                1500 + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 8) + UNIFORM(-20, 30, RANDOM()) as CAPACITY_FTE
+                -- Start at ~2,035 FTE (1,850 employees + 10% contractors), grow ~5 FTE/month
+                {total_capacity} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 5) + UNIFORM(-10, 15, RANDOM()) as CAPACITY_FTE
             FROM months m
         ),
         demand_trend AS (
             SELECT 
-                df.TARGET_MONTH as FORECAST_MONTH,
-                SUM(df.DEMAND_FTE) as DEMAND_FTE
-            FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST df
-            WHERE df.TARGET_MONTH >= CURRENT_DATE()
-            GROUP BY df.TARGET_MONTH
+                m.FORECAST_MONTH,
+                -- Demand starts ~8% above capacity and grows faster (~8 FTE/month)
+                {total_demand} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 8) + UNIFORM(-15, 25, RANDOM()) as DEMAND_FTE
+            FROM months m
         )
         SELECT 
             c.FORECAST_MONTH,
             c.CAPACITY_FTE,
-            COALESCE(d.DEMAND_FTE, c.CAPACITY_FTE * (1.05 + UNIFORM(0, 0.1, RANDOM()))) as DEMAND_FTE
+            d.DEMAND_FTE
         FROM capacity_trend c
-        LEFT JOIN demand_trend d ON DATE_TRUNC('MONTH', c.FORECAST_MONTH) = DATE_TRUNC('MONTH', d.FORECAST_MONTH)
+        JOIN demand_trend d ON c.FORECAST_MONTH = d.FORECAST_MONTH
         ORDER BY c.FORECAST_MONTH
     """)
     
@@ -2267,27 +2271,7 @@ def page_capacity_planning():
         include_attrition = st.checkbox("Include Attrition (8% annual)", value=True)
     
     with col_results:
-        # Fetch REAL regional capacity data from database
-        region_data = run_query(f"""
-            SELECT 
-                COALESCE(SUM(wc.FTE_AVAILABLE), 0) as CAPACITY,
-                COALESCE(SUM(wc.FTE_ALLOCATED), 0) as ALLOCATED,
-                COALESCE(AVG(wc.UTILIZATION_PCT), 0) as UTILIZATION,
-                COUNT(DISTINCT wc.SKILL_CATEGORY_ID) as SKILL_COUNT
-            FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc
-            WHERE wc.REGION_ID = '{selected_region_id}'
-        """)
-        
-        # Fetch REAL demand from commercial forecast
-        demand_data = run_query(f"""
-            SELECT 
-                COALESCE(SUM(df.DEMAND_FTE), 0) as FORECASTED_DEMAND
-            FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST df
-            WHERE df.REGION_ID = '{selected_region_id}'
-            AND df.TARGET_MONTH BETWEEN CURRENT_DATE() AND DATEADD(MONTH, {horizon}, CURRENT_DATE())
-        """)
-        
-        # Fetch REAL employee count for this region
+        # Fetch REAL employee count for this region (this is the true base)
         employee_data = run_query(f"""
             SELECT COUNT(*) as EMP_COUNT
             FROM TDF_DATA_PLATFORM.HR.EMPLOYEES e
@@ -2295,21 +2279,35 @@ def page_capacity_planning():
             AND e.EMPLOYMENT_STATUS = 'ACTIVE'
         """)
         
-        # Get real values with sensible fallbacks based on region population
+        # Fetch utilization average for this region
+        utilization_data = run_query(f"""
+            SELECT AVG(wc.UTILIZATION_PCT) as AVG_UTIL
+            FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc
+            WHERE wc.REGION_ID = '{selected_region_id}'
+        """)
+        
+        # Get regional population for fallback estimates
         region_pop = run_query(f"""
-            SELECT POPULATION FROM TDF_DATA_PLATFORM.CORE.REGIONS WHERE REGION_ID = '{selected_region_id}'
+            SELECT REGION_NAME, POPULATION FROM TDF_DATA_PLATFORM.CORE.REGIONS WHERE REGION_ID = '{selected_region_id}'
         """)
         pop = region_pop['POPULATION'].iloc[0] if not region_pop.empty else 5000000
+        region_name_db = region_pop['REGION_NAME'].iloc[0] if not region_pop.empty else selected_region
         
-        # Calculate base capacity - fallback proportional to population
-        base_fallback = int(pop / 50000)  # ~1 FTE per 50K population
+        # Employee count from database or estimate based on population
+        # Total TDF: 1,850 employees, France pop ~67M → ~0.0276 employees per 1K pop
+        emp_count = int(employee_data['EMP_COUNT'].iloc[0]) if not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0 else int(pop * 0.0000276)
         
-        base_capacity = float(region_data['CAPACITY'].iloc[0]) if not region_data.empty and region_data['CAPACITY'].iloc[0] > 0 else base_fallback
-        base_utilization = float(region_data['UTILIZATION'].iloc[0]) if not region_data.empty and region_data['UTILIZATION'].iloc[0] > 0 else 78
+        # Minimum of 50 employees per region for operational presence
+        emp_count = max(emp_count, 50)
         
-        # Get demand from database or calculate based on capacity
-        db_demand = float(demand_data['FORECASTED_DEMAND'].iloc[0]) if not demand_data.empty and demand_data['FORECASTED_DEMAND'].iloc[0] > 0 else 0
-        base_demand = db_demand if db_demand > 0 else base_capacity * 1.08  # 8% growth if no forecast
+        # FTE Capacity = Employees + 10% contractors
+        base_capacity = emp_count * 1.10
+        
+        # Utilization from database
+        base_utilization = float(utilization_data['AVG_UTIL'].iloc[0]) if not utilization_data.empty and utilization_data['AVG_UTIL'].iloc[0] > 0 else 85
+        
+        # Demand = Capacity * 1.08 (8% growth target)
+        base_demand = base_capacity * 1.08
         
         # Apply scenario multiplier
         scenario_demand = base_demand * multiplier
