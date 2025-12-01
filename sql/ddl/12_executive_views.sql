@@ -6,6 +6,8 @@
 -- Based on TDF 2024: EUR 799.1M Revenue, 42-53% EBITDAaL, BBB- Rating
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA ANALYTICS;
 

@@ -5,6 +5,8 @@
 -- Scale: ~1,500 employees
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA HR;
 

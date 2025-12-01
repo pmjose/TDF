@@ -5,6 +5,8 @@
 -- Supports UC1, UC3, UC4
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA OPERATIONS;
 

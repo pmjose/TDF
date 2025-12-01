@@ -5,6 +5,8 @@
 -- France Metropolitan: 13 Regions, 96 Departments
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA CORE;
 

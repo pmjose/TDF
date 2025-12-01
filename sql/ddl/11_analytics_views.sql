@@ -5,6 +5,8 @@
 -- Pre-built queries optimized for dashboard consumption
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA ANALYTICS;
 

@@ -6,6 +6,8 @@
 -- Scale: 21,244 Points of Service, >2,000 pylons in 3D models
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA DIGITAL_TWIN;
 

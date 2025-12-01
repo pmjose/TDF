@@ -6,6 +6,8 @@
 -- Scale: 8,785 Active Sites, 7,877 Towers, 21,244 Points of Service
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA INFRASTRUCTURE;
 

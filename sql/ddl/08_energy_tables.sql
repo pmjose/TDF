@@ -6,6 +6,8 @@
 -- Note: Energy is re-invoiced to customers as pass-through
 -- ============================================================================
 
+USE ROLE SYSADMIN;
+USE WAREHOUSE TDF_WH;
 USE DATABASE TDF_DATA_PLATFORM;
 USE SCHEMA ENERGY;
 
