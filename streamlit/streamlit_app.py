@@ -2046,36 +2046,138 @@ def page_capacity_planning():
         st.markdown("#### 💡 Scenario Impact")
         
         if gap < 0:
-            hiring_cost = abs(gap) * 20000  # €20K per hire
-            months_to_close = max(3, int(abs(gap) / 5))  # ~5 hires per month
-            revenue_at_risk = abs(gap) * 50000  # €50K revenue per FTE
+            total_gap = int(abs(gap))
             
+            # Realistic role distribution for telecom infrastructure
+            # Based on typical TDF workforce composition
+            role_distribution = [
+                {"role": "Tower Technician", "pct": 0.25, "salary": 42000, "time_to_hire": 45},
+                {"role": "RF Engineer", "pct": 0.15, "salary": 58000, "time_to_hire": 60},
+                {"role": "Field Service Engineer", "pct": 0.20, "salary": 48000, "time_to_hire": 40},
+                {"role": "High Voltage Electrician", "pct": 0.12, "salary": 52000, "time_to_hire": 55},
+                {"role": "Network Operations Specialist", "pct": 0.10, "salary": 55000, "time_to_hire": 50},
+                {"role": "Site Supervisor", "pct": 0.08, "salary": 62000, "time_to_hire": 65},
+                {"role": "Project Manager", "pct": 0.05, "salary": 72000, "time_to_hire": 70},
+                {"role": "Safety Officer", "pct": 0.05, "salary": 56000, "time_to_hire": 45},
+            ]
+            
+            # Calculate per-role hiring needs
+            roles_data = []
+            total_hiring_cost = 0
+            for role in role_distribution:
+                fte_needed = max(1, round(total_gap * role["pct"]))
+                recruitment_cost = fte_needed * 8000  # €8K recruitment per hire
+                annual_salary = fte_needed * role["salary"]
+                total_cost = recruitment_cost + annual_salary
+                total_hiring_cost += recruitment_cost
+                roles_data.append({
+                    "Role": role["role"],
+                    "FTE Needed": fte_needed,
+                    "Avg Salary": f"€{role['salary']:,}",
+                    "Recruitment Cost": f"€{recruitment_cost:,}",
+                    "Time to Hire": f"{role['time_to_hire']} days",
+                    "Priority": "🔴 Critical" if role["pct"] >= 0.15 else "🟡 High" if role["pct"] >= 0.10 else "🟢 Normal"
+                })
+            
+            # Calculate realistic metrics
+            avg_time_to_hire = 52  # days
+            months_to_close = max(3, int((total_gap / 4) + (avg_time_to_hire / 30)))  # ~4 hires per month
+            revenue_per_fte = 85000  # €85K revenue per technical FTE
+            revenue_at_risk = total_gap * revenue_per_fte
+            
+            # Summary metrics
             st.markdown(f"""
                 <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); padding: 1.5rem; border-radius: 10px; color: white;">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
                         <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">🔧 HIRING NEED</div>
-                            <div style="font-size: 1.3rem; font-weight: 600;">{int(abs(gap))} FTE</div>
-                            <div style="color: #888; font-size: 0.7rem;">to close gap</div>
+                            <div style="color: #aaa; font-size: 0.75rem;">🔧 TOTAL HIRING</div>
+                            <div style="font-size: 1.5rem; font-weight: 600;">{total_gap} FTE</div>
+                            <div style="color: #888; font-size: 0.7rem;">across {len(role_distribution)} roles</div>
                         </div>
                         <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">💰 HIRING COST</div>
-                            <div style="font-size: 1.3rem; font-weight: 600;">€{hiring_cost/1000:.0f}K</div>
-                            <div style="color: #888; font-size: 0.7rem;">recruitment + onboarding</div>
+                            <div style="color: #aaa; font-size: 0.75rem;">💰 RECRUITMENT COST</div>
+                            <div style="font-size: 1.5rem; font-weight: 600;">€{total_hiring_cost/1000:.0f}K</div>
+                            <div style="color: #888; font-size: 0.7rem;">agency + onboarding</div>
                         </div>
                         <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">⏱️ TIME TO CLOSE</div>
-                            <div style="font-size: 1.3rem; font-weight: 600;">{months_to_close} months</div>
-                            <div style="color: #888; font-size: 0.7rem;">at current pace</div>
+                            <div style="color: #aaa; font-size: 0.75rem;">⏱️ TIME TO FULL CAPACITY</div>
+                            <div style="font-size: 1.5rem; font-weight: 600;">{months_to_close} months</div>
+                            <div style="color: #888; font-size: 0.7rem;">~4 hires/month</div>
                         </div>
-                    </div>
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2);">
-                        <span style="color: #e63946;">⚠️ Revenue at risk: €{revenue_at_risk/1000000:.1f}M</span> if gap not addressed
+                        <div>
+                            <div style="color: #aaa; font-size: 0.75rem;">⚠️ REVENUE AT RISK</div>
+                            <div style="font-size: 1.5rem; font-weight: 600; color: #e63946;">€{revenue_at_risk/1000000:.1f}M</div>
+                            <div style="color: #888; font-size: 0.7rem;">if gap not addressed</div>
+                        </div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
+            
+            # Role breakdown table
+            st.markdown("#### 👥 Hiring Breakdown by Role")
+            
+            roles_df = pd.DataFrame(roles_data)
+            
+            # Create visual bar chart for roles
+            fig = go.Figure()
+            
+            colors = ['#e63946' if 'Critical' in p else '#f39c12' if 'High' in p else '#27ae60' 
+                     for p in roles_df['Priority']]
+            
+            fig.add_trace(go.Bar(
+                y=roles_df['Role'],
+                x=roles_df['FTE Needed'],
+                orientation='h',
+                marker=dict(color=colors),
+                text=roles_df['FTE Needed'],
+                textposition='inside',
+                textfont=dict(color='white', size=12),
+                hovertemplate=(
+                    '<b>%{y}</b><br>' +
+                    'FTE Needed: %{x}<br>' +
+                    '<extra></extra>'
+                )
+            ))
+            
+            fig.update_layout(
+                height=320,
+                margin=dict(l=10, r=20, t=10, b=10),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE to Hire'),
+                yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Detailed table
+            st.markdown("##### 📋 Detailed Hiring Plan")
+            st.dataframe(
+                roles_df[['Role', 'FTE Needed', 'Avg Salary', 'Recruitment Cost', 'Time to Hire', 'Priority']],
+                use_container_width=True,
+                hide_index=True
+            )
+            
+            # Timeline note
+            st.info(f"""
+                **📅 Recommended Hiring Timeline:**
+                - **Month 1-2:** Focus on 🔴 Critical roles (Tower Technicians, RF Engineers, Field Service)
+                - **Month 3-4:** 🟡 High priority roles (Electricians, Network Ops)
+                - **Month 5+:** 🟢 Remaining positions (Supervisors, PMs, Safety)
+            """)
+            
         else:
             st.success(f"✅ **{selected_region}** has sufficient capacity for this scenario with {int(gap)} FTE surplus.")
+            
+            # Show reallocation opportunity
+            st.markdown("#### 💡 Optimization Opportunity")
+            st.markdown(f"""
+                With **{int(gap)} surplus FTE**, consider:
+                - Cross-training staff for other regions with shortages
+                - Supporting major project deployments
+                - Building bench strength for upcoming contracts
+            """)
     
     # Footer
     st.markdown("---")
