@@ -6388,9 +6388,9 @@ def page_capex_lifecycle():
                 'axis': {'range': [0, 100]},
                 'bar': {'color': '#27ae60'},
                 'steps': [
-                    {'range': [0, 50], 'color': '#e6394620'},
-                    {'range': [50, 75], 'color': '#f39c1220'},
-                    {'range': [75, 100], 'color': '#27ae6020'}
+                    {'range': [0, 50], 'color': 'rgba(230, 57, 70, 0.13)'},
+                    {'range': [50, 75], 'color': 'rgba(243, 156, 18, 0.13)'},
+                    {'range': [75, 100], 'color': 'rgba(39, 174, 96, 0.13)'}
                 ],
                 'threshold': {
                     'line': {'color': '#1a2b4a', 'width': 2},
