@@ -60,7 +60,7 @@ This database platform provides a single source of truth for:
 1. **One-time setup** (requires ACCOUNTADMIN):
 ```sql
 -- Run 00_GIT_SETUP.sql to configure Git integration
--- Update YOUR_ORG with your GitHub organization
+-- Repository: https://github.com/pmjose/TDF
 ```
 
 2. **Deploy from Git:**

@@ -10,11 +10,11 @@ USE ROLE ACCOUNTADMIN;
 -- ============================================================================
 -- STEP 1: Create API Integration for GitHub
 -- ============================================================================
--- Replace 'YOUR_ORG' with your actual GitHub organization or username
+-- Repository: https://github.com/pmjose/TDF
 
 CREATE OR REPLACE API INTEGRATION tdf_git_integration
     API_PROVIDER = git_https_api
-    API_ALLOWED_PREFIXES = ('https://github.com/YOUR_ORG/TDF')
+    API_ALLOWED_PREFIXES = ('https://github.com/pmjose/TDF')
     ENABLED = TRUE
     COMMENT = 'Git integration for TDF Data Platform deployment';
 
@@ -35,11 +35,11 @@ CREATE SCHEMA IF NOT EXISTS PUBLIC;
 -- ============================================================================
 -- STEP 3: Create Git Repository Object
 -- ============================================================================
--- Replace 'YOUR_ORG' with your actual GitHub organization or username
+-- Repository: https://github.com/pmjose/TDF
 
 CREATE OR REPLACE GIT REPOSITORY TDF_DATA_PLATFORM.PUBLIC.TDF_REPO
     API_INTEGRATION = tdf_git_integration
-    ORIGIN = 'https://github.com/YOUR_ORG/TDF.git'
+    ORIGIN = 'https://github.com/pmjose/TDF.git'
     COMMENT = 'TDF Data Platform SQL scripts repository';
 
 -- ============================================================================
