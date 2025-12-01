@@ -9,6 +9,7 @@ import streamlit as st
 from snowflake.snowpark.context import get_active_session
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import pydeck as pdk
 
@@ -3999,12 +4000,538 @@ Full audit trail available in system
 def page_digital_twin():
     render_header(
         "Digital Twin",
-        "Infrastructure data quality and synchronization status"
+        "Infrastructure Data Control Tower • Single Source of Truth • Real-Time Quality Monitoring"
     )
-    render_placeholder(
-        "Digital Twin",
-        "Data quality scores, discrepancy tracking, sync status by region, and open issues"
+    
+    # -------------------------------------------------------------------------
+    # ROW 1: Data Control Tower KPIs
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🎛️ Infrastructure Data Control Tower")
+    
+    # Fetch data quality metrics
+    quality_data = run_query("""
+        SELECT 
+            COUNT(*) as TOTAL_RECORDS,
+            AVG(CASE WHEN SITE_NAME IS NOT NULL AND LATITUDE IS NOT NULL AND LONGITUDE IS NOT NULL THEN 100 ELSE 0 END) as COMPLETENESS,
+            COUNT(CASE WHEN STATUS = 'ACTIVE' THEN 1 END) as ACTIVE_COUNT
+        FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES
+    """)
+    
+    total_records = quality_data['TOTAL_RECORDS'].iloc[0] if not quality_data.empty else 8785
+    completeness = quality_data['COMPLETENESS'].iloc[0] if not quality_data.empty else 94.2
+    
+    kpi_cols = st.columns(4)
+    
+    with kpi_cols[0]:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9;">Data Completeness</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">94.2%</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">↑ 2.1% vs last month</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_cols[1]:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9;">Data Accuracy</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">97.8%</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">Validated vs field surveys</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_cols[2]:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9;">Digital Twin Sync</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">✓ Live</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">Last sync: 2 min ago</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with kpi_cols[3]:
+        st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #e67e22, #d35400); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9;">Open Discrepancies</div>
+                <div style="font-size: 2.5rem; font-weight: 700;">47</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">↓ 12 resolved this week</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 2: Single Source of Truth - Infrastructure Inventory
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📊 Single Source of Truth - Infrastructure Inventory")
+    st.caption("Harmonized data across all systems • Operations, Technology & CAPEX teams")
+    
+    # Fetch infrastructure counts
+    infra_counts = run_query("""
+        SELECT 
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE') as SITES,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.TOWERS WHERE STATUS = 'ACTIVE') as TOWERS,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.ANTENNAS) as ANTENNAS,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.DATA_CENTERS WHERE STATUS = 'ACTIVE') as DATA_CENTERS,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.BROADCAST_TRANSMITTERS) as TRANSMITTERS,
+            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.FIBRE_NETWORK) as FIBRE_SEGMENTS
+    """)
+    
+    sites = infra_counts['SITES'].iloc[0] if not infra_counts.empty else 8785
+    towers = infra_counts['TOWERS'].iloc[0] if not infra_counts.empty else 7877
+    antennas = infra_counts['ANTENNAS'].iloc[0] if not infra_counts.empty else 24500
+    dcs = infra_counts['DATA_CENTERS'].iloc[0] if not infra_counts.empty else 12
+    transmitters = infra_counts['TRANSMITTERS'].iloc[0] if not infra_counts.empty else 1850
+    fibre = infra_counts['FIBRE_SEGMENTS'].iloc[0] if not infra_counts.empty else 4200
+    
+    inv_cols = st.columns(6)
+    inventory_items = [
+        {"icon": "📡", "name": "Sites", "count": sites, "twin_pct": 98, "color": "#1a2b4a"},
+        {"icon": "🗼", "name": "Towers", "count": towers, "twin_pct": 95, "color": "#e63946"},
+        {"icon": "📶", "name": "Antennas", "count": antennas, "twin_pct": 87, "color": "#3498db"},
+        {"icon": "🏢", "name": "Data Centers", "count": dcs, "twin_pct": 100, "color": "#27ae60"},
+        {"icon": "📺", "name": "Transmitters", "count": transmitters, "twin_pct": 92, "color": "#9b59b6"},
+        {"icon": "🔌", "name": "Fibre Segments", "count": fibre, "twin_pct": 78, "color": "#e67e22"},
+    ]
+    
+    for i, item in enumerate(inventory_items):
+        with inv_cols[i]:
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {item['color']}; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <div style="font-size: 2rem;">{item['icon']}</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{item['count']:,}</div>
+                    <div style="font-size: 0.8rem; color: #666;">{item['name']}</div>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="background: #f0f0f0; border-radius: 4px; height: 6px;">
+                            <div style="background: {item['color']}; width: {item['twin_pct']}%; height: 100%; border-radius: 4px;"></div>
+                        </div>
+                        <div style="font-size: 0.65rem; color: #888; margin-top: 0.25rem;">{item['twin_pct']}% in 3D Model</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 3: Discrepancy Detection & Resolution
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🔍 Discrepancy Detection & Resolution")
+    
+    disc_col1, disc_col2 = st.columns([2, 1])
+    
+    with disc_col1:
+        st.markdown("#### Open Discrepancies")
+        
+        discrepancies = [
+            {"id": "DISC-001", "source_a": "GIS System", "source_b": "SAP PM", "asset": "SITE-003421", "field": "Tower Height", "value_a": "45m", "value_b": "42m", "status": "Open", "priority": "High", "age": "3 days"},
+            {"id": "DISC-002", "source_a": "Inventory DB", "source_b": "Field Survey", "asset": "TOWER-002187", "field": "Antenna Count", "value_a": "3", "value_b": "4", "status": "In Review", "priority": "Medium", "age": "5 days"},
+            {"id": "DISC-003", "source_a": "Digital Twin", "source_b": "Client Portal", "asset": "SITE-005892", "field": "Coordinates", "value_a": "48.8566, 2.3522", "value_b": "48.8568, 2.3520", "status": "Open", "priority": "Low", "age": "1 day"},
+            {"id": "DISC-004", "source_a": "Asset Register", "source_b": "Maintenance Log", "asset": "DC-PARIS-01", "field": "Power Capacity", "value_a": "2.5 MW", "value_b": "2.8 MW", "status": "Open", "priority": "High", "age": "7 days"},
+            {"id": "DISC-005", "source_a": "GIS System", "source_b": "Planning Tool", "asset": "SITE-007234", "field": "Site Type", "value_a": "Rooftop", "value_b": "Ground", "status": "Resolved", "priority": "Medium", "age": "2 days"},
+        ]
+        
+        for d in discrepancies[:4]:
+            status_color = '#e63946' if d['status'] == 'Open' else '#f39c12' if d['status'] == 'In Review' else '#27ae60'
+            priority_color = '#e63946' if d['priority'] == 'High' else '#f39c12' if d['priority'] == 'Medium' else '#3498db'
+            
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; border-left: 4px solid {status_color}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 2;">
+                            <div style="font-weight: 600; color: #1a2b4a; font-size: 0.9rem;">{d['id']}: {d['field']} Mismatch</div>
+                            <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">{d['asset']} • {d['age']} old</div>
+                        </div>
+                        <div style="flex: 2; text-align: center;">
+                            <div style="font-size: 0.7rem; color: #888;">{d['source_a']} vs {d['source_b']}</div>
+                            <div style="font-size: 0.85rem; margin-top: 0.25rem;"><span style="color: #e63946;">{d['value_a']}</span> ≠ <span style="color: #3498db;">{d['value_b']}</span></div>
+                        </div>
+                        <div style="flex: 1; text-align: right;">
+                            <span style="background: {priority_color}20; color: {priority_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">{d['priority']}</span>
+                            <div style="margin-top: 0.25rem;">
+                                <span style="background: {status_color}20; color: {status_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">{d['status']}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with disc_col2:
+        st.markdown("#### By Category")
+        
+        categories = ['Coordinates', 'Dimensions', 'Equipment', 'Capacity', 'Status', 'Other']
+        counts = [12, 8, 15, 5, 4, 3]
+        colors = ['#e63946', '#f39c12', '#3498db', '#27ae60', '#9b59b6', '#888']
+        
+        fig = go.Figure(go.Bar(
+            y=categories,
+            x=counts,
+            orientation='h',
+            marker=dict(color=colors),
+            text=counts,
+            textposition='outside'
+        ))
+        
+        fig.update_layout(
+            height=250,
+            margin=dict(l=10, r=40, t=10, b=10),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
+            yaxis=dict(showgrid=False, categoryorder='total ascending'),
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Resolution stats
+        st.markdown("""
+            <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                <div style="font-size: 0.75rem; color: #666;">Avg Resolution Time</div>
+                <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">4.2 days</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 4: Digital Twin 3D Model Coverage
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🏗️ Digital Twin 3D Model Coverage")
+    
+    twin_col1, twin_col2 = st.columns([1, 2])
+    
+    with twin_col1:
+        st.markdown("#### Model Statistics")
+        
+        model_stats = [
+            {"metric": "Pylons Modeled", "value": "2,147", "target": "2,000", "status": "achieved"},
+            {"metric": "Sites with 3D", "value": "8,245", "target": "8,785", "status": "on_track"},
+            {"metric": "LOD Level", "value": "LOD 300", "target": "LOD 300", "status": "achieved"},
+            {"metric": "Last Full Scan", "value": "Nov 15", "target": "Monthly", "status": "on_track"},
+            {"metric": "Model Accuracy", "value": "±5cm", "target": "±10cm", "status": "achieved"},
+        ]
+        
+        for stat in model_stats:
+            status_icon = '✅' if stat['status'] == 'achieved' else '🔵'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #666; font-size: 0.85rem;">{stat['metric']}</span>
+                    <span style="font-weight: 600; color: #1a2b4a;">{stat['value']} {status_icon}</span>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # 3D Model badge
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); border-radius: 10px; padding: 1rem; margin-top: 1rem; text-align: center; color: white;">
+                <div style="font-size: 2rem;">🏗️</div>
+                <div style="font-weight: 600;">Digital Twin Status</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin-top: 0.5rem;">OPERATIONAL</div>
+                <div style="font-size: 0.7rem; color: #aaa;">Real-time sync enabled</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with twin_col2:
+        st.markdown("#### Regional 3D Coverage")
+        
+        # Regional coverage data
+        regions = ['Île-de-France', 'Auvergne-Rhône-Alpes', 'Nouvelle-Aquitaine', 'Occitanie', 'Hauts-de-France', 
+                   'Grand Est', 'Provence-Alpes-Côte d\'Azur', 'Pays de la Loire', 'Bretagne', 'Normandie']
+        coverage = [98, 96, 94, 93, 91, 89, 88, 85, 82, 78]
+        sites_count = [1245, 892, 756, 698, 645, 612, 589, 534, 487, 423]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            y=regions,
+            x=coverage,
+            orientation='h',
+            marker=dict(color=['#27ae60' if c >= 90 else '#f39c12' if c >= 80 else '#e63946' for c in coverage]),
+            text=[f"{c}% ({s:,} sites)" for c, s in zip(coverage, sites_count)],
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Coverage: %{x}%<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            height=350,
+            margin=dict(l=10, r=80, t=10, b=10),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', range=[0, 110], title='3D Model Coverage %'),
+            yaxis=dict(showgrid=False, categoryorder='total ascending'),
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 5: What-If Scenario Simulator
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🎮 What-If Scenario Simulator")
+    st.caption("Simulate infrastructure changes and assess impact in real-time")
+    
+    sim_col1, sim_col2 = st.columns([1, 2])
+    
+    with sim_col1:
+        st.markdown("**Configure Scenario:**")
+        
+        scenario_type = st.selectbox(
+            "📋 Scenario Type",
+            options=[
+                "Site Decommissioning",
+                "Equipment Failure",
+                "Capacity Planning (New Antennas)",
+                "Maintenance Window",
+                "Natural Disaster Impact"
+            ]
+        )
+        
+        # Dynamic inputs based on scenario
+        if scenario_type == "Site Decommissioning":
+            site_options = ["SITE-003421 (Paris)", "SITE-005892 (Lyon)", "SITE-007234 (Marseille)", "SITE-001256 (Bordeaux)"]
+            selected_site = st.selectbox("🗼 Select Site", site_options)
+            
+        elif scenario_type == "Equipment Failure":
+            equipment_options = ["Tower Structure", "Power System", "Cooling System", "Antenna Array", "Fiber Connection"]
+            selected_equipment = st.selectbox("⚡ Equipment Type", equipment_options)
+            failure_duration = st.slider("⏱️ Outage Duration (hours)", 1, 48, 8)
+            
+        elif scenario_type == "Capacity Planning (New Antennas)":
+            client_options = ["Orange", "SFR", "Bouygues Telecom", "Free Mobile", "New Client"]
+            selected_client = st.selectbox("👤 Client", client_options)
+            antenna_count = st.slider("📶 Number of Antennas", 10, 500, 100)
+            
+        elif scenario_type == "Maintenance Window":
+            region_options = ["Île-de-France", "Auvergne-Rhône-Alpes", "Nouvelle-Aquitaine", "All Regions"]
+            selected_region = st.selectbox("🗺️ Region", region_options)
+            maintenance_hours = st.slider("⏱️ Duration (hours)", 2, 24, 8)
+            
+        else:  # Natural Disaster
+            disaster_options = ["Storm/High Winds", "Flooding", "Earthquake", "Extreme Heat", "Ice Storm"]
+            selected_disaster = st.selectbox("🌪️ Disaster Type", disaster_options)
+            severity = st.select_slider("📊 Severity", options=["Low", "Medium", "High", "Extreme"])
+        
+        if st.button("🚀 Run Simulation", type="primary", use_container_width=True):
+            st.success("Simulation complete!")
+    
+    with sim_col2:
+        st.markdown("#### Simulation Results")
+        
+        # Results based on scenario type
+        if scenario_type == "Site Decommissioning":
+            results = {
+                "coverage_impact": -2.3,
+                "clients_affected": 4,
+                "revenue_at_risk": 125000,
+                "sla_breach_risk": "Medium",
+                "redundancy": "85% covered by adjacent sites",
+                "recommendation": "Proceed with migration plan - 3 weeks required"
+            }
+            
+            res_cols = st.columns(3)
+            with res_cols[0]:
+                st.metric("Coverage Impact", f"{results['coverage_impact']}%", delta=f"{results['coverage_impact']}%", delta_color="inverse")
+            with res_cols[1]:
+                st.metric("Clients Affected", results['clients_affected'], delta="-4 clients")
+            with res_cols[2]:
+                st.metric("Revenue at Risk", f"€{results['revenue_at_risk']:,}", delta=f"-€{results['revenue_at_risk']:,}", delta_color="inverse")
+            
+            st.markdown(f"""
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">SLA Breach Risk</div>
+                            <div style="font-weight: 600; color: #f39c12;">⚠️ {results['sla_breach_risk']}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: #888;">Redundancy Status</div>
+                            <div style="font-weight: 600; color: #27ae60;">✓ {results['redundancy']}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                        <div style="font-size: 0.75rem; color: #888;">AI Recommendation</div>
+                        <div style="font-weight: 600; color: #1a2b4a;">💡 {results['recommendation']}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        elif scenario_type == "Equipment Failure":
+            st.markdown("""
+                <div style="background: #e6394620; border-radius: 8px; padding: 1rem; border-left: 4px solid #e63946;">
+                    <div style="font-weight: 600; color: #e63946; margin-bottom: 0.5rem;">⚠️ IMPACT ASSESSMENT</div>
+            """, unsafe_allow_html=True)
+            
+            res_cols = st.columns(3)
+            with res_cols[0]:
+                st.metric("Service Impact", "847 users", delta="-847", delta_color="inverse")
+            with res_cols[1]:
+                st.metric("Est. Downtime", "4.5 hours")
+            with res_cols[2]:
+                st.metric("SLA Penalty Risk", "€18,500", delta_color="inverse")
+            
+            st.markdown("""
+                </div>
+                <div style="background: #27ae6020; border-radius: 8px; padding: 1rem; margin-top: 0.5rem; border-left: 4px solid #27ae60;">
+                    <div style="font-weight: 600; color: #27ae60;">✓ MITIGATION OPTIONS</div>
+                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.85rem; color: #666;">
+                        <li>Failover to SITE-003422 (2.1km) - 92% coverage maintained</li>
+                        <li>Mobile unit deployment - ETA 45 min</li>
+                        <li>Emergency repair team available - ETA 2 hours</li>
+                    </ul>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        elif scenario_type == "Capacity Planning (New Antennas)":
+            res_cols = st.columns(3)
+            with res_cols[0]:
+                st.metric("Sites with Capacity", "127", delta="+127 available")
+            with res_cols[1]:
+                st.metric("Additional Revenue", "€2.4M/year", delta="+€2.4M")
+            with res_cols[2]:
+                st.metric("Infrastructure Cost", "€890K", delta="One-time")
+            
+            st.markdown("""
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+                    <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.5rem;">📊 Capacity Analysis</div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+                        <div style="background: #27ae6020; padding: 0.5rem; border-radius: 4px;">
+                            <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">78</div>
+                            <div style="font-size: 0.65rem; color: #888;">Full Capacity</div>
+                        </div>
+                        <div style="background: #3498db20; padding: 0.5rem; border-radius: 4px;">
+                            <div style="font-size: 1.2rem; font-weight: 700; color: #3498db;">49</div>
+                            <div style="font-size: 0.65rem; color: #888;">Minor Upgrade</div>
+                        </div>
+                        <div style="background: #f39c1220; padding: 0.5rem; border-radius: 4px;">
+                            <div style="font-size: 1.2rem; font-weight: 700; color: #f39c12;">23</div>
+                            <div style="font-size: 0.65rem; color: #888;">Major Upgrade</div>
+                        </div>
+                        <div style="background: #e6394620; padding: 0.5rem; border-radius: 4px;">
+                            <div style="font-size: 1.2rem; font-weight: 700; color: #e63946;">15</div>
+                            <div style="font-size: 0.65rem; color: #888;">New Build Req.</div>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Default results display
+            res_cols = st.columns(3)
+            with res_cols[0]:
+                st.metric("Assets at Risk", "234", delta="-234", delta_color="inverse")
+            with res_cols[1]:
+                st.metric("Est. Impact Duration", "12-48 hours")
+            with res_cols[2]:
+                st.metric("Recovery Cost Est.", "€1.2M", delta_color="inverse")
+    
+    # -------------------------------------------------------------------------
+    # ROW 6: Cross-Team Data Usage
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 👥 Cross-Team Data Usage")
+    st.caption("Operations, Technology & CAPEX teams rely on the same infrastructure inventory")
+    
+    team_cols = st.columns(3)
+    
+    with team_cols[0]:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #3498db; height: 200px;">
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🔧 Operations Team</div>
+                <div style="font-weight: 600; color: #1a2b4a;">Maintenance & Support</div>
+                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                    <li>Work order management</li>
+                    <li>Preventive maintenance</li>
+                    <li>Incident response</li>
+                    <li>SLA monitoring</li>
+                </ul>
+                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #3498db; font-weight: 600;">2,847 queries/day</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with team_cols[1]:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #9b59b6; height: 200px;">
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🏗️ Technology Team</div>
+                <div style="font-weight: 600; color: #1a2b4a;">Digital Twin & Planning</div>
+                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                    <li>3D model updates</li>
+                    <li>Capacity simulations</li>
+                    <li>Network planning</li>
+                    <li>Site surveys</li>
+                </ul>
+                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #9b59b6; font-weight: 600;">1,234 queries/day</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with team_cols[2]:
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #27ae60; height: 200px;">
+                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">💰 CAPEX Team</div>
+                <div style="font-weight: 600; color: #1a2b4a;">Investment & Lifecycle</div>
+                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                    <li>Equipment lifecycle</li>
+                    <li>Renewal planning</li>
+                    <li>Budget allocation</li>
+                    <li>ROI analysis</li>
+                </ul>
+                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #27ae60; font-weight: 600;">567 queries/day</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 7: Data Quality Trends
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 📈 Data Quality Trends")
+    
+    # Create trend chart
+    months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    completeness_trend = [89.2, 90.5, 91.8, 92.7, 93.5, 94.2]
+    accuracy_trend = [95.1, 95.8, 96.2, 96.9, 97.4, 97.8]
+    discrepancy_trend = [125, 98, 82, 68, 55, 47]
+    
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    fig.add_trace(go.Scatter(
+        x=months, y=completeness_trend,
+        mode='lines+markers',
+        name='Completeness %',
+        line=dict(color='#27ae60', width=3),
+        marker=dict(size=8)
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Scatter(
+        x=months, y=accuracy_trend,
+        mode='lines+markers',
+        name='Accuracy %',
+        line=dict(color='#3498db', width=3),
+        marker=dict(size=8)
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Bar(
+        x=months, y=discrepancy_trend,
+        name='Open Discrepancies',
+        marker=dict(color='#e6394640'),
+        yaxis='y2'
+    ), secondary_y=True)
+    
+    fig.update_layout(
+        height=300,
+        margin=dict(l=20, r=20, t=30, b=40),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Quality %', range=[85, 100]),
+        yaxis2=dict(showgrid=False, title='Discrepancies', range=[0, 150], overlaying='y', side='right'),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+        hovermode='x unified'
     )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Summary
+    st.markdown("""
+        <div style="background: #27ae6015; border-radius: 8px; padding: 1rem; text-align: center;">
+            <span style="color: #27ae60; font-weight: 600;">📈 Data quality improved by 5% over 6 months • Discrepancies reduced by 62%</span>
+        </div>
+    """, unsafe_allow_html=True)
 
 # ==============================================================================
 # PAGE: CAPEX & LIFECYCLE
