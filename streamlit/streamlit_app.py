@@ -869,9 +869,9 @@ def page_executive_dashboard():
     col_map, col_clients = st.columns([3, 2])
     
     with col_map:
-        st.markdown("### 🗺️ Infrastructure by Region")
+        st.markdown("### 🗺️ France Infrastructure Map")
         
-        # Fetch regional data - using region coordinates for distribution
+        # Fetch regional data with coordinates
         regional_df = run_query("""
             SELECT 
                 r.REGION_NAME,
@@ -898,72 +898,100 @@ def page_executive_dashboard():
             ORDER BY SITE_COUNT DESC
         """)
         
-        if not regional_df.empty and regional_df['SITE_COUNT'].sum() > 0:
-            # Create horizontal bar chart - reliable visualization
+        if not regional_df.empty:
+            # Create geographic scatter plot (works offline in SiS)
+            # Scale bubble size by site count
+            max_sites = max(regional_df['SITE_COUNT'].max(), 1)
+            regional_df['bubble_size'] = (regional_df['SITE_COUNT'] / max_sites) * 50 + 10
+            
             fig = go.Figure()
             
-            # Sort by site count for display
-            df_sorted = regional_df.sort_values('SITE_COUNT', ascending=True)
-            
-            # Add bars for site count
-            fig.add_trace(go.Bar(
-                y=df_sorted['REGION_NAME'],
-                x=df_sorted['SITE_COUNT'],
-                orientation='h',
+            # Add bubbles for each region at their geographic location
+            fig.add_trace(go.Scatter(
+                x=regional_df['LONGITUDE'],
+                y=regional_df['LATITUDE'],
+                mode='markers+text',
                 marker=dict(
-                    color=df_sorted['REVENUE_M'],
-                    colorscale=[[0, '#d4e6f1'], [0.5, '#3498db'], [1, '#1a2b4a']],
+                    size=regional_df['bubble_size'],
+                    color=regional_df['REVENUE_M'],
+                    colorscale=[[0, '#e8f4f8'], [0.3, '#3498db'], [0.7, '#1a2b4a'], [1, '#0d1b2a']],
                     showscale=True,
                     colorbar=dict(
-                        title=dict(text='Revenue<br>(€M)', font=dict(size=10)),
+                        title=dict(text='Revenue (€M)', font=dict(size=10)),
                         thickness=12,
-                        len=0.8
-                    )
+                        len=0.6,
+                        y=0.5
+                    ),
+                    line=dict(color='white', width=2),
+                    opacity=0.85
                 ),
-                text=[f"{x:,.0f}" for x in df_sorted['SITE_COUNT']],
-                textposition='inside',
-                textfont=dict(color='white', size=10),
+                text=regional_df['REGION_CODE'],
+                textposition='middle center',
+                textfont=dict(size=8, color='white', family='Arial Black'),
                 hovertemplate=(
-                    '<b>%{y}</b><br>' +
-                    '📡 Sites: %{x:,}<br>' +
-                    '💰 Revenue: €%{customdata[0]:.1f}M<br>' +
-                    '🏢 Colocation: %{customdata[1]:.0f}%<extra></extra>'
+                    '<b>%{customdata[0]}</b><br>' +
+                    '📡 Sites: %{customdata[1]:,}<br>' +
+                    '💰 Revenue: €%{customdata[2]:.1f}M<br>' +
+                    '🏢 Colocation: %{customdata[3]:.0f}%<br>' +
+                    '👥 Population: %{customdata[4]:.1f}M<extra></extra>'
                 ),
-                customdata=df_sorted[['REVENUE_M', 'AVG_COLOCATION']].values
+                customdata=regional_df[['REGION_NAME', 'SITE_COUNT', 'REVENUE_M', 'AVG_COLOCATION', 'POPULATION_M']].values
+            ))
+            
+            # Add France outline (approximate polygon)
+            france_lon = [-4.8, -1.5, 2.5, 8.2, 9.5, 7.5, 6.0, 3.0, 1.5, -1.8, -4.8]
+            france_lat = [48.5, 48.8, 51.0, 49.0, 43.8, 43.5, 43.0, 42.4, 43.5, 46.5, 48.5]
+            
+            fig.add_trace(go.Scatter(
+                x=france_lon,
+                y=france_lat,
+                mode='lines',
+                line=dict(color='#ccc', width=1.5, dash='dot'),
+                hoverinfo='skip',
+                showlegend=False
             ))
             
             fig.update_layout(
-                height=400,
-                margin=dict(l=10, r=10, t=10, b=10),
+                height=380,
+                margin=dict(l=0, r=0, t=10, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='#f8fafc',
                 xaxis=dict(
-                    title=dict(text='Number of Sites', font=dict(size=11, color='#666')),
-                    showgrid=True,
-                    gridcolor='#f0f0f0'
+                    showgrid=False,
+                    showticklabels=False,
+                    zeroline=False,
+                    range=[-6, 11],
+                    title=None,
+                    fixedrange=True
                 ),
                 yaxis=dict(
                     showgrid=False,
-                    tickfont=dict(size=10)
+                    showticklabels=False,
+                    zeroline=False,
+                    range=[41, 52],
+                    scaleanchor='x',
+                    title=None,
+                    fixedrange=True
                 ),
                 showlegend=False
             )
             
             st.plotly_chart(fig, use_container_width=True)
             
-            # Summary stats below chart
+            # Summary stats below map
             col1, col2, col3 = st.columns(3)
             with col1:
-                top_region = regional_df.iloc[0]
+                top_region = regional_df[regional_df['SITE_COUNT'] > 0].iloc[0] if regional_df['SITE_COUNT'].sum() > 0 else regional_df.iloc[0]
                 st.metric("Top Region", top_region['REGION_NAME'], f"{int(top_region['SITE_COUNT']):,} sites")
             with col2:
                 total_sites = regional_df['SITE_COUNT'].sum()
                 st.metric("Total Sites", f"{int(total_sites):,}")
             with col3:
-                avg_coloc = regional_df[regional_df['AVG_COLOCATION'] > 0]['AVG_COLOCATION'].mean()
+                valid_coloc = regional_df[regional_df['AVG_COLOCATION'] > 0]['AVG_COLOCATION']
+                avg_coloc = valid_coloc.mean() if len(valid_coloc) > 0 else 50
                 st.metric("Avg Colocation", f"{avg_coloc:.0f}%")
         else:
-            st.warning("No regional site data found. Check DEPARTMENT_ID assignments in SITES table.")
+            st.warning("No regional data found.")
     
     with col_clients:
         st.markdown("### 💰 Client Health Monitor")
