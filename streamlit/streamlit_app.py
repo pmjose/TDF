@@ -1581,15 +1581,15 @@ def page_capacity_planning():
     # ROW 1: Executive Summary KPIs
     # -------------------------------------------------------------------------
     
-    # Fetch capacity data
+    # Fetch capacity data (using correct column names)
     capacity_df = run_query("""
         SELECT 
-            SUM(AVAILABLE_FTE) as TOTAL_CAPACITY,
-            SUM(ALLOCATED_FTE) as ALLOCATED_FTE,
-            SUM(AVAILABLE_FTE) - SUM(ALLOCATED_FTE) as AVAILABLE_FTE,
+            SUM(FTE_AVAILABLE) as TOTAL_CAPACITY,
+            SUM(FTE_ALLOCATED) as ALLOCATED_FTE,
+            SUM(FTE_REMAINING) as REMAINING_FTE,
             AVG(UTILIZATION_PCT) as AVG_UTILIZATION
         FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY
-        WHERE CAPACITY_DATE = (SELECT MAX(CAPACITY_DATE) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY)
+        WHERE YEAR_MONTH = (SELECT MAX(YEAR_MONTH) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY)
     """)
     
     # Fetch demand forecast
@@ -1599,13 +1599,22 @@ def page_capacity_planning():
             AVG(CONFIDENCE_PCT) as AVG_CONFIDENCE
         FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST
         WHERE TARGET_MONTH BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 3, CURRENT_DATE())
-        AND FORECAST_TYPE = 'COMMITTED'
     """)
     
-    total_capacity = capacity_df['TOTAL_CAPACITY'].iloc[0] if not capacity_df.empty and capacity_df['TOTAL_CAPACITY'].iloc[0] else 1500
-    allocated_fte = capacity_df['ALLOCATED_FTE'].iloc[0] if not capacity_df.empty and capacity_df['ALLOCATED_FTE'].iloc[0] else 1280
-    utilization = capacity_df['AVG_UTILIZATION'].iloc[0] if not capacity_df.empty and capacity_df['AVG_UTILIZATION'].iloc[0] else 85
-    total_demand = demand_df['TOTAL_DEMAND'].iloc[0] if not demand_df.empty and demand_df['TOTAL_DEMAND'].iloc[0] else 1650
+    # Handle NaN values safely
+    def safe_value(df, col, default):
+        try:
+            val = df[col].iloc[0] if not df.empty else None
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return default
+            return val
+        except:
+            return default
+    
+    total_capacity = safe_value(capacity_df, 'TOTAL_CAPACITY', 1500)
+    allocated_fte = safe_value(capacity_df, 'ALLOCATED_FTE', 1280)
+    utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 85)
+    total_demand = safe_value(demand_df, 'TOTAL_DEMAND', 1650)
     
     gap = total_capacity - total_demand
     gap_pct = (gap / total_demand) * 100 if total_demand > 0 else 0
@@ -1760,9 +1769,9 @@ def page_capacity_planning():
         skills_df = run_query("""
             SELECT 
                 sc.CATEGORY_NAME as SKILL,
-                COALESCE(SUM(wc.AVAILABLE_FTE), 100) as AVAILABLE,
-                COALESCE(SUM(wc.AVAILABLE_FTE) * 1.15, 115) as NEEDED,
-                COALESCE(SUM(wc.AVAILABLE_FTE) * 0.15, 15) as GAP
+                COALESCE(SUM(wc.FTE_AVAILABLE), 100) as AVAILABLE,
+                COALESCE(SUM(wc.FTE_AVAILABLE) * 1.15, 115) as NEEDED,
+                COALESCE(SUM(wc.FTE_AVAILABLE) * 0.15, 15) as GAP
             FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
             LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON sc.SKILL_CATEGORY_ID = wc.SKILL_CATEGORY_ID
             GROUP BY sc.CATEGORY_NAME
@@ -1808,9 +1817,9 @@ def page_capacity_planning():
             SELECT 
                 r.REGION_NAME,
                 r.REGION_CODE,
-                COALESCE(SUM(wc.AVAILABLE_FTE), 100) as CAPACITY,
-                COALESCE(SUM(wc.AVAILABLE_FTE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as DEMAND,
-                COALESCE(SUM(wc.AVAILABLE_FTE), 100) - COALESCE(SUM(wc.AVAILABLE_FTE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as GAP_FTE
+                COALESCE(SUM(wc.FTE_AVAILABLE), 100) as CAPACITY,
+                COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as DEMAND,
+                COALESCE(SUM(wc.FTE_AVAILABLE), 100) - COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as GAP_FTE
             FROM TDF_DATA_PLATFORM.CORE.REGIONS r
             LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON r.REGION_ID = wc.REGION_ID
             GROUP BY r.REGION_NAME, r.REGION_CODE
@@ -1969,7 +1978,7 @@ def page_capacity_planning():
         # Fetch regional data
         region_data = run_query(f"""
             SELECT 
-                COALESCE(SUM(wc.AVAILABLE_FTE), 200) as CAPACITY,
+                COALESCE(SUM(wc.FTE_AVAILABLE), 200) as CAPACITY,
                 COALESCE(AVG(wc.UTILIZATION_PCT), 82) as UTILIZATION
             FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc
             WHERE wc.REGION_ID = '{selected_region_id}'
