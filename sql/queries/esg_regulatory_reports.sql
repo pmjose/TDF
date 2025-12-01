@@ -1,0 +1,431 @@
+-- ============================================================================
+-- TDF DATA PLATFORM - ESG REGULATORY REPORTS
+-- ============================================================================
+-- Comprehensive ESG reporting for EU and French regulations:
+-- - CSRD (Corporate Sustainability Reporting Directive)
+-- - Index Égalité Professionnelle H/F (French Gender Equality)
+-- - Bilan GES (Carbon Footprint - French)
+-- - DPEF (Déclaration de Performance Extra-Financière)
+-- - EU Taxonomy Regulation
+-- ============================================================================
+
+USE DATABASE TDF_DATA_PLATFORM;
+
+-- ============================================================================
+-- 1. CSRD REPORT - Corporate Sustainability Reporting Directive (EU 2022/2464)
+-- ============================================================================
+-- ESRS E1: Climate Change | ESRS S1: Own Workforce | ESRS G1: Business Conduct
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_CSRD_REPORT AS
+SELECT 
+    '2025' AS REPORTING_YEAR,
+    'TDF Infrastructure SAS' AS REPORTING_ENTITY,
+    'CSRD' AS REGULATION,
+    CURRENT_DATE() AS REPORT_DATE,
+    
+    -- ========== ESRS E1: CLIMATE CHANGE ==========
+    -- E1-1: Transition Plan for Climate Change Mitigation
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 FROM ENERGY.CARBON_EMISSIONS WHERE EMISSION_SCOPE = 'SCOPE_1' AND FISCAL_YEAR = 2025) AS SCOPE_1_EMISSIONS_TONNES,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 FROM ENERGY.CARBON_EMISSIONS WHERE EMISSION_SCOPE = 'SCOPE_2' AND FISCAL_YEAR = 2025) AS SCOPE_2_EMISSIONS_TONNES,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 FROM ENERGY.CARBON_EMISSIONS WHERE EMISSION_SCOPE = 'SCOPE_3' AND FISCAL_YEAR = 2025) AS SCOPE_3_EMISSIONS_TONNES,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 FROM ENERGY.CARBON_EMISSIONS WHERE FISCAL_YEAR = 2025) AS TOTAL_EMISSIONS_TONNES,
+    
+    -- E1-5: Energy Consumption and Mix
+    (SELECT SUM(CONSUMPTION_KWH)/1000000 FROM ENERGY.CONSUMPTION_READINGS WHERE YEAR(READING_DATE) = 2025) AS TOTAL_ENERGY_MWH,
+    (SELECT AVG(RENEWABLE_PCT) FROM ENERGY.RENEWABLE_ENERGY WHERE YEAR(YEAR_MONTH) = 2025) AS RENEWABLE_ENERGY_PCT,
+    
+    -- Carbon Intensity
+    (SELECT AVG(CARBON_INTENSITY_KG_EUR) FROM ENERGY.CARBON_EMISSIONS WHERE FISCAL_YEAR = 2025) AS CARBON_INTENSITY_KG_PER_EUR,
+    
+    -- Targets (SBTi aligned)
+    (SELECT TARGET_VALUE FROM ESG.ESG_TARGETS WHERE TARGET_NAME = 'Carbon Neutrality') AS CARBON_NEUTRALITY_TARGET_YEAR,
+    (SELECT PROGRESS_PCT FROM ESG.ESG_TARGETS WHERE TARGET_NAME = 'Carbon Neutrality') AS CARBON_TARGET_PROGRESS_PCT,
+    
+    -- ========== ESRS S1: OWN WORKFORCE ==========
+    (SELECT COUNT(*) FROM HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') AS TOTAL_EMPLOYEES,
+    (SELECT AVG(FEMALE_PERCENTAGE) FROM HR.DIVERSITY_METRICS WHERE YEAR(YEAR_MONTH) = 2025) AS FEMALE_EMPLOYEES_PCT,
+    (SELECT AVG(MANAGEMENT_FEMALE_PCT) FROM HR.DIVERSITY_METRICS WHERE YEAR(YEAR_MONTH) = 2025) AS FEMALE_MANAGEMENT_PCT,
+    (SELECT AVG(PAY_EQUITY_INDEX) FROM HR.DIVERSITY_METRICS WHERE YEAR(YEAR_MONTH) = 2025) AS PAY_EQUITY_INDEX,
+    (SELECT AVG(TRAINING_HOURS_PER_EMPLOYEE) FROM ESG.BOARD_SCORECARD WHERE FISCAL_YEAR = 2025) AS TRAINING_HOURS_PER_EMPLOYEE,
+    (SELECT AVG(TURNOVER_RATE) FROM ESG.BOARD_SCORECARD WHERE FISCAL_YEAR = 2025) AS EMPLOYEE_TURNOVER_PCT,
+    
+    -- ========== ESRS G1: GOVERNANCE ==========
+    (SELECT BOARD_INDEPENDENCE_PCT FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS BOARD_INDEPENDENCE_PCT,
+    (SELECT BOARD_FEMALE_PCT FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS BOARD_FEMALE_PCT,
+    (SELECT FITCH_CREDIT_RATING FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS CREDIT_RATING,
+    
+    -- ========== STATUS ==========
+    (SELECT OVERALL_ESG_STATUS FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS ESG_STATUS;
+
+-- ============================================================================
+-- 2. INDEX ÉGALITÉ PROFESSIONNELLE (French Law 2018-771)
+-- ============================================================================
+-- Required annual publication - Score must be ≥75/100
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_INDEX_EGALITE_PROFESSIONNELLE AS
+SELECT 
+    2025 AS ANNEE,
+    'TDF Infrastructure SAS' AS ENTREPRISE,
+    'Index Égalité Professionnelle H/F' AS RAPPORT,
+    
+    -- Indicator 1: Pay Gap (0-40 points)
+    -- Écart de rémunération femmes-hommes
+    ROUND(100 - ABS(50 - AVG(dm.FEMALE_PERCENTAGE)) * 2, 0) AS INDICATEUR_1_ECART_REMUNERATION,
+    40 AS MAX_POINTS_INDICATEUR_1,
+    LEAST(40, ROUND((100 - ABS(50 - AVG(dm.PAY_EQUITY_INDEX))) * 0.4, 0)) AS POINTS_INDICATEUR_1,
+    
+    -- Indicator 2: Individual Pay Increase Gap (0-20 points)
+    -- Écart de taux d'augmentations individuelles
+    15 AS POINTS_INDICATEUR_2,  -- Simulated: would come from payroll data
+    20 AS MAX_POINTS_INDICATEUR_2,
+    
+    -- Indicator 3: Promotion Gap (0-15 points)
+    -- Écart de taux de promotions
+    12 AS POINTS_INDICATEUR_3,  -- Simulated
+    15 AS MAX_POINTS_INDICATEUR_3,
+    
+    -- Indicator 4: Pay Increases Post-Maternity (0-15 points)
+    -- % de salariées augmentées après congé maternité
+    15 AS POINTS_INDICATEUR_4,  -- Target: 100% = 15 points
+    15 AS MAX_POINTS_INDICATEUR_4,
+    
+    -- Indicator 5: Sex Representation in Top 10 Earners (0-10 points)
+    -- Nombre de femmes dans les 10 plus hautes rémunérations
+    CASE 
+        WHEN AVG(dm.MANAGEMENT_FEMALE_PCT) >= 40 THEN 10
+        WHEN AVG(dm.MANAGEMENT_FEMALE_PCT) >= 30 THEN 5
+        ELSE 0
+    END AS POINTS_INDICATEUR_5,
+    10 AS MAX_POINTS_INDICATEUR_5,
+    
+    -- TOTAL SCORE
+    AVG(dm.EGALITE_INDEX_SCORE) AS INDEX_TOTAL,
+    100 AS MAX_INDEX,
+    75 AS SEUIL_MINIMUM,
+    
+    -- Compliance Status
+    CASE 
+        WHEN AVG(dm.EGALITE_INDEX_SCORE) >= 75 THEN 'CONFORME'
+        ELSE 'NON CONFORME - Plan action requis'
+    END AS STATUT_CONFORMITE,
+    
+    -- Detail by BU
+    dm.BU_ID,
+    bu.BU_NAME,
+    AVG(dm.FEMALE_PERCENTAGE) AS PCT_FEMMES,
+    AVG(dm.MANAGEMENT_FEMALE_PCT) AS PCT_FEMMES_MANAGEMENT,
+    AVG(dm.PAY_EQUITY_INDEX) AS INDEX_EQUITE_SALARIALE
+
+FROM HR.DIVERSITY_METRICS dm
+LEFT JOIN CORE.BUSINESS_UNITS bu ON dm.BU_ID = bu.BU_ID
+WHERE YEAR(dm.YEAR_MONTH) = 2025
+GROUP BY dm.BU_ID, bu.BU_NAME;
+
+-- Summary View for Publication
+CREATE OR REPLACE VIEW ANALYTICS.VW_INDEX_EGALITE_SUMMARY AS
+SELECT 
+    2025 AS ANNEE,
+    'TDF Infrastructure SAS' AS ENTREPRISE,
+    ROUND(AVG(EGALITE_INDEX_SCORE), 0) AS INDEX_GLOBAL,
+    100 AS INDEX_MAXIMUM,
+    75 AS SEUIL_LEGAL,
+    CASE WHEN AVG(EGALITE_INDEX_SCORE) >= 75 THEN 'CONFORME' ELSE 'NON CONFORME' END AS STATUT,
+    ROUND(AVG(FEMALE_PERCENTAGE), 1) AS PCT_FEMMES_TOTAL,
+    ROUND(AVG(MANAGEMENT_FEMALE_PCT), 1) AS PCT_FEMMES_ENCADREMENT,
+    '1er mars 2026' AS DATE_PUBLICATION_OBLIGATOIRE
+FROM HR.DIVERSITY_METRICS
+WHERE YEAR(YEAR_MONTH) = 2025;
+
+-- ============================================================================
+-- 3. BILAN GES - Carbon Footprint (Article L229-25 Code Environnement)
+-- ============================================================================
+-- Mandatory for companies >500 employees - every 4 years
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_BILAN_GES AS
+SELECT 
+    2025 AS ANNEE_REFERENCE,
+    'TDF Infrastructure SAS' AS PERSONNE_MORALE,
+    '44488606500013' AS SIRET,  -- Example
+    'ADEME' AS ORGANISME_REFERENT,
+    'GHG Protocol' AS METHODOLOGIE,
+    
+    -- ========== SCOPE 1: DIRECT EMISSIONS ==========
+    -- Postes d'émissions directes
+    'SCOPE 1 - Émissions directes' AS CATEGORIE_1,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_1' AND FISCAL_YEAR = 2025) AS SCOPE_1_TONNES_CO2E,
+    
+    -- Breakdown by category
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_1' AND EMISSION_CATEGORY = 'FUEL' AND FISCAL_YEAR = 2025) AS SCOPE_1_COMBUSTION_FIXES,
+    
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_1' AND EMISSION_CATEGORY = 'VEHICLES' AND FISCAL_YEAR = 2025) AS SCOPE_1_VEHICULES,
+    
+    -- ========== SCOPE 2: INDIRECT ENERGY ==========
+    'SCOPE 2 - Émissions indirectes énergie' AS CATEGORIE_2,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_2' AND FISCAL_YEAR = 2025) AS SCOPE_2_TONNES_CO2E,
+    
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_2' AND EMISSION_CATEGORY = 'ELECTRICITY' AND FISCAL_YEAR = 2025) AS SCOPE_2_ELECTRICITE,
+    
+    -- ========== SCOPE 3: OTHER INDIRECT ==========
+    'SCOPE 3 - Autres émissions indirectes' AS CATEGORIE_3,
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE EMISSION_SCOPE = 'SCOPE_3' AND FISCAL_YEAR = 2025) AS SCOPE_3_TONNES_CO2E,
+    
+    -- ========== TOTALS ==========
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 
+     FROM ENERGY.CARBON_EMISSIONS 
+     WHERE FISCAL_YEAR = 2025) AS TOTAL_TONNES_CO2E,
+    
+    -- ========== INCERTITUDE ==========
+    10 AS INCERTITUDE_PCT,  -- Typical uncertainty
+    
+    -- ========== FACTEURS D'EMISSION ==========
+    0.0571 AS FACTEUR_ELECTRICITE_KG_KWH,  -- France 2024 factor
+    'ADEME Base Carbone 2024' AS SOURCE_FACTEURS,
+    
+    -- ========== OBJECTIFS DE REDUCTION ==========
+    (SELECT TARGET_VALUE FROM ESG.ESG_TARGETS WHERE TARGET_ID = 'TGT-001') AS OBJECTIF_NEUTRALITE_ANNEE,
+    (SELECT MILESTONE_2030 FROM ESG.ESG_TARGETS WHERE TARGET_ID = 'TGT-001') AS OBJECTIF_2030_TONNES,
+    (SELECT PROGRESS_PCT FROM ESG.ESG_TARGETS WHERE TARGET_ID = 'TGT-001') AS PROGRESSION_PCT,
+    
+    -- ========== PLAN D'ACTION ==========
+    'Transition vers 100% énergie renouvelable d''ici 2030' AS ACTION_1,
+    'Électrification de la flotte véhicules' AS ACTION_2,
+    'Optimisation énergétique des sites' AS ACTION_3;
+
+-- Detailed Bilan GES by Region
+CREATE OR REPLACE VIEW ANALYTICS.VW_BILAN_GES_PAR_REGION AS
+SELECT 
+    r.REGION_NAME AS REGION,
+    ce.EMISSION_SCOPE AS SCOPE,
+    ce.EMISSION_CATEGORY AS CATEGORIE,
+    SUM(ce.EMISSIONS_KG_CO2E)/1000 AS EMISSIONS_TONNES_CO2E,
+    COUNT(DISTINCT ce.SITE_ID) AS NOMBRE_SITES,
+    SUM(ce.ACTIVITY_QUANTITY) AS QUANTITE_ACTIVITE,
+    ce.ACTIVITY_UNIT AS UNITE,
+    AVG(ce.EMISSION_FACTOR) AS FACTEUR_EMISSION_MOYEN,
+    ce.EMISSION_FACTOR_SOURCE AS SOURCE_FACTEUR
+FROM ENERGY.CARBON_EMISSIONS ce
+LEFT JOIN CORE.REGIONS r ON ce.REGION_ID = r.REGION_ID
+WHERE ce.FISCAL_YEAR = 2025
+GROUP BY r.REGION_NAME, ce.EMISSION_SCOPE, ce.EMISSION_CATEGORY, ce.ACTIVITY_UNIT, ce.EMISSION_FACTOR_SOURCE
+ORDER BY r.REGION_NAME, ce.EMISSION_SCOPE;
+
+-- ============================================================================
+-- 4. DPEF - Déclaration de Performance Extra-Financière (Art L225-102-1)
+-- ============================================================================
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_DPEF_REPORT AS
+SELECT 
+    2025 AS EXERCICE,
+    'TDF Infrastructure SAS' AS SOCIETE,
+    'Déclaration de Performance Extra-Financière' AS RAPPORT,
+    
+    -- ========== I. MODELE D'AFFAIRES ==========
+    'Infrastructures de télécommunications et de diffusion audiovisuelle' AS DESCRIPTION_ACTIVITE,
+    (SELECT COUNT(*) FROM INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE') AS NOMBRE_SITES_ACTIFS,
+    (SELECT COUNT(*) FROM INFRASTRUCTURE.TOWERS) AS NOMBRE_PYLONES,
+    799100000 AS CHIFFRE_AFFAIRES_EUR,
+    
+    -- ========== II. RISQUES PRINCIPAUX ==========
+    -- Environmental Risks
+    'Changement climatique et transition énergétique' AS RISQUE_ENV_1,
+    'Consommation d''énergie et émissions de GES' AS RISQUE_ENV_2,
+    
+    -- Social Risks  
+    'Attraction et rétention des talents techniques' AS RISQUE_SOCIAL_1,
+    'Sécurité des collaborateurs (travail en hauteur)' AS RISQUE_SOCIAL_2,
+    
+    -- ========== III. POLITIQUES ET RESULTATS ==========
+    
+    -- 3.1 Environnement
+    (SELECT SUM(EMISSIONS_KG_CO2E)/1000 FROM ENERGY.CARBON_EMISSIONS WHERE FISCAL_YEAR = 2025) AS EMISSIONS_CO2_TONNES,
+    (SELECT AVG(RENEWABLE_PCT) FROM ENERGY.RENEWABLE_ENERGY WHERE YEAR(YEAR_MONTH) = 2025) AS ENERGIE_RENOUVELABLE_PCT,
+    (SELECT SUM(CONSUMPTION_KWH) FROM ENERGY.CONSUMPTION_READINGS WHERE YEAR(READING_DATE) = 2025) AS CONSOMMATION_ENERGIE_KWH,
+    
+    -- 3.2 Social
+    (SELECT COUNT(*) FROM HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') AS EFFECTIF_TOTAL,
+    (SELECT COUNT(*) FROM HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE' AND GENDER = 'F') * 100.0 / 
+        NULLIF((SELECT COUNT(*) FROM HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE'), 0) AS PCT_FEMMES_CALCULE,
+    (SELECT AVG(EGALITE_INDEX_SCORE) FROM HR.DIVERSITY_METRICS WHERE YEAR(YEAR_MONTH) = 2025) AS INDEX_EGALITE_HF,
+    (SELECT AVG(TRAINING_HOURS_PER_EMPLOYEE) FROM ESG.BOARD_SCORECARD WHERE FISCAL_YEAR = 2025) AS HEURES_FORMATION_MOYENNE,
+    
+    -- 3.3 Gouvernance
+    (SELECT BOARD_INDEPENDENCE_PCT FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS INDEPENDANCE_CONSEIL_PCT,
+    (SELECT BOARD_FEMALE_PCT FROM ESG.BOARD_SCORECARD ORDER BY REPORTING_DATE DESC LIMIT 1) AS FEMMES_CONSEIL_PCT,
+    
+    -- ========== IV. INDICATEURS CLES ==========
+    'Intensité carbone (kg CO2/EUR de CA)' AS KPI_1_NOM,
+    (SELECT AVG(CARBON_INTENSITY_KG_EUR) FROM ENERGY.CARBON_EMISSIONS WHERE FISCAL_YEAR = 2025) AS KPI_1_VALEUR,
+    
+    'Taux d''énergie renouvelable (%)' AS KPI_2_NOM,
+    (SELECT AVG(RENEWABLE_PCT) FROM ENERGY.RENEWABLE_ENERGY WHERE YEAR(YEAR_MONTH) = 2025) AS KPI_2_VALEUR,
+    
+    'Index Égalité H/F' AS KPI_3_NOM,
+    (SELECT AVG(EGALITE_INDEX_SCORE) FROM HR.DIVERSITY_METRICS WHERE YEAR(YEAR_MONTH) = 2025) AS KPI_3_VALEUR;
+
+-- ============================================================================
+-- 5. EU TAXONOMY REGULATION (EU 2020/852)
+-- ============================================================================
+-- Report taxonomy-eligible and aligned activities
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_EU_TAXONOMY AS
+SELECT 
+    2025 AS REPORTING_YEAR,
+    'TDF Infrastructure SAS' AS ENTITY,
+    'EU Taxonomy Regulation' AS REGULATION,
+    
+    -- ========== ELIGIBLE ACTIVITIES ==========
+    -- TDF activities that are taxonomy-eligible under Climate Mitigation
+    
+    -- Activity 8.1: Data processing, hosting and related activities
+    'Activity 8.1 - Data centres' AS ACTIVITY_1,
+    (SELECT COUNT(*) FROM INFRASTRUCTURE.DATA_CENTERS) AS DC_COUNT,
+    (SELECT SUM(ci.ANNUAL_REVENUE_EUR) 
+     FROM INFRASTRUCTURE.CLIENT_INSTALLATIONS ci 
+     JOIN INFRASTRUCTURE.SITES s ON ci.SITE_ID = s.SITE_ID
+     WHERE s.SITE_TYPE = 'DATACENTER') AS REVENUE_DATA_CENTRES_EUR,
+    
+    -- Activity 8.2: Data-driven solutions for GHG emissions reductions
+    'Activity 8.2 - Telecom infrastructure enabling connectivity' AS ACTIVITY_2,
+    (SELECT SUM(ci.ANNUAL_REVENUE_EUR) 
+     FROM INFRASTRUCTURE.CLIENT_INSTALLATIONS ci 
+     JOIN INFRASTRUCTURE.SITES s ON ci.SITE_ID = s.SITE_ID
+     WHERE s.SITE_TYPE IN ('TOWER', 'ROOFTOP', 'INDOOR')) AS REVENUE_TELECOM_EUR,
+    
+    -- ========== TAXONOMY KPIs ==========
+    
+    -- Revenue (Turnover) KPI
+    799100000 AS TOTAL_REVENUE_EUR,
+    (SELECT SUM(ANNUAL_REVENUE_EUR) FROM INFRASTRUCTURE.CLIENT_INSTALLATIONS) AS ELIGIBLE_REVENUE_EUR,
+    ROUND((SELECT SUM(ANNUAL_REVENUE_EUR) FROM INFRASTRUCTURE.CLIENT_INSTALLATIONS) / 799100000 * 100, 1) AS ELIGIBLE_REVENUE_PCT,
+    
+    -- CAPEX KPI
+    (SELECT SUM(BUDGET_EUR) FROM FINANCE.CAPEX_BUDGET WHERE FISCAL_YEAR = 2025) AS TOTAL_CAPEX_EUR,
+    (SELECT SUM(BUDGET_EUR) FROM FINANCE.CAPEX_BUDGET WHERE FISCAL_YEAR = 2025 AND CAPEX_CATEGORY = 'GROWTH') AS ELIGIBLE_CAPEX_EUR,
+    
+    -- OPEX KPI (maintenance, R&D, short-term lease)
+    (SELECT SUM(OPEX_EUR) FROM FINANCE.EBITDA_METRICS WHERE FISCAL_YEAR = 2025) AS TOTAL_OPEX_EUR,
+    (SELECT SUM(MAINTENANCE_COST_EUR) FROM FINANCE.EBITDA_METRICS WHERE FISCAL_YEAR = 2025) AS ELIGIBLE_OPEX_EUR,
+    
+    -- ========== ALIGNMENT ASSESSMENT ==========
+    -- Substantial contribution to climate mitigation
+    'Data centres with PUE < 1.5' AS ALIGNMENT_CRITERIA_DC,
+    (SELECT AVG(PUE_RATIO) FROM INFRASTRUCTURE.DATA_CENTERS) AS ACTUAL_PUE,
+    CASE WHEN (SELECT AVG(PUE_RATIO) FROM INFRASTRUCTURE.DATA_CENTERS) <= 1.5 THEN 'ALIGNED' ELSE 'NOT ALIGNED' END AS DC_ALIGNMENT_STATUS,
+    
+    -- Do No Significant Harm (DNSH) criteria
+    'Climate adaptation risk assessment performed' AS DNSH_ADAPTATION,
+    'Water use efficiency measures in place' AS DNSH_WATER,
+    'Circular economy: equipment recycling program' AS DNSH_CIRCULAR,
+    'Biodiversity: environmental impact assessments' AS DNSH_BIODIVERSITY;
+
+-- ============================================================================
+-- 6. CONSOLIDATED ESG COMPLIANCE DASHBOARD
+-- ============================================================================
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_ESG_COMPLIANCE_DASHBOARD AS
+SELECT 
+    cr.REQUIREMENT_ID,
+    cr.REGULATION_NAME,
+    cr.REGULATION_TYPE,
+    CASE cr.REGULATION_TYPE 
+        WHEN 'EU' THEN '🇪🇺 EU'
+        WHEN 'FRENCH' THEN '🇫🇷 France'
+        ELSE cr.REGULATION_TYPE
+    END AS JURISDICTION,
+    cr.COMPLIANCE_DEADLINE,
+    DATEDIFF(DAY, CURRENT_DATE(), cr.COMPLIANCE_DEADLINE) AS DAYS_UNTIL_DEADLINE,
+    cr.COMPLIANCE_STATUS,
+    cr.NON_COMPLIANCE_RISK,
+    cr.COMPLIANCE_OWNER,
+    cr.LAST_ASSESSMENT_DATE,
+    cr.NEXT_ASSESSMENT_DATE,
+    cr.REQUIREMENT_DESCRIPTION,
+    CASE cr.COMPLIANCE_STATUS 
+        WHEN 'COMPLIANT' THEN '🟢 Compliant'
+        WHEN 'PARTIAL' THEN '🟡 Partial'
+        ELSE '🔴 Non-Compliant'
+    END AS STATUS_DISPLAY,
+    CASE 
+        WHEN cr.COMPLIANCE_STATUS = 'COMPLIANT' THEN 0
+        WHEN cr.NON_COMPLIANCE_RISK = 'HIGH' THEN 3
+        WHEN cr.NON_COMPLIANCE_RISK = 'MEDIUM' THEN 2
+        ELSE 1
+    END AS PRIORITY_SCORE
+FROM ESG.COMPLIANCE_REQUIREMENTS cr
+ORDER BY PRIORITY_SCORE DESC, cr.COMPLIANCE_DEADLINE;
+
+-- ============================================================================
+-- 7. ESG AUDIT TRAIL VIEW (Full Data Lineage for External Auditors)
+-- ============================================================================
+
+CREATE OR REPLACE VIEW ANALYTICS.VW_ESG_AUDIT_TRAIL_COMPLETE AS
+SELECT 
+    rr.REPORT_ID,
+    rr.REPORT_NAME,
+    rr.REPORTING_FRAMEWORK,
+    rr.REPORTING_YEAR,
+    rr.REPORTING_PERIOD,
+    rr.STATUS AS REPORT_STATUS,
+    rr.IS_AUDITED,
+    rr.AUDITOR_NAME,
+    rr.AUDIT_OPINION,
+    at.METRIC_NAME,
+    at.METRIC_VALUE,
+    at.METRIC_UNIT,
+    at.SOURCE_SCHEMA,
+    at.SOURCE_TABLE,
+    at.SOURCE_COLUMN,
+    at.AGGREGATION_LEVEL,
+    at.AGGREGATION_METHOD,
+    at.DATA_PERIOD_START,
+    at.DATA_PERIOD_END,
+    at.RECORD_COUNT,
+    at.DATA_QUALITY_SCORE,
+    at.IS_VERIFIED,
+    at.VERIFIED_BY,
+    at.VERIFICATION_DATE,
+    -- Full data lineage path
+    at.SOURCE_SCHEMA || '.' || at.SOURCE_TABLE || '.' || at.SOURCE_COLUMN AS DATA_LINEAGE_PATH
+FROM ESG.REGULATORY_REPORTS rr
+LEFT JOIN ESG.AUDIT_TRAIL at ON rr.REPORT_ID = at.REPORT_ID
+ORDER BY rr.REPORTING_YEAR DESC, rr.REPORT_NAME, at.METRIC_NAME;
+
+-- ============================================================================
+-- SAMPLE QUERIES FOR ESG REPORTING
+-- ============================================================================
+
+-- Query 1: Generate CSRD Report
+-- SELECT * FROM ANALYTICS.VW_CSRD_REPORT;
+
+-- Query 2: French Equality Index for Publication
+-- SELECT * FROM ANALYTICS.VW_INDEX_EGALITE_SUMMARY;
+
+-- Query 3: Carbon Footprint (Bilan GES)
+-- SELECT * FROM ANALYTICS.VW_BILAN_GES;
+
+-- Query 4: DPEF Report
+-- SELECT * FROM ANALYTICS.VW_DPEF_REPORT;
+
+-- Query 5: EU Taxonomy Disclosure
+-- SELECT * FROM ANALYTICS.VW_EU_TAXONOMY;
+
+-- Query 6: Compliance Dashboard for Board
+-- SELECT * FROM ANALYTICS.VW_ESG_COMPLIANCE_DASHBOARD;
+
+-- Query 7: Audit Trail for External Auditors
+-- SELECT * FROM ANALYTICS.VW_ESG_AUDIT_TRAIL_COMPLETE WHERE REPORT_STATUS = 'PUBLISHED';
+
+SELECT 'ESG REGULATORY REPORT VIEWS CREATED' AS STATUS, CURRENT_TIMESTAMP() AS CREATED_AT;
+
