@@ -4271,6 +4271,233 @@ def page_digital_twin():
         st.plotly_chart(fig, use_container_width=True)
     
     # -------------------------------------------------------------------------
+    # ROW 4b: 3D Tower Visualization
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🗼 3D Infrastructure Visualization")
+    st.caption("Interactive 3D view of tower infrastructure • Height, capacity, and antenna load")
+    
+    viz_col1, viz_col2 = st.columns([2, 1])
+    
+    with viz_col1:
+        # Generate sample tower data for 3D visualization
+        import numpy as np
+        np.random.seed(42)
+        
+        # Sample tower locations across France (lat/lon converted to x/y for visualization)
+        n_towers = 150
+        
+        # Cluster towers around major French cities
+        cities = [
+            {"name": "Paris", "x": 2.35, "y": 48.85, "count": 40},
+            {"name": "Lyon", "x": 4.83, "y": 45.76, "count": 25},
+            {"name": "Marseille", "x": 5.37, "y": 43.30, "count": 20},
+            {"name": "Toulouse", "x": 1.44, "y": 43.60, "count": 15},
+            {"name": "Bordeaux", "x": -0.58, "y": 44.84, "count": 15},
+            {"name": "Nantes", "x": -1.55, "y": 47.22, "count": 12},
+            {"name": "Lille", "x": 3.06, "y": 50.63, "count": 12},
+            {"name": "Strasbourg", "x": 7.75, "y": 48.58, "count": 11},
+        ]
+        
+        x_coords = []
+        y_coords = []
+        heights = []
+        capacities = []
+        tower_names = []
+        model_status = []
+        
+        for city in cities:
+            for i in range(city["count"]):
+                x_coords.append(city["x"] + np.random.normal(0, 0.5))
+                y_coords.append(city["y"] + np.random.normal(0, 0.3))
+                h = np.random.randint(25, 85)
+                heights.append(h)
+                capacities.append(np.random.randint(40, 100))
+                tower_names.append(f"{city['name']}-T{i+1:03d}")
+                model_status.append("3D Ready" if np.random.random() > 0.15 else "Pending")
+        
+        # Create 3D scatter plot
+        fig_3d = go.Figure(data=[go.Scatter3d(
+            x=x_coords,
+            y=y_coords,
+            z=heights,
+            mode='markers',
+            marker=dict(
+                size=[c/15 for c in capacities],
+                color=heights,
+                colorscale='Viridis',
+                colorbar=dict(title="Height (m)", x=1.02),
+                opacity=0.8,
+                line=dict(width=1, color='white')
+            ),
+            text=[f"<b>{name}</b><br>Height: {h}m<br>Capacity: {c}%<br>Status: {s}" 
+                  for name, h, c, s in zip(tower_names, heights, capacities, model_status)],
+            hoverinfo='text',
+            name='Towers'
+        )])
+        
+        fig_3d.update_layout(
+            height=450,
+            margin=dict(l=0, r=0, t=30, b=0),
+            scene=dict(
+                xaxis=dict(title='Longitude', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd'),
+                yaxis=dict(title='Latitude', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd'),
+                zaxis=dict(title='Height (m)', backgroundcolor='rgba(0,0,0,0)', gridcolor='#ddd', range=[0, 100]),
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2)),
+                bgcolor='rgba(248,249,250,1)'
+            ),
+            paper_bgcolor='rgba(0,0,0,0)',
+        )
+        
+        st.plotly_chart(fig_3d, use_container_width=True)
+        st.caption("🖱️ Drag to rotate • Scroll to zoom • Hover for details")
+    
+    with viz_col2:
+        st.markdown("#### 📊 Visualization Legend")
+        
+        st.markdown("""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.75rem;">Marker Size = Capacity %</div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <div style="width: 12px; height: 12px; background: #440154; border-radius: 50%;"></div>
+                    <span style="font-size: 0.8rem; color: #666;">Low height (25-40m)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <div style="width: 12px; height: 12px; background: #21918c; border-radius: 50%;"></div>
+                    <span style="font-size: 0.8rem; color: #666;">Medium height (40-60m)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 12px; height: 12px; background: #fde725; border-radius: 50%;"></div>
+                    <span style="font-size: 0.8rem; color: #666;">High height (60-85m)</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Quick stats
+        modeled_count = len([s for s in model_status if s == "3D Ready"])
+        pending_count = len([s for s in model_status if s == "Pending"])
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.75rem;">Sample View Stats</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #666; font-size: 0.85rem;">Towers Shown</span>
+                    <span style="font-weight: 600; color: #1a2b4a;">{len(heights)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #666; font-size: 0.85rem;">3D Ready</span>
+                    <span style="font-weight: 600; color: #27ae60;">{modeled_count}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: #666; font-size: 0.85rem;">Pending Scan</span>
+                    <span style="font-weight: 600; color: #f39c12;">{pending_count}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #666; font-size: 0.85rem;">Avg Height</span>
+                    <span style="font-weight: 600; color: #1a2b4a;">{np.mean(heights):.0f}m</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Open 3D Viewer button
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 10px; padding: 1rem; text-align: center; color: white; cursor: pointer;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🖥️</div>
+                <div style="font-weight: 600;">Open Full 3D Viewer</div>
+                <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">Launch Autodesk Viewer</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 4c: 3D Coverage Status Map
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🗺️ 3D Model Coverage Status by Site")
+    st.caption("Green = 3D model complete • Yellow = In progress • Red = Pending scan")
+    
+    # Create a visual grid representing sites and their 3D status
+    coverage_col1, coverage_col2 = st.columns([3, 1])
+    
+    with coverage_col1:
+        # Generate grid data representing sites
+        np.random.seed(123)
+        grid_size = 20
+        site_grid = np.random.choice([0, 1, 2], size=(grid_size, grid_size), p=[0.10, 0.08, 0.82])
+        # 0 = Pending (red), 1 = In Progress (yellow), 2 = Complete (green)
+        
+        # Custom colorscale: red, yellow, green
+        colorscale = [[0, '#e63946'], [0.5, '#f39c12'], [1, '#27ae60']]
+        
+        fig_heatmap = go.Figure(data=go.Heatmap(
+            z=site_grid,
+            colorscale=colorscale,
+            showscale=False,
+            hovertemplate='Site Block<br>Status: %{z}<extra></extra>',
+        ))
+        
+        fig_heatmap.update_layout(
+            height=350,
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+            yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+        )
+        
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    
+    with coverage_col2:
+        st.markdown("#### Coverage Summary")
+        
+        complete = np.sum(site_grid == 2)
+        in_progress = np.sum(site_grid == 1)
+        pending = np.sum(site_grid == 0)
+        total = grid_size * grid_size
+        
+        st.markdown(f"""
+            <div style="background: white; border-radius: 10px; padding: 1rem;">
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <div style="width: 20px; height: 20px; background: #27ae60; border-radius: 4px;"></div>
+                        <span style="font-weight: 600; color: #27ae60;">Complete</span>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{complete/total*100:.0f}%</div>
+                    <div style="font-size: 0.75rem; color: #888;">{complete * 22:,} sites</div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <div style="width: 20px; height: 20px; background: #f39c12; border-radius: 4px;"></div>
+                        <span style="font-weight: 600; color: #f39c12;">In Progress</span>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{in_progress/total*100:.0f}%</div>
+                    <div style="font-size: 0.75rem; color: #888;">{in_progress * 22:,} sites</div>
+                </div>
+                
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <div style="width: 20px; height: 20px; background: #e63946; border-radius: 4px;"></div>
+                        <span style="font-weight: 600; color: #e63946;">Pending Scan</span>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{pending/total*100:.0f}%</div>
+                    <div style="font-size: 0.75rem; color: #888;">{pending * 22:,} sites</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Progress bar
+        st.markdown(f"""
+            <div style="background: #f0f0f0; border-radius: 10px; height: 20px; margin-top: 1rem; overflow: hidden; display: flex;">
+                <div style="background: #27ae60; width: {complete/total*100}%; height: 100%;"></div>
+                <div style="background: #f39c12; width: {in_progress/total*100}%; height: 100%;"></div>
+                <div style="background: #e63946; width: {pending/total*100}%; height: 100%;"></div>
+            </div>
+            <div style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 0.5rem;">Overall: {(complete + in_progress)/total*100:.0f}% covered or in progress</div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
     # ROW 5: What-If Scenario Simulator
     # -------------------------------------------------------------------------
     
