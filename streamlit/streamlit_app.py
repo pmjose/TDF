@@ -2664,7 +2664,84 @@ def page_esg_reporting():
             """, unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
-    # ROW 2: Regulatory Calendar & Alerts
+    # ROW 2: Key ESG Metrics
+    # -------------------------------------------------------------------------
+    
+    st.markdown("### 🌱 Environmental, Social & Governance Metrics")
+    
+    # Fetch ESG data from database
+    esg_metrics = run_query("""
+        SELECT 
+            CARBON_EMISSIONS_TONNES,
+            CARBON_REDUCTION_PCT,
+            RENEWABLE_ENERGY_PCT,
+            EQUALITY_INDEX_SCORE,
+            FEMALE_EMPLOYEES_PCT,
+            FEMALE_MANAGEMENT_PCT,
+            TRAINING_HOURS_PER_EMPLOYEE,
+            ACCIDENT_FREQUENCY_RATE,
+            OVERALL_ESG_STATUS
+        FROM TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD
+        ORDER BY REPORTING_DATE DESC
+        LIMIT 1
+    """)
+    
+    # Default values if no data
+    carbon = esg_metrics['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_metrics.empty else 48500
+    carbon_reduction = esg_metrics['CARBON_REDUCTION_PCT'].iloc[0] if not esg_metrics.empty else -12
+    renewable = esg_metrics['RENEWABLE_ENERGY_PCT'].iloc[0] if not esg_metrics.empty else 47
+    equality = esg_metrics['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_metrics.empty else 88
+    female_pct = esg_metrics['FEMALE_EMPLOYEES_PCT'].iloc[0] if not esg_metrics.empty else 28
+    female_mgmt = esg_metrics['FEMALE_MANAGEMENT_PCT'].iloc[0] if not esg_metrics.empty else 32
+    training_hrs = esg_metrics['TRAINING_HOURS_PER_EMPLOYEE'].iloc[0] if not esg_metrics.empty else 24
+    accident_rate = esg_metrics['ACCIDENT_FREQUENCY_RATE'].iloc[0] if not esg_metrics.empty else 3.2
+    
+    col_e, col_s, col_g = st.columns(3)
+    
+    with col_e:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 1.5rem; color: white;">
+                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">🌍 Environmental</div>
+        """, unsafe_allow_html=True)
+        
+        e_col1, e_col2 = st.columns(2)
+        with e_col1:
+            st.metric("Carbon Emissions", f"{carbon:,.0f} tCO₂e", delta=f"{carbon_reduction:.0f}% vs target")
+        with e_col2:
+            st.metric("Renewable Energy", f"{renewable:.0f}%", delta="+5% YoY")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col_s:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 1.5rem; color: white;">
+                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">👥 Social</div>
+        """, unsafe_allow_html=True)
+        
+        s_col1, s_col2 = st.columns(2)
+        with s_col1:
+            st.metric("Equality Index", f"{equality}/100", delta="Above threshold (75)")
+        with s_col2:
+            st.metric("Women in Management", f"{female_mgmt:.0f}%", delta="+3% YoY")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col_g:
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 12px; padding: 1.5rem; color: white;">
+                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">🏛️ Governance</div>
+        """, unsafe_allow_html=True)
+        
+        g_col1, g_col2 = st.columns(2)
+        with g_col1:
+            st.metric("Training Hours/Employee", f"{training_hrs:.0f}h", delta="+2h vs 2023")
+        with g_col2:
+            st.metric("Accident Frequency", f"{accident_rate:.1f}", delta="-15% YoY", delta_color="normal")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # -------------------------------------------------------------------------
+    # ROW 3: Regulatory Calendar & Alerts
     # -------------------------------------------------------------------------
     
     st.markdown("### 📅 Regulatory Reporting Calendar 2025")
@@ -2828,83 +2905,6 @@ def page_esg_reporting():
                 </div>
             </div>
         """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 3: Key ESG Metrics
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🌱 Environmental, Social & Governance Metrics")
-    
-    # Fetch ESG data from database
-    esg_metrics = run_query("""
-        SELECT 
-            CARBON_EMISSIONS_TONNES,
-            CARBON_REDUCTION_PCT,
-            RENEWABLE_ENERGY_PCT,
-            EQUALITY_INDEX_SCORE,
-            FEMALE_EMPLOYEES_PCT,
-            FEMALE_MANAGEMENT_PCT,
-            TRAINING_HOURS_PER_EMPLOYEE,
-            ACCIDENT_FREQUENCY_RATE,
-            OVERALL_ESG_STATUS
-        FROM TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD
-        ORDER BY REPORTING_DATE DESC
-        LIMIT 1
-    """)
-    
-    # Default values if no data
-    carbon = esg_metrics['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_metrics.empty else 48500
-    carbon_reduction = esg_metrics['CARBON_REDUCTION_PCT'].iloc[0] if not esg_metrics.empty else -12
-    renewable = esg_metrics['RENEWABLE_ENERGY_PCT'].iloc[0] if not esg_metrics.empty else 47
-    equality = esg_metrics['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_metrics.empty else 88
-    female_pct = esg_metrics['FEMALE_EMPLOYEES_PCT'].iloc[0] if not esg_metrics.empty else 28
-    female_mgmt = esg_metrics['FEMALE_MANAGEMENT_PCT'].iloc[0] if not esg_metrics.empty else 32
-    training_hrs = esg_metrics['TRAINING_HOURS_PER_EMPLOYEE'].iloc[0] if not esg_metrics.empty else 24
-    accident_rate = esg_metrics['ACCIDENT_FREQUENCY_RATE'].iloc[0] if not esg_metrics.empty else 3.2
-    
-    col_e, col_s, col_g = st.columns(3)
-    
-    with col_e:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 1.5rem; color: white;">
-                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">🌍 Environmental</div>
-        """, unsafe_allow_html=True)
-        
-        e_col1, e_col2 = st.columns(2)
-        with e_col1:
-            st.metric("Carbon Emissions", f"{carbon:,.0f} tCO₂e", delta=f"{carbon_reduction:.0f}% vs target")
-        with e_col2:
-            st.metric("Renewable Energy", f"{renewable:.0f}%", delta="+5% YoY")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    with col_s:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 1.5rem; color: white;">
-                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">👥 Social</div>
-        """, unsafe_allow_html=True)
-        
-        s_col1, s_col2 = st.columns(2)
-        with s_col1:
-            st.metric("Equality Index", f"{equality}/100", delta="Above threshold (75)")
-        with s_col2:
-            st.metric("Women in Management", f"{female_mgmt:.0f}%", delta="+3% YoY")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    with col_g:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 12px; padding: 1.5rem; color: white;">
-                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">🏛️ Governance</div>
-        """, unsafe_allow_html=True)
-        
-        g_col1, g_col2 = st.columns(2)
-        with g_col1:
-            st.metric("Training Hours/Employee", f"{training_hrs:.0f}h", delta="+2h vs 2023")
-        with g_col2:
-            st.metric("Accident Frequency", f"{accident_rate:.1f}", delta="-15% YoY", delta_color="normal")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
     
     # -------------------------------------------------------------------------
     # ROW 3: Report Generation & Download
