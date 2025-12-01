@@ -2895,56 +2895,43 @@ def page_esg_reporting():
     lineage_col1, lineage_col2 = st.columns([3, 2])
     
     with lineage_col1:
-        # Visual data lineage
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1.5rem; border: 1px solid #e0e0e0;">
-                <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 1rem;">📊 Carbon Emissions Data Flow</div>
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="background: #e8f4f8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Source</div>
-                        <div style="font-weight: 600; color: #1a2b4a;">ENERGY.CONSUMPTION</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #f0f8e8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Transform</div>
-                        <div style="font-weight: 600; color: #27ae60;">Emission Factors</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #f8f0e8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Aggregate</div>
-                        <div style="font-weight: 600; color: #e67e22;">ESG.CARBON_INVENTORY</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #1a2b4a; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #aaa;">Report</div>
-                        <div style="font-weight: 600; color: white;">BILAN GES</div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 1.5rem; font-weight: 600; color: #1a2b4a; margin-bottom: 1rem;">👥 Equality Index Data Flow</div>
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="background: #e8f4f8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Source</div>
-                        <div style="font-weight: 600; color: #1a2b4a;">HR.EMPLOYEES</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #f0f8e8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Calculate</div>
-                        <div style="font-weight: 600; color: #27ae60;">5 Indicators</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #f8f0e8; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: #666;">Score</div>
-                        <div style="font-weight: 600; color: #e67e22;">ESG.DIVERSITY_INDEX</div>
-                    </div>
-                    <div style="color: #888;">→</div>
-                    <div style="background: #3498db; padding: 0.5rem 1rem; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">Report</div>
-                        <div style="font-weight: 600; color: white;">INDEX ÉGALITÉ</div>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # Visual data lineage - Carbon Flow
+        st.markdown("#### 📊 Carbon Emissions Data Flow")
+        carbon_cols = st.columns([1, 0.3, 1, 0.3, 1, 0.3, 1])
+        with carbon_cols[0]:
+            st.markdown('<div style="background:#e8f4f8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Source</div><div style="font-weight:600;color:#1a2b4a;font-size:0.8rem;">ENERGY.CONSUMPTION</div></div>', unsafe_allow_html=True)
+        with carbon_cols[1]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with carbon_cols[2]:
+            st.markdown('<div style="background:#f0f8e8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Transform</div><div style="font-weight:600;color:#27ae60;font-size:0.8rem;">Emission Factors</div></div>', unsafe_allow_html=True)
+        with carbon_cols[3]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with carbon_cols[4]:
+            st.markdown('<div style="background:#f8f0e8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Aggregate</div><div style="font-weight:600;color:#e67e22;font-size:0.8rem;">CARBON_INVENTORY</div></div>', unsafe_allow_html=True)
+        with carbon_cols[5]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with carbon_cols[6]:
+            st.markdown('<div style="background:#1a2b4a;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#aaa;">Report</div><div style="font-weight:600;color:white;font-size:0.8rem;">BILAN GES</div></div>', unsafe_allow_html=True)
+        
+        st.markdown("")
+        
+        # Visual data lineage - Equality Flow
+        st.markdown("#### 👥 Equality Index Data Flow")
+        eq_cols = st.columns([1, 0.3, 1, 0.3, 1, 0.3, 1])
+        with eq_cols[0]:
+            st.markdown('<div style="background:#e8f4f8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Source</div><div style="font-weight:600;color:#1a2b4a;font-size:0.8rem;">HR.EMPLOYEES</div></div>', unsafe_allow_html=True)
+        with eq_cols[1]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with eq_cols[2]:
+            st.markdown('<div style="background:#f0f8e8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Calculate</div><div style="font-weight:600;color:#27ae60;font-size:0.8rem;">5 Indicators</div></div>', unsafe_allow_html=True)
+        with eq_cols[3]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with eq_cols[4]:
+            st.markdown('<div style="background:#f8f0e8;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:#666;">Score</div><div style="font-weight:600;color:#e67e22;font-size:0.8rem;">DIVERSITY_INDEX</div></div>', unsafe_allow_html=True)
+        with eq_cols[5]:
+            st.markdown('<div style="text-align:center;color:#888;font-size:1.5rem;padding-top:0.5rem;">→</div>', unsafe_allow_html=True)
+        with eq_cols[6]:
+            st.markdown('<div style="background:#3498db;padding:0.75rem;border-radius:8px;text-align:center;"><div style="font-size:0.65rem;color:rgba(255,255,255,0.7);">Report</div><div style="font-weight:600;color:white;font-size:0.8rem;">INDEX ÉGALITÉ</div></div>', unsafe_allow_html=True)
     
     with lineage_col2:
         st.markdown("#### 📝 Recent Audit Log")
