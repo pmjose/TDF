@@ -145,24 +145,85 @@ AS (
 -- ============================================================================
 -- 6. CREATE THE TDF DATA PLATFORM AGENT
 -- ============================================================================
--- NOTE: The exact CREATE AGENT syntax varies by Snowflake version.
--- If the syntax below doesn't work, you can create the agent via the UI:
---   1. Go to Snowflake Intelligence → Agents
---   2. Click "Create Agent"
---   3. Name: "TDF Data Platform Agent"
---   4. Add the TDF_DATA_PLATFORM database
---   5. Use the instructions below
+-- Following the exact syntax from example.sql
 
-USE ROLE ACCOUNTADMIN;
+USE ROLE TDF_INTELLIGENCE_ROLE;
 
--- Try basic CREATE AGENT syntax
-CREATE OR REPLACE CORTEX AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
-QUERY_WAREHOUSE = TDF_WH
-DATABASES = (TDF_DATA_PLATFORM)
-DESCRIPTION = 'TDF Infrastructure Data Platform AI Assistant. TDF is the leading French telecom infrastructure company with EUR 799M revenue, 2,000+ towers across France, and BBB- credit rating. Covers 4 use cases: Resource Planning (VW_CAPACITY_VS_DEMAND), ESG Reporting (VW_ESG_DASHBOARD), Digital Twin (VW_INFRASTRUCTURE_HEALTH), CAPEX Lifecycle (VW_EQUIPMENT_LIFECYCLE).';
+CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
+WITH PROFILE='{ "display_name": "TDF Data Platform Agent" }'
+    COMMENT=$$ TDF Infrastructure Data Platform AI Assistant. Covers Resource Planning, ESG Reporting, Digital Twin, and CAPEX Lifecycle for French telecom infrastructure. $$
+FROM SPECIFICATION $$
+{
+  "models": {
+    "orchestration": ""
+  },
+  "instructions": {
+    "response": "You are the TDF Data Platform Assistant. TDF is the leading French telecom infrastructure company with EUR 799M revenue, 2,000+ towers across France, and BBB- credit rating. Help users analyze 4 priority use cases: (1) Resource & Capacity Planning - 18-month workforce forecasts, (2) ESG Reporting - CSRD compliance and Index Egalite scores (target >=75), (3) Digital Twin - 2,000+ pylons infrastructure data, (4) CAPEX & Lifecycle - 7-10 year equipment lifecycles. Always provide clear business context and actionable insights.",
+    "orchestration": "Select the appropriate datamart based on the question:\n- Resource & Capacity: workforce, hiring, demand forecasting, utilization (VW_CAPACITY_VS_DEMAND)\n- ESG Reporting: carbon emissions, energy, diversity, Index Egalite, compliance (VW_ESG_DASHBOARD)\n- Digital Twin: sites, towers, equipment inventory, data quality, discrepancies (VW_INFRASTRUCTURE_HEALTH)\n- CAPEX & Lifecycle: equipment age, renewal forecast, budget vs actuals (VW_EQUIPMENT_LIFECYCLE)\n\nFor capacity planning questions, the forecast horizon is 18 months.\nFor ESG questions, emphasize audit trail and data lineage.\nFor Digital Twin questions, note we have 2,000+ pylons.\nFor CAPEX questions, equipment lifecycles are typically 7-10 years.",
+    "sample_questions": [
+      {
+        "question": "What is our workforce capacity vs demand for the next 18 months?"
+      },
+      {
+        "question": "What is our current Index Egalite score and are we compliant?"
+      },
+      {
+        "question": "How many sites have Digital Twin discrepancies?"
+      },
+      {
+        "question": "What equipment is due for renewal in the next 3 years?"
+      }
+    ]
+  },
+  "tools": [
+    {
+      "tool_spec": {
+        "type": "cortex_analyst_text_to_sql",
+        "name": "Query Resource & Capacity",
+        "description": "Query workforce capacity, demand forecasting, utilization. Use for questions about hiring needs, capacity gaps, 18-month forecasts."
+      }
+    },
+    {
+      "tool_spec": {
+        "type": "cortex_analyst_text_to_sql",
+        "name": "Query ESG Reporting",
+        "description": "Query ESG data including carbon emissions, energy, diversity metrics, Index Egalite. Use for CSRD compliance and regulatory reporting."
+      }
+    },
+    {
+      "tool_spec": {
+        "type": "cortex_analyst_text_to_sql",
+        "name": "Query Digital Twin",
+        "description": "Query infrastructure data including 2,000+ pylons/towers, sites, equipment inventory, data quality scores."
+      }
+    },
+    {
+      "tool_spec": {
+        "type": "cortex_analyst_text_to_sql",
+        "name": "Query CAPEX Lifecycle",
+        "description": "Query equipment lifecycle data, renewal forecasts, CAPEX budgets. Equipment typically has 7-10 year lifecycles."
+      }
+    }
+  ],
+  "tool_resources": {
+    "Query Resource & Capacity": {
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND"
+    },
+    "Query ESG Reporting": {
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD"
+    },
+    "Query Digital Twin": {
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH"
+    },
+    "Query CAPEX Lifecycle": {
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE"
+    }
+  }
+}
+$$;
 
 -- Grant access to the agent
-GRANT USAGE ON CORTEX AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
+GRANT USAGE ON AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
 
 SELECT 'TDF DATA PLATFORM AGENT CREATED SUCCESSFULLY' AS STATUS;
 
