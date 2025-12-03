@@ -148,37 +148,21 @@ AS (
 
 USE ROLE ACCOUNTADMIN;
 
--- Create a stage for the semantic model if it doesn't exist
-CREATE STAGE IF NOT EXISTS TDF_DATA_PLATFORM.ANALYTICS.AGENT_STAGE;
-
--- Create the Agent using Snowflake Intelligence syntax
+-- Create the Agent using correct Snowflake Cortex Agent syntax
 CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
-    WAREHOUSE = TDF_WH
-    COMMENT = 'TDF Infrastructure Data Platform AI Assistant'
-    SPEC = '{
-        "semantic_model": {
-            "description": "TDF Data Platform - Infrastructure, ESG, Workforce and CAPEX analytics for French telecom tower company with €799M revenue and 2,000+ pylons",
-            "tables": [
-                {
-                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND",
-                    "description": "Resource & Capacity Planning - 18 month workforce forecasting with columns: YEAR_MONTH, BU_NAME, REGION_NAME, SKILL_CATEGORY_NAME, HEADCOUNT, FTE_AVAILABLE, DEMAND_FTE, FTE_GAP, CAPACITY_STATUS, UTILIZATION_PCT"
-                },
-                {
-                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD",
-                    "description": "ESG Regulatory Reporting - CSRD, Bilan GES, Index Egalite (target >=75) with columns: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, CARBON_INTENSITY_KG_EUR, RENEWABLE_ENERGY_PCT, EQUALITY_INDEX_SCORE, ENVIRONMENTAL_STATUS, SOCIAL_STATUS"
-                },
-                {
-                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH",
-                    "description": "Digital Twin & Infrastructure - 2,000+ pylons across France with columns: SITE_TYPE, STATUS, REGION_NAME, SITE_COUNT, AVG_TENANTS, AVG_COLOCATION_RATE, DT_SYNCED_COUNT, DT_DISCREPANCY_COUNT"
-                },
-                {
-                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE",
-                    "description": "CAPEX & Lifecycle Management - 7-10 year equipment lifecycles with columns: LIFECYCLE_STATUS, EQUIPMENT_CATEGORY, EQUIPMENT_TYPE_NAME, EQUIPMENT_COUNT, AVG_AGE_YEARS, TOTAL_REPLACEMENT_COST, PAST_END_OF_LIFE_COUNT"
-                }
-            ]
-        },
-        "instructions": "You are the TDF Data Platform Assistant. TDF is the leading French telecom infrastructure company with €799M revenue, 2,000+ towers, and BBB- credit rating. Help users analyze: (1) Resource & Capacity Planning - 18 month forecasts, (2) ESG Reporting - CSRD, Index Egalite >=75 target, (3) Digital Twin - 2,000+ pylons, (4) CAPEX - 7-10 year lifecycles. Always provide business context."
-    }';
+    WITH 
+        EXECUTION_ENVIRONMENT = '{
+            "type": "warehouse",
+            "warehouse": "TDF_WH",
+            "query_timeout": 120
+        }'
+        AGENT_CONFIG = '{
+            "model": "claude-3-5-sonnet",
+            "instructions": "You are the TDF Data Platform Assistant. TDF is the leading French telecom infrastructure company with EUR 799M revenue, 2,000+ towers across France, and BBB- credit rating. Help users analyze 4 priority use cases: (1) Resource & Capacity Planning - query VW_CAPACITY_VS_DEMAND for 18-month workforce forecasts, (2) ESG Reporting - query VW_ESG_DASHBOARD for CSRD compliance and Index Egalite scores (target >=75), (3) Digital Twin - query VW_INFRASTRUCTURE_HEALTH for 2,000+ pylons data, (4) CAPEX & Lifecycle - query VW_EQUIPMENT_LIFECYCLE for 7-10 year equipment lifecycles. Always provide clear business context and actionable insights.",
+            "available_tools": ["sql_exec"],
+            "databases": ["TDF_DATA_PLATFORM"]
+        }'
+        DISPLAY_NAME = 'TDF Data Platform Agent';
 
 -- Grant access to the agent
 GRANT USAGE ON AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
