@@ -79,26 +79,26 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
             COMMENT='Capacity vs demand analysis - 18 month forecasting horizon'
     )
     FACTS (
-        CAP.HEADCOUNT AS headcount COMMENT='Number of employees',
-        CAP.FTE_AVAILABLE AS fte_available COMMENT='Full-time equivalent capacity',
-        CAP.FTE_REMAINING AS fte_remaining COMMENT='FTE available for new work',
-        CAP.DEMAND_FTE AS demand_fte COMMENT='FTE required by demand',
-        CAP.FTE_GAP AS fte_gap COMMENT='Gap between capacity and demand',
-        CAP.UTILIZATION_PCT AS utilization COMMENT='Utilization percentage'
+        CAP.HEADCOUNT AS headcount_val COMMENT='Number of employees',
+        CAP.FTE_AVAILABLE AS fte_available_val COMMENT='Full-time equivalent capacity',
+        CAP.FTE_REMAINING AS fte_remaining_val COMMENT='FTE available for new work',
+        CAP.DEMAND_FTE AS demand_fte_val COMMENT='FTE required by demand',
+        CAP.FTE_GAP AS fte_gap_val COMMENT='Gap between capacity and demand',
+        CAP.UTILIZATION_PCT AS utilization_val COMMENT='Utilization percentage'
     )
     DIMENSIONS (
-        CAP.YEAR_MONTH AS period WITH SYNONYMS=('month','date','year month') COMMENT='Planning month',
-        CAP.BU_NAME AS business_unit WITH SYNONYMS=('BU','division') COMMENT='Business unit name',
-        CAP.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region',
-        CAP.SKILL_CATEGORY_NAME AS skill WITH SYNONYMS=('competency') COMMENT='Skill category',
-        CAP.CAPACITY_STATUS AS status COMMENT='Capacity status (SUFFICIENT, TIGHT, SHORTAGE)'
+        CAP.YEAR_MONTH AS year_month WITH SYNONYMS=('month','date','period') COMMENT='Planning month',
+        CAP.BU_NAME AS bu_name WITH SYNONYMS=('business unit','BU','division') COMMENT='Business unit name',
+        CAP.REGION_NAME AS region_name WITH SYNONYMS=('region','territory') COMMENT='French region',
+        CAP.SKILL_CATEGORY_NAME AS skill_name WITH SYNONYMS=('skill','competency') COMMENT='Skill category',
+        CAP.CAPACITY_STATUS AS capacity_status COMMENT='Capacity status (SUFFICIENT, TIGHT, SHORTAGE)'
     )
     METRICS (
-        CAP.total_headcount AS SUM(CAP.headcount) COMMENT='Total headcount',
-        CAP.total_fte AS SUM(CAP.fte_available) COMMENT='Total FTE available',
-        CAP.total_demand AS SUM(CAP.demand_fte) COMMENT='Total demand FTE',
-        CAP.total_gap AS SUM(CAP.fte_gap) COMMENT='Total FTE gap',
-        CAP.avg_utilization AS AVG(CAP.utilization) COMMENT='Average utilization'
+        CAP.total_headcount AS SUM(CAP.headcount_val) COMMENT='Total headcount',
+        CAP.total_fte AS SUM(CAP.fte_available_val) COMMENT='Total FTE available',
+        CAP.total_demand AS SUM(CAP.demand_fte_val) COMMENT='Total demand FTE',
+        CAP.total_gap AS SUM(CAP.fte_gap_val) COMMENT='Total FTE gap',
+        CAP.avg_utilization AS AVG(CAP.utilization_val) COMMENT='Average utilization'
     )
     COMMENT='Resource & Capacity Planning - 18 month forecasting';
 
@@ -115,23 +115,23 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
             COMMENT='ESG dashboard metrics for regulatory reporting'
     )
     FACTS (
-        ESG.CARBON_EMISSIONS_TONNES AS carbon_tonnes COMMENT='Carbon emissions in tonnes',
-        ESG.CARBON_INTENSITY_KG_EUR AS carbon_intensity COMMENT='Carbon intensity kg/EUR',
-        ESG.RENEWABLE_ENERGY_PCT AS renewable_pct COMMENT='Renewable energy percentage',
-        ESG.TOTAL_EMPLOYEES AS employees COMMENT='Total employees',
-        ESG.FEMALE_EMPLOYEES_PCT AS female_pct COMMENT='Female employees percentage',
-        ESG.EQUALITY_INDEX_SCORE AS egalite_index COMMENT='Index Égalité score (target ≥75)',
-        ESG.TRAINING_HOURS_PER_EMPLOYEE AS training_hours COMMENT='Training hours per employee'
+        ESG.CARBON_EMISSIONS_TONNES AS carbon_tonnes_val COMMENT='Carbon emissions in tonnes',
+        ESG.CARBON_INTENSITY_KG_EUR AS carbon_intensity_val COMMENT='Carbon intensity kg/EUR',
+        ESG.RENEWABLE_ENERGY_PCT AS renewable_pct_val COMMENT='Renewable energy percentage',
+        ESG.TOTAL_EMPLOYEES AS employees_val COMMENT='Total employees',
+        ESG.FEMALE_EMPLOYEES_PCT AS female_pct_val COMMENT='Female employees percentage',
+        ESG.EQUALITY_INDEX_SCORE AS egalite_index_val COMMENT='Index Égalité score (target ≥75)',
+        ESG.TRAINING_HOURS_PER_EMPLOYEE AS training_hours_val COMMENT='Training hours per employee'
     )
     DIMENSIONS (
         ESG.FISCAL_YEAR AS fiscal_year WITH SYNONYMS=('year') COMMENT='Fiscal year',
-        ESG.ENVIRONMENTAL_STATUS AS env_status WITH SYNONYMS=('environmental') COMMENT='Environmental status',
+        ESG.ENVIRONMENTAL_STATUS AS environmental_status WITH SYNONYMS=('environmental','env status') COMMENT='Environmental status',
         ESG.SOCIAL_STATUS AS social_status COMMENT='Social status',
-        ESG.OVERALL_ESG_STATUS AS esg_status WITH SYNONYMS=('status') COMMENT='Overall ESG status'
+        ESG.OVERALL_ESG_STATUS AS overall_esg_status WITH SYNONYMS=('status','esg status') COMMENT='Overall ESG status'
     )
     METRICS (
-        ESG.total_emissions AS SUM(ESG.carbon_tonnes) COMMENT='Total carbon emissions',
-        ESG.avg_egalite AS AVG(ESG.egalite_index) COMMENT='Average Index Égalité'
+        ESG.total_emissions AS SUM(ESG.carbon_tonnes_val) COMMENT='Total carbon emissions',
+        ESG.avg_egalite AS AVG(ESG.egalite_index_val) COMMENT='Average Index Égalité'
     )
     COMMENT='ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité';
 
@@ -148,22 +148,22 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
             COMMENT='Infrastructure health - 2,000+ pylons across France'
     )
     FACTS (
-        INFRA.SITE_COUNT AS site_count COMMENT='Number of sites',
-        INFRA.AVG_TENANTS AS avg_tenants COMMENT='Average tenants per site',
-        INFRA.AVG_COLOCATION_RATE AS colocation_rate COMMENT='Average colocation rate',
-        INFRA.AVG_RISK_SCORE AS risk_score COMMENT='Average site risk score',
-        INFRA.DT_SYNCED_COUNT AS synced_count COMMENT='Sites synced with Digital Twin',
-        INFRA.DT_DISCREPANCY_COUNT AS discrepancy_count COMMENT='Sites with discrepancies'
+        INFRA.SITE_COUNT AS site_count_val COMMENT='Number of sites',
+        INFRA.AVG_TENANTS AS avg_tenants_val COMMENT='Average tenants per site',
+        INFRA.AVG_COLOCATION_RATE AS colocation_rate_val COMMENT='Average colocation rate',
+        INFRA.AVG_RISK_SCORE AS risk_score_val COMMENT='Average site risk score',
+        INFRA.DT_SYNCED_COUNT AS synced_count_val COMMENT='Sites synced with Digital Twin',
+        INFRA.DT_DISCREPANCY_COUNT AS discrepancy_count_val COMMENT='Sites with discrepancies'
     )
     DIMENSIONS (
         INFRA.SITE_TYPE AS site_type WITH SYNONYMS=('type') COMMENT='Site type (TOWER, ROOFTOP, INDOOR)',
         INFRA.STATUS AS site_status WITH SYNONYMS=('status') COMMENT='Site operational status',
-        INFRA.DEPARTMENT_NAME AS department COMMENT='Department name',
-        INFRA.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region'
+        INFRA.DEPARTMENT_NAME AS department_name COMMENT='Department name',
+        INFRA.REGION_NAME AS region_name WITH SYNONYMS=('region','territory') COMMENT='French region'
     )
     METRICS (
-        INFRA.total_sites AS SUM(INFRA.site_count) COMMENT='Total sites',
-        INFRA.total_discrepancies AS SUM(INFRA.discrepancy_count) COMMENT='Total discrepancies'
+        INFRA.total_sites AS SUM(INFRA.site_count_val) COMMENT='Total sites',
+        INFRA.total_discrepancies AS SUM(INFRA.discrepancy_count_val) COMMENT='Total discrepancies'
     )
     COMMENT='Digital Twin & Infrastructure - 2,000+ pylons harmonized';
 
@@ -180,21 +180,21 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
             COMMENT='Equipment lifecycle - 7-10 year lifespans'
     )
     FACTS (
-        EQUIP.EQUIPMENT_COUNT AS equipment_count COMMENT='Number of equipment items',
-        EQUIP.AVG_AGE_YEARS AS avg_age COMMENT='Average equipment age (7-10 year lifecycle)',
-        EQUIP.AVG_CONDITION_SCORE AS condition_score COMMENT='Average condition score',
-        EQUIP.AVG_RISK_SCORE AS risk_score COMMENT='Average failure risk',
-        EQUIP.TOTAL_REPLACEMENT_COST AS replacement_cost COMMENT='Total replacement cost',
-        EQUIP.PAST_END_OF_LIFE_COUNT AS past_eol COMMENT='Equipment past end of life'
+        EQUIP.EQUIPMENT_COUNT AS equipment_count_val COMMENT='Number of equipment items',
+        EQUIP.AVG_AGE_YEARS AS avg_age_val COMMENT='Average equipment age (7-10 year lifecycle)',
+        EQUIP.AVG_CONDITION_SCORE AS condition_score_val COMMENT='Average condition score',
+        EQUIP.AVG_RISK_SCORE AS risk_score_val COMMENT='Average failure risk',
+        EQUIP.TOTAL_REPLACEMENT_COST AS replacement_cost_val COMMENT='Total replacement cost',
+        EQUIP.PAST_END_OF_LIFE_COUNT AS past_eol_val COMMENT='Equipment past end of life'
     )
     DIMENSIONS (
         EQUIP.LIFECYCLE_STATUS AS lifecycle_status WITH SYNONYMS=('status','life status') COMMENT='Lifecycle status (ACTIVE, AGING, END_OF_LIFE)',
-        EQUIP.EQUIPMENT_CATEGORY AS category COMMENT='Equipment category',
-        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type COMMENT='Equipment type'
+        EQUIP.EQUIPMENT_CATEGORY AS equipment_category COMMENT='Equipment category',
+        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type_name COMMENT='Equipment type'
     )
     METRICS (
-        EQUIP.total_equipment AS SUM(EQUIP.equipment_count) COMMENT='Total equipment',
-        EQUIP.total_cost AS SUM(EQUIP.replacement_cost) COMMENT='Total replacement cost'
+        EQUIP.total_equipment AS SUM(EQUIP.equipment_count_val) COMMENT='Total equipment',
+        EQUIP.total_cost AS SUM(EQUIP.replacement_cost_val) COMMENT='Total replacement cost'
     )
     COMMENT='CAPEX & Lifecycle - 7-10 year equipment lifecycles';
 
