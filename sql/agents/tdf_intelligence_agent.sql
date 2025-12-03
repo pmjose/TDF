@@ -57,201 +57,146 @@ USE WAREHOUSE TDF_WH;
 USE SCHEMA ANALYTICS;
 
 -- ============================================================================
+-- PREREQUISITE CHECK
+-- ============================================================================
+-- The following analytics views MUST exist before running this script:
+-- Run these DDL scripts first if you haven't:
+--   - sql/ddl/11_analytics_views.sql
+--   - sql/ddl/12_executive_views.sql
+--
+-- Quick check: SELECT * FROM TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND LIMIT 1;
+-- ============================================================================
+
+-- ============================================================================
 -- 3. SEMANTIC VIEW: RESOURCE & CAPACITY PLANNING (UC1)
 -- ============================================================================
--- Using the pre-built VW_CAPACITY_VS_DEMAND view which already joins the tables
+-- Source: VW_CAPACITY_VS_DEMAND view
 
 CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
     TABLES (
-        CAPACITY_DEMAND AS TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND 
+        CAP AS TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND 
             WITH SYNONYMS=('capacity','demand','workforce','staffing','FTE') 
             COMMENT='Capacity vs demand analysis - 18 month forecasting horizon'
     )
     FACTS (
-        CAPACITY_DEMAND.HEADCOUNT AS HEADCOUNT COMMENT='Number of employees',
-        CAPACITY_DEMAND.FTE_AVAILABLE AS FTE_AVAILABLE COMMENT='Full-time equivalent capacity',
-        CAPACITY_DEMAND.FTE_ALLOCATED AS FTE_ALLOCATED COMMENT='FTE allocated to projects',
-        CAPACITY_DEMAND.FTE_REMAINING AS FTE_REMAINING COMMENT='FTE available for new work',
-        CAPACITY_DEMAND.DEMAND_FTE AS DEMAND_FTE COMMENT='FTE required by demand',
-        CAPACITY_DEMAND.REVENUE_FORECAST_EUR AS REVENUE_EUR COMMENT='Revenue forecast in EUR',
-        CAPACITY_DEMAND.FTE_GAP AS FTE_GAP COMMENT='Gap between capacity and demand',
-        CAPACITY_DEMAND.UTILIZATION_PCT AS UTILIZATION_PCT COMMENT='Utilization percentage'
+        CAP.HEADCOUNT AS headcount COMMENT='Number of employees',
+        CAP.FTE_AVAILABLE AS fte_available COMMENT='Full-time equivalent capacity',
+        CAP.FTE_REMAINING AS fte_remaining COMMENT='FTE available for new work',
+        CAP.DEMAND_FTE AS demand_fte COMMENT='FTE required by demand',
+        CAP.FTE_GAP AS fte_gap COMMENT='Gap between capacity and demand',
+        CAP.UTILIZATION_PCT AS utilization COMMENT='Utilization percentage'
     )
     DIMENSIONS (
-        CAPACITY_DEMAND.YEAR_MONTH AS YEAR_MONTH WITH SYNONYMS=('month','period','date') COMMENT='Planning month',
-        CAPACITY_DEMAND.BU_NAME AS BU_NAME WITH SYNONYMS=('business unit','division') COMMENT='Business unit name',
-        CAPACITY_DEMAND.REGION_NAME AS REGION_NAME WITH SYNONYMS=('region','territory') COMMENT='French region',
-        CAPACITY_DEMAND.SKILL_CATEGORY_NAME AS SKILL_NAME WITH SYNONYMS=('skill','competency') COMMENT='Skill category',
-        CAPACITY_DEMAND.CAPACITY_STATUS AS CAPACITY_STATUS WITH SYNONYMS=('status') COMMENT='Capacity status (SUFFICIENT, TIGHT, SHORTAGE)'
+        CAP.YEAR_MONTH AS period WITH SYNONYMS=('month','date','year month') COMMENT='Planning month',
+        CAP.BU_NAME AS business_unit WITH SYNONYMS=('BU','division') COMMENT='Business unit name',
+        CAP.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region',
+        CAP.SKILL_CATEGORY_NAME AS skill WITH SYNONYMS=('competency') COMMENT='Skill category',
+        CAP.CAPACITY_STATUS AS status COMMENT='Capacity status (SUFFICIENT, TIGHT, SHORTAGE)'
     )
     METRICS (
-        CAPACITY_DEMAND.TOTAL_HEADCOUNT AS SUM(CAPACITY_DEMAND.HEADCOUNT) COMMENT='Total headcount',
-        CAPACITY_DEMAND.TOTAL_FTE AS SUM(CAPACITY_DEMAND.FTE_AVAILABLE) COMMENT='Total FTE available',
-        CAPACITY_DEMAND.TOTAL_DEMAND AS SUM(CAPACITY_DEMAND.DEMAND_FTE) COMMENT='Total demand FTE',
-        CAPACITY_DEMAND.TOTAL_GAP AS SUM(CAPACITY_DEMAND.FTE_GAP) COMMENT='Total FTE gap',
-        CAPACITY_DEMAND.AVG_UTILIZATION AS AVG(CAPACITY_DEMAND.UTILIZATION_PCT) COMMENT='Average utilization'
+        CAP.total_headcount AS SUM(CAP.headcount) COMMENT='Total headcount',
+        CAP.total_fte AS SUM(CAP.fte_available) COMMENT='Total FTE available',
+        CAP.total_demand AS SUM(CAP.demand_fte) COMMENT='Total demand FTE',
+        CAP.total_gap AS SUM(CAP.fte_gap) COMMENT='Total FTE gap',
+        CAP.avg_utilization AS AVG(CAP.utilization) COMMENT='Average utilization'
     )
-    COMMENT='Resource & Capacity Planning - 18 month forecasting, staffing based on commercial contribution';
+    COMMENT='Resource & Capacity Planning - 18 month forecasting';
 
 
 -- ============================================================================
 -- 4. SEMANTIC VIEW: ESG REGULATORY REPORTING (UC2)
 -- ============================================================================
--- Using the pre-built ESG views for compliance tracking
+-- Source: VW_ESG_DASHBOARD view
 
 CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
     TABLES (
-        ESG_DASHBOARD AS TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD 
-            WITH SYNONYMS=('ESG','sustainability','carbon','emissions') 
-            COMMENT='ESG dashboard metrics for regulatory reporting',
-        CARBON AS TDF_DATA_PLATFORM.ANALYTICS.VW_CARBON_BY_REGION 
-            WITH SYNONYMS=('carbon emissions','CO2','Bilan GES','greenhouse gas') 
-            COMMENT='Carbon emissions by region and scope'
+        ESG AS TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD 
+            WITH SYNONYMS=('sustainability','carbon','emissions','Index Egalite') 
+            COMMENT='ESG dashboard metrics for regulatory reporting'
     )
     FACTS (
-        ESG_DASHBOARD.CARBON_EMISSIONS_TONNES AS TOTAL_EMISSIONS COMMENT='Total carbon emissions in tonnes',
-        ESG_DASHBOARD.CARBON_INTENSITY_KG_EUR AS CARBON_INTENSITY COMMENT='Carbon intensity kg/EUR',
-        ESG_DASHBOARD.RENEWABLE_ENERGY_PCT AS RENEWABLE_PCT COMMENT='Renewable energy percentage',
-        ESG_DASHBOARD.TOTAL_EMPLOYEES AS EMPLOYEE_COUNT COMMENT='Total employees',
-        ESG_DASHBOARD.FEMALE_EMPLOYEES_PCT AS FEMALE_PCT COMMENT='Female employees percentage',
-        ESG_DASHBOARD.FEMALE_MANAGEMENT_PCT AS FEMALE_MGMT_PCT COMMENT='Female management percentage',
-        ESG_DASHBOARD.EQUALITY_INDEX_SCORE AS EGALITE_INDEX COMMENT='Index Égalité score (target ≥75)',
-        ESG_DASHBOARD.TRAINING_HOURS_PER_EMPLOYEE AS TRAINING_HOURS COMMENT='Training hours per employee',
-        ESG_DASHBOARD.BOARD_INDEPENDENCE_PCT AS BOARD_INDEPENDENCE COMMENT='Board independence percentage',
-        ESG_DASHBOARD.BOARD_FEMALE_PCT AS BOARD_FEMALE_PCT COMMENT='Board female percentage',
-        CARBON.TOTAL_EMISSIONS_TONNES AS REGIONAL_EMISSIONS COMMENT='Regional emissions in tonnes',
-        CARBON.AVG_CARBON_INTENSITY AS AVG_INTENSITY COMMENT='Average carbon intensity'
+        ESG.CARBON_EMISSIONS_TONNES AS carbon_tonnes COMMENT='Carbon emissions in tonnes',
+        ESG.CARBON_INTENSITY_KG_EUR AS carbon_intensity COMMENT='Carbon intensity kg/EUR',
+        ESG.RENEWABLE_ENERGY_PCT AS renewable_pct COMMENT='Renewable energy percentage',
+        ESG.TOTAL_EMPLOYEES AS employees COMMENT='Total employees',
+        ESG.FEMALE_EMPLOYEES_PCT AS female_pct COMMENT='Female employees percentage',
+        ESG.EQUALITY_INDEX_SCORE AS egalite_index COMMENT='Index Égalité score (target ≥75)',
+        ESG.TRAINING_HOURS_PER_EMPLOYEE AS training_hours COMMENT='Training hours per employee'
     )
     DIMENSIONS (
-        ESG_DASHBOARD.FISCAL_YEAR AS FISCAL_YEAR WITH SYNONYMS=('year') COMMENT='Fiscal year',
-        ESG_DASHBOARD.ENVIRONMENTAL_STATUS AS ENV_STATUS COMMENT='Environmental status (GREEN/AMBER/RED)',
-        ESG_DASHBOARD.SOCIAL_STATUS AS SOCIAL_STATUS COMMENT='Social status',
-        ESG_DASHBOARD.GOVERNANCE_STATUS AS GOV_STATUS COMMENT='Governance status',
-        ESG_DASHBOARD.OVERALL_ESG_STATUS AS ESG_STATUS WITH SYNONYMS=('status') COMMENT='Overall ESG status',
-        CARBON.REGION_NAME AS REGION_NAME WITH SYNONYMS=('region') COMMENT='Region name',
-        CARBON.EMISSION_SCOPE AS EMISSION_SCOPE WITH SYNONYMS=('scope','scope 1','scope 2','scope 3') COMMENT='GHG Protocol scope'
+        ESG.FISCAL_YEAR AS fiscal_year WITH SYNONYMS=('year') COMMENT='Fiscal year',
+        ESG.ENVIRONMENTAL_STATUS AS env_status WITH SYNONYMS=('environmental') COMMENT='Environmental status',
+        ESG.SOCIAL_STATUS AS social_status COMMENT='Social status',
+        ESG.OVERALL_ESG_STATUS AS esg_status WITH SYNONYMS=('status') COMMENT='Overall ESG status'
     )
     METRICS (
-        ESG_DASHBOARD.AVG_EGALITE AS AVG(ESG_DASHBOARD.EQUALITY_INDEX_SCORE) COMMENT='Average Index Égalité',
-        CARBON.TOTAL_CARBON AS SUM(CARBON.TOTAL_EMISSIONS_TONNES) COMMENT='Total carbon emissions'
+        ESG.total_emissions AS SUM(ESG.carbon_tonnes) COMMENT='Total carbon emissions',
+        ESG.avg_egalite AS AVG(ESG.egalite_index) COMMENT='Average Index Égalité'
     )
-    COMMENT='ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité with audit trail';
+    COMMENT='ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité';
 
 
 -- ============================================================================
 -- 5. SEMANTIC VIEW: DIGITAL TWIN & INFRASTRUCTURE (UC3)
 -- ============================================================================
--- Using pre-built infrastructure views
+-- Source: VW_INFRASTRUCTURE_HEALTH view
 
 CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
     TABLES (
-        INFRASTRUCTURE AS TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH 
-            WITH SYNONYMS=('infrastructure','sites','towers','pylons') 
-            COMMENT='Infrastructure health - 2,000+ pylons across France',
-        COLOCATION AS TDF_DATA_PLATFORM.ANALYTICS.VW_COLOCATION_ANALYSIS 
-            WITH SYNONYMS=('colocation','tenants','clients') 
-            COMMENT='Colocation analysis by site type and region',
-        DATA_QUALITY AS TDF_DATA_PLATFORM.ANALYTICS.VW_DIGITAL_TWIN_QUALITY 
-            WITH SYNONYMS=('data quality','DQ score') 
-            COMMENT='Digital Twin data quality scores',
-        DISCREPANCIES AS TDF_DATA_PLATFORM.ANALYTICS.VW_DISCREPANCY_SUMMARY 
-            WITH SYNONYMS=('discrepancy','mismatch','issue') 
-            COMMENT='Discrepancy log for data harmonization'
+        INFRA AS TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH 
+            WITH SYNONYMS=('infrastructure','sites','towers','pylons','digital twin') 
+            COMMENT='Infrastructure health - 2,000+ pylons across France'
     )
     FACTS (
-        INFRASTRUCTURE.SITE_COUNT AS SITE_COUNT COMMENT='Number of sites',
-        INFRASTRUCTURE.AVG_TENANTS AS AVG_TENANTS COMMENT='Average tenants per site',
-        INFRASTRUCTURE.AVG_COLOCATION_RATE AS AVG_COLOCATION COMMENT='Average colocation rate',
-        INFRASTRUCTURE.AVG_RISK_SCORE AS AVG_RISK COMMENT='Average site risk score',
-        INFRASTRUCTURE.DT_SYNCED_COUNT AS SYNCED_COUNT COMMENT='Sites synced with Digital Twin',
-        INFRASTRUCTURE.DT_DISCREPANCY_COUNT AS DISCREPANCY_COUNT COMMENT='Sites with discrepancies',
-        COLOCATION.TOTAL_SITES AS TOTAL_SITES COMMENT='Total sites',
-        COLOCATION.TOTAL_TENANTS AS TOTAL_TENANTS COMMENT='Total tenants',
-        COLOCATION.COLOCATION_RATE AS COLOCATION_RATE COMMENT='Colocation rate',
-        COLOCATION.TOTAL_ANNUAL_REVENUE AS ANNUAL_REVENUE COMMENT='Annual revenue from colocation',
-        DATA_QUALITY.OVERALL_SCORE AS DQ_SCORE COMMENT='Data quality score (0-100)',
-        DATA_QUALITY.COMPLETENESS_SCORE AS COMPLETENESS COMMENT='Data completeness score',
-        DATA_QUALITY.ACCURACY_SCORE AS ACCURACY COMMENT='Data accuracy score',
-        DATA_QUALITY.OPEN_DISCREPANCIES AS OPEN_ISSUES COMMENT='Open discrepancies count',
-        DISCREPANCIES.DISCREPANCY_COUNT AS ISSUES_COUNT COMMENT='Number of discrepancies',
-        DISCREPANCIES.AVG_DAYS_OPEN AS AVG_DAYS_OPEN COMMENT='Average days issues are open'
+        INFRA.SITE_COUNT AS site_count COMMENT='Number of sites',
+        INFRA.AVG_TENANTS AS avg_tenants COMMENT='Average tenants per site',
+        INFRA.AVG_COLOCATION_RATE AS colocation_rate COMMENT='Average colocation rate',
+        INFRA.AVG_RISK_SCORE AS risk_score COMMENT='Average site risk score',
+        INFRA.DT_SYNCED_COUNT AS synced_count COMMENT='Sites synced with Digital Twin',
+        INFRA.DT_DISCREPANCY_COUNT AS discrepancy_count COMMENT='Sites with discrepancies'
     )
     DIMENSIONS (
-        INFRASTRUCTURE.SITE_TYPE AS SITE_TYPE WITH SYNONYMS=('type') COMMENT='Site type (TOWER, ROOFTOP, INDOOR)',
-        INFRASTRUCTURE.STATUS AS SITE_STATUS WITH SYNONYMS=('status') COMMENT='Site operational status',
-        INFRASTRUCTURE.DEPARTMENT_NAME AS DEPARTMENT COMMENT='Department name',
-        INFRASTRUCTURE.REGION_NAME AS REGION_NAME WITH SYNONYMS=('region') COMMENT='French region',
-        COLOCATION.SITE_TYPE AS COLO_SITE_TYPE COMMENT='Site type for colocation',
-        COLOCATION.REGION_NAME AS COLO_REGION COMMENT='Region for colocation',
-        DATA_QUALITY.ENTITY_TYPE AS ENTITY_TYPE COMMENT='Entity type scored',
-        DATA_QUALITY.SCORE_LABEL AS QUALITY_LABEL COMMENT='Quality label (EXCELLENT, GOOD, etc.)',
-        DISCREPANCIES.STATUS AS DISC_STATUS COMMENT='Discrepancy status (OPEN, RESOLVED)',
-        DISCREPANCIES.SEVERITY AS DISC_SEVERITY WITH SYNONYMS=('severity') COMMENT='Discrepancy severity',
-        DISCREPANCIES.DISCREPANCY_TYPE AS DISC_TYPE COMMENT='Type of discrepancy'
+        INFRA.SITE_TYPE AS site_type WITH SYNONYMS=('type') COMMENT='Site type (TOWER, ROOFTOP, INDOOR)',
+        INFRA.STATUS AS site_status WITH SYNONYMS=('status') COMMENT='Site operational status',
+        INFRA.DEPARTMENT_NAME AS department COMMENT='Department name',
+        INFRA.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region'
     )
     METRICS (
-        INFRASTRUCTURE.TOTAL_SITES AS SUM(INFRASTRUCTURE.SITE_COUNT) COMMENT='Total sites',
-        DATA_QUALITY.AVG_QUALITY AS AVG(DATA_QUALITY.OVERALL_SCORE) COMMENT='Average data quality'
+        INFRA.total_sites AS SUM(INFRA.site_count) COMMENT='Total sites',
+        INFRA.total_discrepancies AS SUM(INFRA.discrepancy_count) COMMENT='Total discrepancies'
     )
-    COMMENT='Digital Twin & Infrastructure - 2,000+ pylons harmonized, discrepancy detection';
+    COMMENT='Digital Twin & Infrastructure - 2,000+ pylons harmonized';
 
 
 -- ============================================================================
 -- 6. SEMANTIC VIEW: CAPEX & LIFECYCLE MANAGEMENT (UC4)
 -- ============================================================================
--- Using pre-built CAPEX and lifecycle views
+-- Source: VW_EQUIPMENT_LIFECYCLE view
 
 CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
     TABLES (
-        LIFECYCLE AS TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE 
-            WITH SYNONYMS=('equipment','lifecycle','assets') 
-            COMMENT='Equipment lifecycle - 7-10 year lifespans',
-        CAPEX AS TDF_DATA_PLATFORM.ANALYTICS.VW_CAPEX_BUDGET_VS_ACTUAL 
-            WITH SYNONYMS=('CAPEX','budget','capital') 
-            COMMENT='CAPEX budget vs actual spending',
-        RENEWAL AS TDF_DATA_PLATFORM.ANALYTICS.VW_RENEWAL_FORECAST_SUMMARY 
-            WITH SYNONYMS=('renewal','replacement','forecast') 
-            COMMENT='Predictive renewal model',
-        AT_RISK AS TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_AT_RISK 
-            WITH SYNONYMS=('at risk','failure','critical') 
-            COMMENT='Equipment at risk of failure'
+        EQUIP AS TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE 
+            WITH SYNONYMS=('equipment','lifecycle','assets','CAPEX') 
+            COMMENT='Equipment lifecycle - 7-10 year lifespans'
     )
     FACTS (
-        LIFECYCLE.EQUIPMENT_COUNT AS EQUIPMENT_COUNT COMMENT='Number of equipment items',
-        LIFECYCLE.AVG_AGE_YEARS AS AVG_AGE COMMENT='Average equipment age (7-10 year lifecycle)',
-        LIFECYCLE.AVG_CONDITION_SCORE AS AVG_CONDITION COMMENT='Average condition score',
-        LIFECYCLE.AVG_RISK_SCORE AS AVG_RISK COMMENT='Average failure risk',
-        LIFECYCLE.TOTAL_REPLACEMENT_COST AS REPLACEMENT_COST COMMENT='Total replacement cost',
-        LIFECYCLE.PAST_END_OF_LIFE_COUNT AS PAST_EOL_COUNT COMMENT='Equipment past end of life',
-        CAPEX.BUDGET_EUR AS BUDGET_EUR COMMENT='CAPEX budget',
-        CAPEX.ACTUAL_YTD_EUR AS ACTUAL_EUR COMMENT='Actual CAPEX YTD',
-        CAPEX.REMAINING_EUR AS REMAINING_EUR COMMENT='Remaining budget',
-        CAPEX.UTILIZED_PCT AS UTILIZED_PCT COMMENT='Budget utilized percentage',
-        RENEWAL.EQUIPMENT_COUNT AS RENEWAL_COUNT COMMENT='Equipment due for renewal',
-        RENEWAL.TOTAL_REPLACEMENT_COST AS RENEWAL_COST COMMENT='Total renewal cost',
-        RENEWAL.AVG_AGE_YEARS AS RENEWAL_AVG_AGE COMMENT='Average age of renewal items',
-        RENEWAL.BUDGETED_COST AS BUDGETED_RENEWAL COMMENT='Budgeted renewal cost',
-        RENEWAL.UNBUDGETED_COST AS UNBUDGETED_RENEWAL COMMENT='Unbudgeted renewal cost'
+        EQUIP.EQUIPMENT_COUNT AS equipment_count COMMENT='Number of equipment items',
+        EQUIP.AVG_AGE_YEARS AS avg_age COMMENT='Average equipment age (7-10 year lifecycle)',
+        EQUIP.AVG_CONDITION_SCORE AS condition_score COMMENT='Average condition score',
+        EQUIP.AVG_RISK_SCORE AS risk_score COMMENT='Average failure risk',
+        EQUIP.TOTAL_REPLACEMENT_COST AS replacement_cost COMMENT='Total replacement cost',
+        EQUIP.PAST_END_OF_LIFE_COUNT AS past_eol COMMENT='Equipment past end of life'
     )
     DIMENSIONS (
-        LIFECYCLE.LIFECYCLE_STATUS AS LIFECYCLE_STATUS WITH SYNONYMS=('status','life status') COMMENT='Lifecycle status (ACTIVE, AGING, END_OF_LIFE)',
-        LIFECYCLE.EQUIPMENT_CATEGORY AS EQUIPMENT_CATEGORY WITH SYNONYMS=('category') COMMENT='Equipment category',
-        LIFECYCLE.EQUIPMENT_TYPE_NAME AS EQUIPMENT_TYPE COMMENT='Equipment type',
-        CAPEX.FISCAL_YEAR AS FISCAL_YEAR WITH SYNONYMS=('year') COMMENT='Fiscal year',
-        CAPEX.CAPEX_CATEGORY AS CAPEX_CATEGORY WITH SYNONYMS=('CAPEX type') COMMENT='CAPEX category (MAINTENANCE, GROWTH)',
-        CAPEX.CAPEX_SUBCATEGORY AS CAPEX_SUBCATEGORY COMMENT='CAPEX subcategory',
-        CAPEX.BU_NAME AS BU_NAME WITH SYNONYMS=('business unit') COMMENT='Business unit',
-        CAPEX.BUDGET_STATUS AS BUDGET_STATUS WITH SYNONYMS=('status') COMMENT='Budget status (ON_TRACK, OVER_BUDGET)',
-        RENEWAL.REPLACEMENT_YEAR AS REPLACEMENT_YEAR WITH SYNONYMS=('renewal year') COMMENT='Year for replacement',
-        RENEWAL.REPLACEMENT_PRIORITY AS RENEWAL_PRIORITY WITH SYNONYMS=('priority') COMMENT='Replacement priority'
+        EQUIP.LIFECYCLE_STATUS AS lifecycle_status WITH SYNONYMS=('status','life status') COMMENT='Lifecycle status (ACTIVE, AGING, END_OF_LIFE)',
+        EQUIP.EQUIPMENT_CATEGORY AS category COMMENT='Equipment category',
+        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type COMMENT='Equipment type'
     )
     METRICS (
-        LIFECYCLE.TOTAL_EQUIPMENT AS SUM(LIFECYCLE.EQUIPMENT_COUNT) COMMENT='Total equipment',
-        CAPEX.TOTAL_BUDGET AS SUM(CAPEX.BUDGET_EUR) COMMENT='Total CAPEX budget',
-        CAPEX.TOTAL_ACTUAL AS SUM(CAPEX.ACTUAL_YTD_EUR) COMMENT='Total CAPEX actual',
-        RENEWAL.TOTAL_RENEWAL AS SUM(RENEWAL.TOTAL_REPLACEMENT_COST) COMMENT='Total renewal cost'
+        EQUIP.total_equipment AS SUM(EQUIP.equipment_count) COMMENT='Total equipment',
+        EQUIP.total_cost AS SUM(EQUIP.replacement_cost) COMMENT='Total replacement cost'
     )
-    COMMENT='CAPEX & Lifecycle - 7-10 year equipment lifecycles, predictive renewal model';
+    COMMENT='CAPEX & Lifecycle - 7-10 year equipment lifecycles';
 
 
 -- ============================================================================
