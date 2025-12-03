@@ -68,38 +68,126 @@ USE SCHEMA ANALYTICS;
 -- ============================================================================
 
 -- ============================================================================
--- 3. VIEWS FOR CORTEX ANALYST (Simple Views with Comments)
+-- 3. SEMANTIC VIEWS FOR CORTEX ANALYST
 -- ============================================================================
--- Note: Instead of semantic views (which have complex syntax requirements),
--- we'll use well-documented regular views that the Agent can query directly.
--- The Agent's semantic understanding comes from the YAML semantic model.
+-- Following exact syntax from example.sql
 
--- Resource & Capacity Planning View (already exists as VW_CAPACITY_VS_DEMAND)
-COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND IS 
-    'Resource & Capacity Planning - 18 month workforce forecasting. 
-    Columns: YEAR_MONTH (planning month), BU_NAME (business unit), REGION_NAME (French region), 
-    SKILL_CATEGORY_NAME (skill type), HEADCOUNT (employees), FTE_AVAILABLE (capacity), 
-    DEMAND_FTE (required FTE), FTE_GAP (capacity minus demand), CAPACITY_STATUS (SUFFICIENT/TIGHT/SHORTAGE), 
-    UTILIZATION_PCT (utilization percentage)';
+-- SEMANTIC VIEW 1: Resource & Capacity Planning
+CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
+    TABLES (
+        CAPACITY AS TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND 
+            WITH SYNONYMS=('capacity','demand','workforce','staffing','FTE') 
+            COMMENT='Capacity vs demand analysis - 18 month forecasting'
+    )
+    FACTS (
+        CAPACITY.HEADCOUNT AS headcount COMMENT='Number of employees',
+        CAPACITY.FTE_AVAILABLE AS fte_available COMMENT='Full-time equivalent capacity',
+        CAPACITY.DEMAND_FTE AS demand_fte COMMENT='FTE required by demand',
+        CAPACITY.FTE_GAP AS fte_gap COMMENT='Gap between capacity and demand',
+        CAPACITY.UTILIZATION_PCT AS utilization COMMENT='Utilization percentage',
+        CAPACITY.RECORD_COUNT AS 1 COMMENT='Count of records'
+    )
+    DIMENSIONS (
+        CAPACITY.YEAR_MONTH AS year_month WITH SYNONYMS=('month','date') COMMENT='Planning month',
+        CAPACITY.BU_NAME AS business_unit WITH SYNONYMS=('BU','division') COMMENT='Business unit',
+        CAPACITY.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region',
+        CAPACITY.SKILL_CATEGORY_NAME AS skill WITH SYNONYMS=('competency') COMMENT='Skill category',
+        CAPACITY.CAPACITY_STATUS AS status COMMENT='Status (SUFFICIENT/TIGHT/SHORTAGE)'
+    )
+    METRICS (
+        CAPACITY.TOTAL_HEADCOUNT AS SUM(capacity.headcount) COMMENT='Total headcount',
+        CAPACITY.TOTAL_FTE AS SUM(capacity.fte_available) COMMENT='Total FTE',
+        CAPACITY.TOTAL_GAP AS SUM(capacity.fte_gap) COMMENT='Total FTE gap',
+        CAPACITY.AVG_UTILIZATION AS AVG(capacity.utilization) COMMENT='Average utilization'
+    )
+    COMMENT='Resource & Capacity Planning - 18 month forecasting';
 
--- ESG Reporting View (already exists as VW_ESG_DASHBOARD)
-COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD IS 
-    'ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité compliance.
-    Columns: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, CARBON_INTENSITY_KG_EUR, RENEWABLE_ENERGY_PCT,
-    TOTAL_EMPLOYEES, FEMALE_EMPLOYEES_PCT, EQUALITY_INDEX_SCORE (target ≥75), TRAINING_HOURS_PER_EMPLOYEE,
-    ENVIRONMENTAL_STATUS, SOCIAL_STATUS, OVERALL_ESG_STATUS';
 
--- Infrastructure Health View (already exists as VW_INFRASTRUCTURE_HEALTH)
-COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH IS 
-    'Digital Twin & Infrastructure - 2,000+ pylons across France.
-    Columns: SITE_TYPE (TOWER/ROOFTOP/INDOOR), STATUS, DEPARTMENT_NAME, REGION_NAME,
-    SITE_COUNT, AVG_TENANTS, AVG_COLOCATION_RATE, AVG_RISK_SCORE, DT_SYNCED_COUNT, DT_DISCREPANCY_COUNT';
+-- SEMANTIC VIEW 2: ESG Reporting
+CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
+    TABLES (
+        ESG AS TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD 
+            WITH SYNONYMS=('sustainability','carbon','emissions','Index Egalite') 
+            COMMENT='ESG dashboard for regulatory reporting'
+    )
+    FACTS (
+        ESG.CARBON_EMISSIONS_TONNES AS carbon_tonnes COMMENT='Carbon emissions in tonnes',
+        ESG.RENEWABLE_ENERGY_PCT AS renewable_pct COMMENT='Renewable energy percentage',
+        ESG.EQUALITY_INDEX_SCORE AS egalite_score COMMENT='Index Egalite score (target >=75)',
+        ESG.TOTAL_EMPLOYEES AS employees COMMENT='Total employees',
+        ESG.FEMALE_EMPLOYEES_PCT AS female_pct COMMENT='Female employees percentage',
+        ESG.RECORD_COUNT AS 1 COMMENT='Count of records'
+    )
+    DIMENSIONS (
+        ESG.FISCAL_YEAR AS fiscal_year WITH SYNONYMS=('year') COMMENT='Fiscal year',
+        ESG.ENVIRONMENTAL_STATUS AS env_status COMMENT='Environmental status',
+        ESG.SOCIAL_STATUS AS social_status COMMENT='Social status',
+        ESG.OVERALL_ESG_STATUS AS esg_status WITH SYNONYMS=('status') COMMENT='Overall ESG status'
+    )
+    METRICS (
+        ESG.TOTAL_EMISSIONS AS SUM(esg.carbon_tonnes) COMMENT='Total carbon emissions',
+        ESG.AVG_EGALITE AS AVG(esg.egalite_score) COMMENT='Average Index Egalite'
+    )
+    COMMENT='ESG Regulatory Reporting - CSRD, Bilan GES, Index Egalite';
 
--- Equipment Lifecycle View (already exists as VW_EQUIPMENT_LIFECYCLE)
-COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE IS 
-    'CAPEX & Lifecycle Management - 7-10 year equipment lifecycles.
-    Columns: LIFECYCLE_STATUS (ACTIVE/AGING/END_OF_LIFE), EQUIPMENT_CATEGORY, EQUIPMENT_TYPE_NAME,
-    EQUIPMENT_COUNT, AVG_AGE_YEARS, AVG_CONDITION_SCORE, AVG_RISK_SCORE, TOTAL_REPLACEMENT_COST, PAST_END_OF_LIFE_COUNT';
+
+-- SEMANTIC VIEW 3: Digital Twin Infrastructure
+CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
+    TABLES (
+        INFRA AS TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH 
+            WITH SYNONYMS=('infrastructure','sites','towers','pylons','digital twin') 
+            COMMENT='Infrastructure health - 2,000+ pylons'
+    )
+    FACTS (
+        INFRA.SITE_COUNT AS site_count COMMENT='Number of sites',
+        INFRA.AVG_TENANTS AS avg_tenants COMMENT='Average tenants per site',
+        INFRA.AVG_COLOCATION_RATE AS colocation_rate COMMENT='Colocation rate',
+        INFRA.DT_SYNCED_COUNT AS synced_count COMMENT='Sites synced with Digital Twin',
+        INFRA.DT_DISCREPANCY_COUNT AS discrepancy_count COMMENT='Sites with discrepancies',
+        INFRA.RECORD_COUNT AS 1 COMMENT='Count of records'
+    )
+    DIMENSIONS (
+        INFRA.SITE_TYPE AS site_type WITH SYNONYMS=('type') COMMENT='Site type (TOWER/ROOFTOP/INDOOR)',
+        INFRA.STATUS AS site_status WITH SYNONYMS=('status') COMMENT='Site status',
+        INFRA.DEPARTMENT_NAME AS department COMMENT='Department',
+        INFRA.REGION_NAME AS region WITH SYNONYMS=('territory') COMMENT='French region'
+    )
+    METRICS (
+        INFRA.TOTAL_SITES AS SUM(infra.site_count) COMMENT='Total sites',
+        INFRA.TOTAL_DISCREPANCIES AS SUM(infra.discrepancy_count) COMMENT='Total discrepancies'
+    )
+    COMMENT='Digital Twin & Infrastructure - 2,000+ pylons';
+
+
+-- SEMANTIC VIEW 4: CAPEX & Lifecycle
+CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
+    TABLES (
+        EQUIP AS TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE 
+            WITH SYNONYMS=('equipment','lifecycle','assets','CAPEX') 
+            COMMENT='Equipment lifecycle - 7-10 year lifespans'
+    )
+    FACTS (
+        EQUIP.EQUIPMENT_COUNT AS equipment_count COMMENT='Number of equipment items',
+        EQUIP.AVG_AGE_YEARS AS avg_age COMMENT='Average age in years',
+        EQUIP.AVG_CONDITION_SCORE AS condition_score COMMENT='Average condition score',
+        EQUIP.TOTAL_REPLACEMENT_COST AS replacement_cost COMMENT='Replacement cost',
+        EQUIP.PAST_END_OF_LIFE_COUNT AS past_eol_count COMMENT='Equipment past end of life',
+        EQUIP.RECORD_COUNT AS 1 COMMENT='Count of records'
+    )
+    DIMENSIONS (
+        EQUIP.LIFECYCLE_STATUS AS lifecycle_status WITH SYNONYMS=('status') COMMENT='Lifecycle status',
+        EQUIP.EQUIPMENT_CATEGORY AS category COMMENT='Equipment category',
+        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type COMMENT='Equipment type'
+    )
+    METRICS (
+        EQUIP.TOTAL_EQUIPMENT AS SUM(equip.equipment_count) COMMENT='Total equipment',
+        EQUIP.TOTAL_COST AS SUM(equip.replacement_cost) COMMENT='Total replacement cost'
+    )
+    COMMENT='CAPEX & Lifecycle - 7-10 year equipment lifecycles';
+
+
+-- Show created semantic views
+SHOW SEMANTIC VIEWS IN SCHEMA TDF_DATA_PLATFORM.ANALYTICS;
 
 
 -- ============================================================================
@@ -207,16 +295,16 @@ FROM SPECIFICATION $$
   ],
   "tool_resources": {
     "Query Resource & Capacity": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY"
     },
     "Query ESG Reporting": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING"
     },
     "Query Digital Twin": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN"
     },
     "Query CAPEX Lifecycle": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE"
     }
   }
 }
