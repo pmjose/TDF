@@ -145,27 +145,24 @@ AS (
 -- ============================================================================
 -- 6. CREATE THE TDF DATA PLATFORM AGENT
 -- ============================================================================
+-- NOTE: The exact CREATE AGENT syntax varies by Snowflake version.
+-- If the syntax below doesn't work, you can create the agent via the UI:
+--   1. Go to Snowflake Intelligence → Agents
+--   2. Click "Create Agent"
+--   3. Name: "TDF Data Platform Agent"
+--   4. Add the TDF_DATA_PLATFORM database
+--   5. Use the instructions below
 
 USE ROLE ACCOUNTADMIN;
 
--- Create the Agent using correct Snowflake Cortex Agent syntax
-CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
-    WITH 
-        EXECUTION_ENVIRONMENT = '{
-            "type": "warehouse",
-            "warehouse": "TDF_WH",
-            "query_timeout": 120
-        }'
-        AGENT_CONFIG = '{
-            "model": "claude-3-5-sonnet",
-            "instructions": "You are the TDF Data Platform Assistant. TDF is the leading French telecom infrastructure company with EUR 799M revenue, 2,000+ towers across France, and BBB- credit rating. Help users analyze 4 priority use cases: (1) Resource & Capacity Planning - query VW_CAPACITY_VS_DEMAND for 18-month workforce forecasts, (2) ESG Reporting - query VW_ESG_DASHBOARD for CSRD compliance and Index Egalite scores (target >=75), (3) Digital Twin - query VW_INFRASTRUCTURE_HEALTH for 2,000+ pylons data, (4) CAPEX & Lifecycle - query VW_EQUIPMENT_LIFECYCLE for 7-10 year equipment lifecycles. Always provide clear business context and actionable insights.",
-            "available_tools": ["sql_exec"],
-            "databases": ["TDF_DATA_PLATFORM"]
-        }'
-        DISPLAY_NAME = 'TDF Data Platform Agent';
+-- Try basic CREATE AGENT syntax
+CREATE OR REPLACE CORTEX AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
+QUERY_WAREHOUSE = TDF_WH
+DATABASES = (TDF_DATA_PLATFORM)
+DESCRIPTION = 'TDF Infrastructure Data Platform AI Assistant. TDF is the leading French telecom infrastructure company with EUR 799M revenue, 2,000+ towers across France, and BBB- credit rating. Covers 4 use cases: Resource Planning (VW_CAPACITY_VS_DEMAND), ESG Reporting (VW_ESG_DASHBOARD), Digital Twin (VW_INFRASTRUCTURE_HEALTH), CAPEX Lifecycle (VW_EQUIPMENT_LIFECYCLE).';
 
 -- Grant access to the agent
-GRANT USAGE ON AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
+GRANT USAGE ON CORTEX AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
 
 SELECT 'TDF DATA PLATFORM AGENT CREATED SUCCESSFULLY' AS STATUS;
 
