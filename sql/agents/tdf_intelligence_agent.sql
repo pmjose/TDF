@@ -111,7 +111,7 @@ create or replace semantic view TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
     WORKFORCE.YEAR_MONTH as year_month with synonyms=('month','date','planning month') comment='Planning month',
     BU.BU_NAME as bu_name with synonyms=('business unit','division') comment='Business unit name',
     REGIONS.REGION_NAME as region_name with synonyms=('region','territory') comment='French region',
-    SKILLS.SKILL_CATEGORY_NAME as skill_name with synonyms=('skill','competency') comment='Skill category'
+    SKILLS.SKILL_CATEGORY_NAME as skill_category_name with synonyms=('skill','competency') comment='Skill category'
   )
   metrics (
     WORKFORCE.TOTAL_HEADCOUNT as SUM(workforce.headcount) comment='Total headcount',
