@@ -70,22 +70,164 @@ USE SCHEMA ANALYTICS;
 -- ============================================================================
 -- 3. SEMANTIC VIEWS FOR CORTEX ANALYST
 -- ============================================================================
--- Following exact syntax from example.sql
+-- Following exact syntax from example.sql with primary keys
 
--- ============================================================================
--- SKIP SEMANTIC VIEWS - Use regular views directly with the Agent
--- ============================================================================
--- The semantic view syntax varies by Snowflake version and is causing issues.
--- Instead, we'll use the well-documented regular views directly.
--- The agent will query these views and the comments provide context.
+-- SEMANTIC VIEW 1: Resource & Capacity Planning
+create or replace semantic view TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
+  tables (
+    WORKFORCE as TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY primary key (CAPACITY_ID) 
+      with synonyms=('capacity','workforce','staffing','FTE') 
+      comment='Workforce capacity data - 18 month forecasting',
+    DEMAND as TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST primary key (FORECAST_ID) 
+      with synonyms=('demand','forecast') 
+      comment='Commercial demand forecast',
+    BU as TDF_DATA_PLATFORM.CORE.BUSINESS_UNITS primary key (BU_ID) 
+      with synonyms=('business unit','division') 
+      comment='Business units',
+    REGIONS as TDF_DATA_PLATFORM.CORE.REGIONS primary key (REGION_ID) 
+      with synonyms=('region','territory') 
+      comment='French regions',
+    SKILLS as TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES primary key (SKILL_CATEGORY_ID) 
+      with synonyms=('skill','competency') 
+      comment='Skill categories'
+  )
+  relationships (
+    WORKFORCE_TO_BU as WORKFORCE(BU_ID) references BU(BU_ID),
+    WORKFORCE_TO_REGION as WORKFORCE(REGION_ID) references REGIONS(REGION_ID),
+    WORKFORCE_TO_SKILL as WORKFORCE(SKILL_CATEGORY_ID) references SKILLS(SKILL_CATEGORY_ID),
+    DEMAND_TO_BU as DEMAND(BU_ID) references BU(BU_ID),
+    DEMAND_TO_REGION as DEMAND(REGION_ID) references REGIONS(REGION_ID)
+  )
+  facts (
+    WORKFORCE.HEADCOUNT as headcount comment='Number of employees',
+    WORKFORCE.FTE_AVAILABLE as fte_available comment='Full-time equivalent available',
+    WORKFORCE.FTE_ALLOCATED as fte_allocated comment='FTE allocated to projects',
+    WORKFORCE.FTE_REMAINING as fte_remaining comment='FTE remaining for new work',
+    DEMAND.DEMAND_FTE as demand_fte comment='FTE required by demand',
+    DEMAND.REVENUE_FORECAST_EUR as revenue_forecast comment='Revenue forecast in EUR',
+    WORKFORCE.RECORD as 1 comment='Record count'
+  )
+  dimensions (
+    WORKFORCE.YEAR_MONTH as year_month with synonyms=('month','date','planning month') comment='Planning month',
+    BU.BU_NAME as bu_name with synonyms=('business unit','division') comment='Business unit name',
+    REGIONS.REGION_NAME as region_name with synonyms=('region','territory') comment='French region',
+    SKILLS.SKILL_CATEGORY_NAME as skill_name with synonyms=('skill','competency') comment='Skill category'
+  )
+  metrics (
+    WORKFORCE.TOTAL_HEADCOUNT as SUM(workforce.headcount) comment='Total headcount',
+    WORKFORCE.TOTAL_FTE as SUM(workforce.fte_available) comment='Total FTE available',
+    WORKFORCE.AVG_UTILIZATION as AVG(workforce.fte_allocated / NULLIF(workforce.fte_available, 0) * 100) comment='Average utilization'
+  )
+  comment='Resource & Capacity Planning - 18 month workforce forecasting';
 
--- Verify the analytics views exist
-SELECT 'Analytics Views Available' as STATUS;
-SELECT TABLE_NAME, COMMENT 
-FROM INFORMATION_SCHEMA.VIEWS 
-WHERE TABLE_SCHEMA = 'ANALYTICS' 
-AND TABLE_NAME LIKE 'VW_%'
-ORDER BY TABLE_NAME;
+
+-- SEMANTIC VIEW 2: ESG Reporting  
+create or replace semantic view TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
+  tables (
+    SCORECARD as TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD primary key (SCORECARD_ID)
+      with synonyms=('ESG','sustainability','carbon','emissions') 
+      comment='ESG Board Scorecard with carbon emissions and Index Egalite'
+  )
+  facts (
+    SCORECARD.CARBON_EMISSIONS_TONNES as carbon_tonnes comment='Carbon emissions in tonnes',
+    SCORECARD.CARBON_INTENSITY_KG_EUR as carbon_intensity comment='Carbon intensity kg per EUR',
+    SCORECARD.RENEWABLE_ENERGY_PCT as renewable_pct comment='Renewable energy percentage',
+    SCORECARD.TOTAL_EMPLOYEES as employees comment='Total employees',
+    SCORECARD.FEMALE_EMPLOYEES_PCT as female_pct comment='Female employees percentage',
+    SCORECARD.EQUALITY_INDEX_SCORE as egalite_score comment='Index Egalite score (target >=75)',
+    SCORECARD.TRAINING_HOURS_PER_EMPLOYEE as training_hours comment='Training hours per employee',
+    SCORECARD.RECORD as 1 comment='Record count'
+  )
+  dimensions (
+    SCORECARD.FISCAL_YEAR as fiscal_year with synonyms=('year') comment='Fiscal year',
+    SCORECARD.REPORTING_DATE as reporting_date with synonyms=('date') comment='Reporting date',
+    SCORECARD.ENVIRONMENTAL_STATUS as env_status with synonyms=('environmental status') comment='Environmental compliance status',
+    SCORECARD.SOCIAL_STATUS as social_status comment='Social compliance status',
+    SCORECARD.OVERALL_ESG_STATUS as esg_status with synonyms=('status','ESG status') comment='Overall ESG status'
+  )
+  metrics (
+    SCORECARD.TOTAL_EMISSIONS as SUM(scorecard.carbon_tonnes) comment='Total carbon emissions',
+    SCORECARD.AVG_EGALITE as AVG(scorecard.egalite_score) comment='Average Index Egalite score'
+  )
+  comment='ESG Regulatory Reporting - CSRD, Bilan GES, Index Egalite';
+
+
+-- SEMANTIC VIEW 3: Digital Twin Infrastructure
+create or replace semantic view TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
+  tables (
+    SITES as TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES primary key (SITE_ID)
+      with synonyms=('infrastructure','towers','pylons','sites') 
+      comment='Infrastructure sites - 2,000+ pylons across France',
+    REGIONS as TDF_DATA_PLATFORM.CORE.REGIONS primary key (REGION_ID)
+      with synonyms=('region','territory') 
+      comment='French regions',
+    DEPTS as TDF_DATA_PLATFORM.CORE.DEPARTMENTS primary key (DEPARTMENT_ID)
+      with synonyms=('department') 
+      comment='Departments'
+  )
+  relationships (
+    SITES_TO_DEPT as SITES(DEPARTMENT_ID) references DEPTS(DEPARTMENT_ID),
+    DEPT_TO_REGION as DEPTS(REGION_ID) references REGIONS(REGION_ID)
+  )
+  facts (
+    SITES.CURRENT_TENANTS as tenants comment='Current number of tenants',
+    SITES.MAX_TENANTS as max_tenants comment='Maximum tenant capacity',
+    SITES.COLOCATION_RATE as colocation_rate comment='Colocation rate',
+    SITES.RISK_SCORE as risk_score comment='Site risk score',
+    SITES.RECORD as 1 comment='Site count'
+  )
+  dimensions (
+    SITES.SITE_TYPE as site_type with synonyms=('type') comment='Site type (TOWER/ROOFTOP/INDOOR)',
+    SITES.STATUS as site_status with synonyms=('status') comment='Site operational status',
+    SITES.DIGITAL_TWIN_STATUS as dt_status with synonyms=('digital twin','sync status') comment='Digital Twin sync status',
+    DEPTS.DEPARTMENT_NAME as department with synonyms=('dept') comment='Department name',
+    REGIONS.REGION_NAME as region with synonyms=('territory') comment='French region'
+  )
+  metrics (
+    SITES.TOTAL_SITES as COUNT(sites.record) comment='Total number of sites',
+    SITES.AVG_TENANTS as AVG(sites.tenants) comment='Average tenants per site',
+    SITES.DISCREPANCY_COUNT as COUNT(CASE WHEN sites.dt_status = 'DISCREPANCY' THEN 1 END) comment='Sites with discrepancies'
+  )
+  comment='Digital Twin & Infrastructure - 2,000+ pylons harmonized';
+
+
+-- SEMANTIC VIEW 4: CAPEX & Lifecycle
+create or replace semantic view TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
+  tables (
+    EQUIPMENT as TDF_DATA_PLATFORM.INFRASTRUCTURE.EQUIPMENT primary key (EQUIPMENT_ID)
+      with synonyms=('equipment','assets','CAPEX') 
+      comment='Equipment with 7-10 year lifecycles',
+    EQUIP_TYPES as TDF_DATA_PLATFORM.CORE.EQUIPMENT_TYPES primary key (EQUIPMENT_TYPE_ID)
+      with synonyms=('equipment type') 
+      comment='Equipment type reference'
+  )
+  relationships (
+    EQUIPMENT_TO_TYPE as EQUIPMENT(EQUIPMENT_TYPE_ID) references EQUIP_TYPES(EQUIPMENT_TYPE_ID)
+  )
+  facts (
+    EQUIPMENT.AGE_YEARS as age_years comment='Equipment age in years',
+    EQUIPMENT.CONDITION_SCORE as condition_score comment='Condition score 1-10',
+    EQUIPMENT.FAILURE_RISK_SCORE as risk_score comment='Failure risk score',
+    EQUIPMENT.REPLACEMENT_COST_EUR as replacement_cost comment='Replacement cost in EUR',
+    EQUIPMENT.RECORD as 1 comment='Equipment count'
+  )
+  dimensions (
+    EQUIPMENT.LIFECYCLE_STATUS as lifecycle_status with synonyms=('status','life status') comment='Lifecycle status (ACTIVE/AGING/END_OF_LIFE)',
+    EQUIPMENT.EQUIPMENT_CATEGORY as category with synonyms=('equipment category') comment='Equipment category',
+    EQUIP_TYPES.EQUIPMENT_TYPE_NAME as equipment_type with synonyms=('type') comment='Equipment type name',
+    EQUIPMENT.INSTALLATION_DATE as install_date with synonyms=('installed') comment='Installation date',
+    EQUIPMENT.EXPECTED_END_OF_LIFE as end_of_life with synonyms=('EOL') comment='Expected end of life date'
+  )
+  metrics (
+    EQUIPMENT.TOTAL_EQUIPMENT as COUNT(equipment.record) comment='Total equipment count',
+    EQUIPMENT.AVG_AGE as AVG(equipment.age_years) comment='Average equipment age',
+    EQUIPMENT.TOTAL_REPLACEMENT_COST as SUM(equipment.replacement_cost) comment='Total replacement cost'
+  )
+  comment='CAPEX & Lifecycle - 7-10 year equipment lifecycles';
+
+
+-- Show created semantic views
+SHOW SEMANTIC VIEWS IN SCHEMA TDF_DATA_PLATFORM.ANALYTICS;
 
 
 -- ============================================================================
@@ -193,16 +335,16 @@ FROM SPECIFICATION $$
   ],
   "tool_resources": {
     "Query Resource & Capacity": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY"
     },
     "Query ESG Reporting": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING"
     },
     "Query Digital Twin": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN"
     },
     "Query CAPEX Lifecycle": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE"
+      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE"
     }
   }
 }
