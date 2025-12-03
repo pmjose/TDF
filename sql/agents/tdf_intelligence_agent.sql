@@ -148,53 +148,40 @@ AS (
 
 USE ROLE ACCOUNTADMIN;
 
-CREATE OR REPLACE SNOWFLAKE.ML.AGENT TDF_DATA_PLATFORM.ANALYTICS.TDF_DATA_PLATFORM_AGENT
-  COMMENT = 'TDF Infrastructure Data Platform AI Assistant - covers Resource Planning, ESG, Digital Twin, and CAPEX use cases'
-  SYSTEM_PROMPT = $$
-You are the TDF Data Platform Assistant, an AI expert on TDF's infrastructure and operations.
+-- Create a stage for the semantic model if it doesn't exist
+CREATE STAGE IF NOT EXISTS TDF_DATA_PLATFORM.ANALYTICS.AGENT_STAGE;
 
-TDF Context:
-- Leading French telecom infrastructure company
-- €799M revenue, 2,000+ towers/pylons across France
-- BBB- credit rating (investment grade)
-
-You help users with 4 priority use cases:
-
-1. RESOURCE & CAPACITY PLANNING (P1)
-   - 18-month workforce forecasting
-   - Staffing based on commercial contribution
-   - Query VW_CAPACITY_VS_DEMAND for: YEAR_MONTH, BU_NAME, REGION_NAME, HEADCOUNT, FTE_AVAILABLE, DEMAND_FTE, FTE_GAP, CAPACITY_STATUS, UTILIZATION_PCT
-
-2. ESG REGULATORY REPORTING (P1)
-   - CSRD compliance, Bilan GES, Index Égalité (target ≥75)
-   - Full audit trail and data lineage
-   - Query VW_ESG_DASHBOARD for: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, RENEWABLE_ENERGY_PCT, EQUALITY_INDEX_SCORE, ENVIRONMENTAL_STATUS
-
-3. DIGITAL TWIN & INFRASTRUCTURE (P2)
-   - 2,000+ pylons data harmonization
-   - Discrepancy detection and data quality
-   - Query VW_INFRASTRUCTURE_HEALTH for: SITE_TYPE, REGION_NAME, SITE_COUNT, AVG_COLOCATION_RATE, DT_DISCREPANCY_COUNT
-
-4. CAPEX & LIFECYCLE MANAGEMENT (P2)
-   - Equipment with 7-10 year lifecycles
-   - Predictive renewal modeling
-   - Query VW_EQUIPMENT_LIFECYCLE for: LIFECYCLE_STATUS, EQUIPMENT_CATEGORY, AVG_AGE_YEARS, TOTAL_REPLACEMENT_COST
-
-Always provide clear, actionable insights with business context.
-$$
-  MODEL = 'claude-3-5-sonnet'
-  TOOLS = (
-    'SNOWFLAKE.CORTEX.SQL_EXEC'
-  )
-  TOOL_RESOURCES = (
-    SQL_EXEC = (
-      WAREHOUSE => 'TDF_WH',
-      DATABASES => ['TDF_DATA_PLATFORM']
-    )
-  );
+-- Create the Agent using Snowflake Intelligence syntax
+CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
+    WAREHOUSE = TDF_WH
+    COMMENT = 'TDF Infrastructure Data Platform AI Assistant'
+    SPEC = '{
+        "semantic_model": {
+            "description": "TDF Data Platform - Infrastructure, ESG, Workforce and CAPEX analytics for French telecom tower company with €799M revenue and 2,000+ pylons",
+            "tables": [
+                {
+                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND",
+                    "description": "Resource & Capacity Planning - 18 month workforce forecasting with columns: YEAR_MONTH, BU_NAME, REGION_NAME, SKILL_CATEGORY_NAME, HEADCOUNT, FTE_AVAILABLE, DEMAND_FTE, FTE_GAP, CAPACITY_STATUS, UTILIZATION_PCT"
+                },
+                {
+                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD",
+                    "description": "ESG Regulatory Reporting - CSRD, Bilan GES, Index Egalite (target >=75) with columns: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, CARBON_INTENSITY_KG_EUR, RENEWABLE_ENERGY_PCT, EQUALITY_INDEX_SCORE, ENVIRONMENTAL_STATUS, SOCIAL_STATUS"
+                },
+                {
+                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH",
+                    "description": "Digital Twin & Infrastructure - 2,000+ pylons across France with columns: SITE_TYPE, STATUS, REGION_NAME, SITE_COUNT, AVG_TENANTS, AVG_COLOCATION_RATE, DT_SYNCED_COUNT, DT_DISCREPANCY_COUNT"
+                },
+                {
+                    "name": "TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE",
+                    "description": "CAPEX & Lifecycle Management - 7-10 year equipment lifecycles with columns: LIFECYCLE_STATUS, EQUIPMENT_CATEGORY, EQUIPMENT_TYPE_NAME, EQUIPMENT_COUNT, AVG_AGE_YEARS, TOTAL_REPLACEMENT_COST, PAST_END_OF_LIFE_COUNT"
+                }
+            ]
+        },
+        "instructions": "You are the TDF Data Platform Assistant. TDF is the leading French telecom infrastructure company with €799M revenue, 2,000+ towers, and BBB- credit rating. Help users analyze: (1) Resource & Capacity Planning - 18 month forecasts, (2) ESG Reporting - CSRD, Index Egalite >=75 target, (3) Digital Twin - 2,000+ pylons, (4) CAPEX - 7-10 year lifecycles. Always provide business context."
+    }';
 
 -- Grant access to the agent
-GRANT USAGE ON SNOWFLAKE.ML.AGENT TDF_DATA_PLATFORM.ANALYTICS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
+GRANT USAGE ON AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
 
 SELECT 'TDF DATA PLATFORM AGENT CREATED SUCCESSFULLY' AS STATUS;
 
