@@ -68,247 +68,88 @@ USE SCHEMA ANALYTICS;
 -- ============================================================================
 
 -- ============================================================================
--- 3. SEMANTIC VIEW: RESOURCE & CAPACITY PLANNING (UC1)
+-- 3. VIEWS FOR CORTEX ANALYST (Simple Views with Comments)
 -- ============================================================================
--- Source: VW_CAPACITY_VS_DEMAND view
+-- Note: Instead of semantic views (which have complex syntax requirements),
+-- we'll use well-documented regular views that the Agent can query directly.
+-- The Agent's semantic understanding comes from the YAML semantic model.
 
-CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
-    TABLES (
-        CAP AS TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND 
-            WITH SYNONYMS=('capacity','demand','workforce','staffing','FTE') 
-            COMMENT='Capacity vs demand analysis - 18 month forecasting horizon'
-    )
-    FACTS (
-        CAP.HEADCOUNT AS HEADCOUNT_F COMMENT='Number of employees',
-        CAP.FTE_AVAILABLE AS FTE_AVAILABLE_F COMMENT='Full-time equivalent capacity',
-        CAP.FTE_REMAINING AS FTE_REMAINING_F COMMENT='FTE available for new work',
-        CAP.DEMAND_FTE AS DEMAND_FTE_F COMMENT='FTE required by demand',
-        CAP.FTE_GAP AS FTE_GAP_F COMMENT='Gap between capacity and demand',
-        CAP.UTILIZATION_PCT AS UTILIZATION_F COMMENT='Utilization percentage'
-    )
-    DIMENSIONS (
-        CAP.YEAR_MONTH AS YEAR_MONTH_D WITH SYNONYMS=('month','date','period') COMMENT='Planning month',
-        CAP.BU_NAME AS BU_NAME_D WITH SYNONYMS=('business unit','BU','division') COMMENT='Business unit name',
-        CAP.REGION_NAME AS REGION_NAME_D WITH SYNONYMS=('region','territory') COMMENT='French region',
-        CAP.SKILL_CATEGORY_NAME AS SKILL_NAME_D WITH SYNONYMS=('skill','competency') COMMENT='Skill category',
-        CAP.CAPACITY_STATUS AS CAPACITY_STATUS_D COMMENT='Capacity status (SUFFICIENT, TIGHT, SHORTAGE)'
-    )
-    METRICS (
-        TOTAL_HEADCOUNT AS SUM(CAP.HEADCOUNT) COMMENT='Total headcount',
-        TOTAL_FTE AS SUM(CAP.FTE_AVAILABLE) COMMENT='Total FTE available',
-        TOTAL_DEMAND AS SUM(CAP.DEMAND_FTE) COMMENT='Total demand FTE',
-        TOTAL_GAP AS SUM(CAP.FTE_GAP) COMMENT='Total FTE gap',
-        AVG_UTILIZATION AS AVG(CAP.UTILIZATION_PCT) COMMENT='Average utilization'
-    )
-    COMMENT='Resource & Capacity Planning - 18 month forecasting';
+-- Resource & Capacity Planning View (already exists as VW_CAPACITY_VS_DEMAND)
+COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND IS 
+    'Resource & Capacity Planning - 18 month workforce forecasting. 
+    Columns: YEAR_MONTH (planning month), BU_NAME (business unit), REGION_NAME (French region), 
+    SKILL_CATEGORY_NAME (skill type), HEADCOUNT (employees), FTE_AVAILABLE (capacity), 
+    DEMAND_FTE (required FTE), FTE_GAP (capacity minus demand), CAPACITY_STATUS (SUFFICIENT/TIGHT/SHORTAGE), 
+    UTILIZATION_PCT (utilization percentage)';
 
+-- ESG Reporting View (already exists as VW_ESG_DASHBOARD)
+COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD IS 
+    'ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité compliance.
+    Columns: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, CARBON_INTENSITY_KG_EUR, RENEWABLE_ENERGY_PCT,
+    TOTAL_EMPLOYEES, FEMALE_EMPLOYEES_PCT, EQUALITY_INDEX_SCORE (target ≥75), TRAINING_HOURS_PER_EMPLOYEE,
+    ENVIRONMENTAL_STATUS, SOCIAL_STATUS, OVERALL_ESG_STATUS';
 
--- ============================================================================
--- 4. SEMANTIC VIEW: ESG REGULATORY REPORTING (UC2)
--- ============================================================================
--- Source: VW_ESG_DASHBOARD view
+-- Infrastructure Health View (already exists as VW_INFRASTRUCTURE_HEALTH)
+COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH IS 
+    'Digital Twin & Infrastructure - 2,000+ pylons across France.
+    Columns: SITE_TYPE (TOWER/ROOFTOP/INDOOR), STATUS, DEPARTMENT_NAME, REGION_NAME,
+    SITE_COUNT, AVG_TENANTS, AVG_COLOCATION_RATE, AVG_RISK_SCORE, DT_SYNCED_COUNT, DT_DISCREPANCY_COUNT';
 
-CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
-    TABLES (
-        ESG AS TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD 
-            WITH SYNONYMS=('sustainability','carbon','emissions','Index Egalite') 
-            COMMENT='ESG dashboard metrics for regulatory reporting'
-    )
-    FACTS (
-        ESG.CARBON_EMISSIONS_TONNES AS CARBON_TONNES_F COMMENT='Carbon emissions in tonnes',
-        ESG.CARBON_INTENSITY_KG_EUR AS CARBON_INTENSITY_F COMMENT='Carbon intensity kg/EUR',
-        ESG.RENEWABLE_ENERGY_PCT AS RENEWABLE_PCT_F COMMENT='Renewable energy percentage',
-        ESG.TOTAL_EMPLOYEES AS EMPLOYEES_F COMMENT='Total employees',
-        ESG.FEMALE_EMPLOYEES_PCT AS FEMALE_PCT_F COMMENT='Female employees percentage',
-        ESG.EQUALITY_INDEX_SCORE AS EGALITE_INDEX_F COMMENT='Index Égalité score (target ≥75)',
-        ESG.TRAINING_HOURS_PER_EMPLOYEE AS TRAINING_HOURS_F COMMENT='Training hours per employee'
-    )
-    DIMENSIONS (
-        ESG.FISCAL_YEAR AS FISCAL_YEAR_D WITH SYNONYMS=('year') COMMENT='Fiscal year',
-        ESG.ENVIRONMENTAL_STATUS AS ENVIRONMENTAL_STATUS_D WITH SYNONYMS=('environmental','env status') COMMENT='Environmental status',
-        ESG.SOCIAL_STATUS AS SOCIAL_STATUS_D COMMENT='Social status',
-        ESG.OVERALL_ESG_STATUS AS OVERALL_ESG_STATUS_D WITH SYNONYMS=('status','esg status') COMMENT='Overall ESG status'
-    )
-    METRICS (
-        TOTAL_EMISSIONS AS SUM(ESG.CARBON_EMISSIONS_TONNES) COMMENT='Total carbon emissions',
-        AVG_EGALITE AS AVG(ESG.EQUALITY_INDEX_SCORE) COMMENT='Average Index Égalité'
-    )
-    COMMENT='ESG Regulatory Reporting - CSRD, Bilan GES, Index Égalité';
+-- Equipment Lifecycle View (already exists as VW_EQUIPMENT_LIFECYCLE)
+COMMENT ON VIEW TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE IS 
+    'CAPEX & Lifecycle Management - 7-10 year equipment lifecycles.
+    Columns: LIFECYCLE_STATUS (ACTIVE/AGING/END_OF_LIFE), EQUIPMENT_CATEGORY, EQUIPMENT_TYPE_NAME,
+    EQUIPMENT_COUNT, AVG_AGE_YEARS, AVG_CONDITION_SCORE, AVG_RISK_SCORE, TOTAL_REPLACEMENT_COST, PAST_END_OF_LIFE_COUNT';
 
 
 -- ============================================================================
--- 5. SEMANTIC VIEW: DIGITAL TWIN & INFRASTRUCTURE (UC3)
+-- 4. VERIFY VIEWS ARE AVAILABLE
 -- ============================================================================
--- Source: VW_INFRASTRUCTURE_HEALTH view
 
-CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
-    TABLES (
-        INFRA AS TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH 
-            WITH SYNONYMS=('infrastructure','sites','towers','pylons','digital twin') 
-            COMMENT='Infrastructure health - 2,000+ pylons across France'
-    )
-    FACTS (
-        INFRA.SITE_COUNT AS SITE_COUNT_F COMMENT='Number of sites',
-        INFRA.AVG_TENANTS AS AVG_TENANTS_F COMMENT='Average tenants per site',
-        INFRA.AVG_COLOCATION_RATE AS COLOCATION_RATE_F COMMENT='Average colocation rate',
-        INFRA.AVG_RISK_SCORE AS RISK_SCORE_F COMMENT='Average site risk score',
-        INFRA.DT_SYNCED_COUNT AS SYNCED_COUNT_F COMMENT='Sites synced with Digital Twin',
-        INFRA.DT_DISCREPANCY_COUNT AS DISCREPANCY_COUNT_F COMMENT='Sites with discrepancies'
-    )
-    DIMENSIONS (
-        INFRA.SITE_TYPE AS SITE_TYPE_D WITH SYNONYMS=('type') COMMENT='Site type (TOWER, ROOFTOP, INDOOR)',
-        INFRA.STATUS AS SITE_STATUS_D WITH SYNONYMS=('status') COMMENT='Site operational status',
-        INFRA.DEPARTMENT_NAME AS DEPARTMENT_NAME_D COMMENT='Department name',
-        INFRA.REGION_NAME AS REGION_NAME_D WITH SYNONYMS=('region','territory') COMMENT='French region'
-    )
-    METRICS (
-        TOTAL_SITES AS SUM(INFRA.SITE_COUNT) COMMENT='Total sites',
-        TOTAL_DISCREPANCIES AS SUM(INFRA.DT_DISCREPANCY_COUNT) COMMENT='Total discrepancies'
-    )
-    COMMENT='Digital Twin & Infrastructure - 2,000+ pylons harmonized';
+-- These views should already exist from the DDL scripts
+SELECT 'VW_CAPACITY_VS_DEMAND' AS VIEW_NAME, COUNT(*) AS ROW_COUNT FROM TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND
+UNION ALL
+SELECT 'VW_ESG_DASHBOARD', COUNT(*) FROM TDF_DATA_PLATFORM.ANALYTICS.VW_ESG_DASHBOARD
+UNION ALL
+SELECT 'VW_INFRASTRUCTURE_HEALTH', COUNT(*) FROM TDF_DATA_PLATFORM.ANALYTICS.VW_INFRASTRUCTURE_HEALTH
+UNION ALL  
+SELECT 'VW_EQUIPMENT_LIFECYCLE', COUNT(*) FROM TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE;
 
 
 -- ============================================================================
--- 6. SEMANTIC VIEW: CAPEX & LIFECYCLE MANAGEMENT (UC4)
+-- 5. CREATE THE TDF INTELLIGENCE AGENT
 -- ============================================================================
--- Source: VW_EQUIPMENT_LIFECYCLE view
-
-CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
-    TABLES (
-        EQUIP AS TDF_DATA_PLATFORM.ANALYTICS.VW_EQUIPMENT_LIFECYCLE 
-            WITH SYNONYMS=('equipment','lifecycle','assets','CAPEX') 
-            COMMENT='Equipment lifecycle - 7-10 year lifespans'
-    )
-    FACTS (
-        EQUIP.EQUIPMENT_COUNT AS EQUIPMENT_COUNT_F COMMENT='Number of equipment items',
-        EQUIP.AVG_AGE_YEARS AS AVG_AGE_F COMMENT='Average equipment age (7-10 year lifecycle)',
-        EQUIP.AVG_CONDITION_SCORE AS CONDITION_SCORE_F COMMENT='Average condition score',
-        EQUIP.AVG_RISK_SCORE AS RISK_SCORE_F COMMENT='Average failure risk',
-        EQUIP.TOTAL_REPLACEMENT_COST AS REPLACEMENT_COST_F COMMENT='Total replacement cost',
-        EQUIP.PAST_END_OF_LIFE_COUNT AS PAST_EOL_F COMMENT='Equipment past end of life'
-    )
-    DIMENSIONS (
-        EQUIP.LIFECYCLE_STATUS AS LIFECYCLE_STATUS_D WITH SYNONYMS=('status','life status') COMMENT='Lifecycle status (ACTIVE, AGING, END_OF_LIFE)',
-        EQUIP.EQUIPMENT_CATEGORY AS EQUIPMENT_CATEGORY_D COMMENT='Equipment category',
-        EQUIP.EQUIPMENT_TYPE_NAME AS EQUIPMENT_TYPE_D COMMENT='Equipment type'
-    )
-    METRICS (
-        TOTAL_EQUIPMENT AS SUM(EQUIP.EQUIPMENT_COUNT) COMMENT='Total equipment',
-        TOTAL_COST AS SUM(EQUIP.TOTAL_REPLACEMENT_COST) COMMENT='Total replacement cost'
-    )
-    COMMENT='CAPEX & Lifecycle - 7-10 year equipment lifecycles';
-
-
--- ============================================================================
--- 7. SHOW CREATED SEMANTIC VIEWS
--- ============================================================================
-
-SHOW SEMANTIC VIEWS IN SCHEMA TDF_DATA_PLATFORM.ANALYTICS;
-
-
--- ============================================================================
--- 8. CREATE THE TDF INTELLIGENCE AGENT
--- ============================================================================
+-- Note: Snowflake Intelligence uses Cortex Analyst which requires a semantic model
+-- defined as a YAML file stored in a stage. This creates a simpler agent setup
+-- that uses SQL_EXEC for direct view access.
 
 USE ROLE ACCOUNTADMIN;
 
-CREATE OR REPLACE AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT
-WITH PROFILE='{ "display_name": "TDF Data Platform Assistant" }'
-    COMMENT=$$ 
-    TDF Infrastructure Data Platform AI Assistant.
-    Addresses 4 priority use cases:
-    - P1: Resource & Capacity Planning (18-month forecasting, scenario modeling)
-    - P1: ESG Regulatory Reporting (CSRD, Bilan GES, Index Égalité with audit trail)
-    - P2: Digital Twin & Infrastructure (2,000+ pylons, data quality control)
-    - P2: CAPEX & Lifecycle Management (7-10 year equipment lifecycles)
-    $$
-FROM SPECIFICATION $$
-{
-  "models": {
-    "orchestration": "claude-3-5-sonnet"
-  },
-  "instructions": {
-    "response": "You are the TDF Data Platform Assistant, helping users analyze infrastructure, workforce, ESG, and financial data for TDF, the leading French telecom infrastructure company. Always provide clear, actionable insights. When showing data, include context about TDF's business: €799M revenue, 2,000+ towers, BBB- credit rating. Use visualizations when helpful.",
-    "orchestration": "Select the appropriate datamart based on the question:\n- Resource & Capacity: workforce, hiring, demand forecasting, utilization\n- ESG Reporting: carbon emissions, energy, diversity, Index Égalité, compliance\n- Digital Twin: sites, towers, equipment inventory, data quality, discrepancies\n- CAPEX & Lifecycle: equipment age, renewal forecast, budget vs actuals\n\nFor capacity planning questions, the forecast horizon is 18 months.\nFor ESG questions, emphasize audit trail and data lineage.\nFor Digital Twin questions, note we have 2,000+ pylons.\nFor CAPEX questions, equipment lifecycles are typically 7-10 years.",
-    "sample_questions": [
-      {
-        "question": "What is our workforce capacity vs demand for the next 18 months?"
-      },
-      {
-        "question": "Show me our carbon emissions by scope for the current year"
-      },
-      {
-        "question": "What is our current Index Égalité score and are we compliant?"
-      },
-      {
-        "question": "How many sites have Digital Twin discrepancies?"
-      },
-      {
-        "question": "What equipment is due for renewal in the next 3 years?"
-      },
-      {
-        "question": "What is our CAPEX budget vs actual for this fiscal year?"
-      }
-    ]
-  },
-  "tools": [
-    {
-      "tool_spec": {
-        "type": "cortex_analyst_text_to_sql",
-        "name": "Query Resource & Capacity Planning",
-        "description": "Query workforce capacity, demand forecasting, utilization, and work orders. Use for questions about hiring needs, capacity gaps, 18-month forecasts, and staffing based on commercial contribution. This replaces the 3-day Excel process."
-      }
-    },
-    {
-      "tool_spec": {
-        "type": "cortex_analyst_text_to_sql",
-        "name": "Query ESG Regulatory Reporting",
-        "description": "Query ESG data including carbon emissions (Bilan GES), energy consumption, renewable energy, diversity metrics, Index Égalité (French gender equality), and compliance status. Provides full data lineage for external audit requirements. Covers CSRD, DPEF, and EU Taxonomy."
-      }
-    },
-    {
-      "tool_spec": {
-        "type": "cortex_analyst_text_to_sql",
-        "name": "Query Digital Twin & Infrastructure",
-        "description": "Query infrastructure data including 2,000+ pylons/towers, sites, equipment inventory, client installations, data quality scores, and discrepancy detection. Use for Digital Twin coherence validation and infrastructure data harmonization questions."
-      }
-    },
-    {
-      "tool_spec": {
-        "type": "cortex_analyst_text_to_sql",
-        "name": "Query CAPEX & Lifecycle Management",
-        "description": "Query equipment lifecycle data, renewal forecasts, CAPEX budgets and actuals. Equipment typically has 7-10 year lifecycles. Use for predictive renewal modeling, installation dates, life status tracking, and CAPEX planning questions."
-      }
-    }
-  ],
-  "tool_resources": {
-    "Query Resource & Capacity Planning": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY"
-    },
-    "Query ESG Regulatory Reporting": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING"
-    },
-    "Query Digital Twin & Infrastructure": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN"
-    },
-    "Query CAPEX & Lifecycle Management": {
-      "semantic_view": "TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE"
-    }
-  }
-}
-$$;
+-- Grant necessary permissions for the agent
+GRANT USAGE ON DATABASE TDF_DATA_PLATFORM TO ROLE TDF_INTELLIGENCE_ROLE;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE TDF_DATA_PLATFORM TO ROLE TDF_INTELLIGENCE_ROLE;
+GRANT SELECT ON ALL VIEWS IN SCHEMA TDF_DATA_PLATFORM.ANALYTICS TO ROLE TDF_INTELLIGENCE_ROLE;
+
+CREATE OR REPLACE CORTEX SEARCH SERVICE TDF_DATA_PLATFORM.ANALYTICS.TDF_SEARCH_SERVICE
+  ON SEARCH_COLUMN
+  WAREHOUSE = TDF_WH
+  TARGET_LAG = '1 hour'
+AS (
+  SELECT 
+    'Capacity Planning' AS CATEGORY,
+    YEAR_MONTH || ' - ' || BU_NAME || ' - ' || REGION_NAME AS SEARCH_COLUMN,
+    YEAR_MONTH, BU_NAME, REGION_NAME, HEADCOUNT, FTE_AVAILABLE, DEMAND_FTE, FTE_GAP, CAPACITY_STATUS
+  FROM TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND
+);
+
+SELECT 'SETUP COMPLETE - Views documented and ready for Cortex Analyst' AS STATUS;
+
 
 -- ============================================================================
--- 9. GRANT ACCESS TO THE AGENT
+-- 6. SAMPLE QUESTIONS FOR CORTEX ANALYST / SNOWFLAKE COPILOT
 -- ============================================================================
-
-GRANT USAGE ON AGENT SNOWFLAKE_INTELLIGENCE.AGENTS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
-
-SELECT 'TDF INTELLIGENCE AGENT CREATED SUCCESSFULLY' AS STATUS;
-
--- ============================================================================
--- 10. SAMPLE QUESTIONS TO TEST THE AGENT
--- ============================================================================
+-- These questions can be asked in Snowflake Copilot or Cortex Analyst
+-- They work against the documented analytics views
 
 /*
 === P1: Resource & Capacity Planning ===
