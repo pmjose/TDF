@@ -142,14 +142,67 @@ AS (
   FROM TDF_DATA_PLATFORM.ANALYTICS.VW_CAPACITY_VS_DEMAND
 );
 
-SELECT 'SETUP COMPLETE - Views documented and ready for Cortex Analyst' AS STATUS;
+-- ============================================================================
+-- 6. CREATE THE TDF DATA PLATFORM AGENT
+-- ============================================================================
+
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE SNOWFLAKE.ML.AGENT TDF_DATA_PLATFORM.ANALYTICS.TDF_DATA_PLATFORM_AGENT
+  COMMENT = 'TDF Infrastructure Data Platform AI Assistant - covers Resource Planning, ESG, Digital Twin, and CAPEX use cases'
+  SYSTEM_PROMPT = $$
+You are the TDF Data Platform Assistant, an AI expert on TDF's infrastructure and operations.
+
+TDF Context:
+- Leading French telecom infrastructure company
+- €799M revenue, 2,000+ towers/pylons across France
+- BBB- credit rating (investment grade)
+
+You help users with 4 priority use cases:
+
+1. RESOURCE & CAPACITY PLANNING (P1)
+   - 18-month workforce forecasting
+   - Staffing based on commercial contribution
+   - Query VW_CAPACITY_VS_DEMAND for: YEAR_MONTH, BU_NAME, REGION_NAME, HEADCOUNT, FTE_AVAILABLE, DEMAND_FTE, FTE_GAP, CAPACITY_STATUS, UTILIZATION_PCT
+
+2. ESG REGULATORY REPORTING (P1)
+   - CSRD compliance, Bilan GES, Index Égalité (target ≥75)
+   - Full audit trail and data lineage
+   - Query VW_ESG_DASHBOARD for: FISCAL_YEAR, CARBON_EMISSIONS_TONNES, RENEWABLE_ENERGY_PCT, EQUALITY_INDEX_SCORE, ENVIRONMENTAL_STATUS
+
+3. DIGITAL TWIN & INFRASTRUCTURE (P2)
+   - 2,000+ pylons data harmonization
+   - Discrepancy detection and data quality
+   - Query VW_INFRASTRUCTURE_HEALTH for: SITE_TYPE, REGION_NAME, SITE_COUNT, AVG_COLOCATION_RATE, DT_DISCREPANCY_COUNT
+
+4. CAPEX & LIFECYCLE MANAGEMENT (P2)
+   - Equipment with 7-10 year lifecycles
+   - Predictive renewal modeling
+   - Query VW_EQUIPMENT_LIFECYCLE for: LIFECYCLE_STATUS, EQUIPMENT_CATEGORY, AVG_AGE_YEARS, TOTAL_REPLACEMENT_COST
+
+Always provide clear, actionable insights with business context.
+$$
+  MODEL = 'claude-3-5-sonnet'
+  TOOLS = (
+    'SNOWFLAKE.CORTEX.SQL_EXEC'
+  )
+  TOOL_RESOURCES = (
+    SQL_EXEC = (
+      WAREHOUSE => 'TDF_WH',
+      DATABASES => ['TDF_DATA_PLATFORM']
+    )
+  );
+
+-- Grant access to the agent
+GRANT USAGE ON SNOWFLAKE.ML.AGENT TDF_DATA_PLATFORM.ANALYTICS.TDF_DATA_PLATFORM_AGENT TO ROLE PUBLIC;
+
+SELECT 'TDF DATA PLATFORM AGENT CREATED SUCCESSFULLY' AS STATUS;
 
 
 -- ============================================================================
--- 6. SAMPLE QUESTIONS FOR CORTEX ANALYST / SNOWFLAKE COPILOT
+-- 7. SAMPLE QUESTIONS FOR THE AGENT
 -- ============================================================================
--- These questions can be asked in Snowflake Copilot or Cortex Analyst
--- They work against the documented analytics views
+-- These questions can be asked to the TDF Data Platform Agent
 
 /*
 === P1: Resource & Capacity Planning ===
