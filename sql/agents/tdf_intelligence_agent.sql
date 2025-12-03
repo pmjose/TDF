@@ -88,10 +88,10 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_RESOURCE_CAPACITY
         CAPACITY.RECORD_COUNT AS 1 COMMENT='Count of records'
     )
     DIMENSIONS (
-        CAPACITY.YEAR_MONTH AS planning_month WITH SYNONYMS=('month','date','year_month') COMMENT='Planning month',
-        CAPACITY.BU_NAME AS business_unit_name WITH SYNONYMS=('BU','division','business unit') COMMENT='Business unit',
+        CAPACITY.YEAR_MONTH AS year_month WITH SYNONYMS=('month','date','planning month') COMMENT='Planning month',
+        CAPACITY.BU_NAME AS bu_name WITH SYNONYMS=('BU','division','business unit') COMMENT='Business unit',
         CAPACITY.REGION_NAME AS region_name WITH SYNONYMS=('region','territory') COMMENT='French region',
-        CAPACITY.SKILL_CATEGORY_NAME AS skill_category WITH SYNONYMS=('skill','competency') COMMENT='Skill category',
+        CAPACITY.SKILL_CATEGORY_NAME AS skill_category_name WITH SYNONYMS=('skill','competency','skill category') COMMENT='Skill category',
         CAPACITY.CAPACITY_STATUS AS capacity_status WITH SYNONYMS=('status') COMMENT='Status (SUFFICIENT/TIGHT/SHORTAGE)'
     )
     METRICS (
@@ -119,9 +119,9 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_ESG_REPORTING
         ESG.RECORD_COUNT AS 1 COMMENT='Count of records'
     )
     DIMENSIONS (
-        ESG.FISCAL_YEAR AS fiscal_year_dim WITH SYNONYMS=('year','fiscal year') COMMENT='Fiscal year',
+        ESG.FISCAL_YEAR AS fiscal_year WITH SYNONYMS=('year') COMMENT='Fiscal year',
         ESG.ENVIRONMENTAL_STATUS AS environmental_status WITH SYNONYMS=('env status') COMMENT='Environmental status',
-        ESG.SOCIAL_STATUS AS social_status_dim COMMENT='Social status',
+        ESG.SOCIAL_STATUS AS social_status COMMENT='Social status',
         ESG.OVERALL_ESG_STATUS AS overall_esg_status WITH SYNONYMS=('status','esg status') COMMENT='Overall ESG status'
     )
     METRICS (
@@ -147,8 +147,8 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_DIGITAL_TWIN
         INFRA.RECORD_COUNT AS 1 COMMENT='Count of records'
     )
     DIMENSIONS (
-        INFRA.SITE_TYPE AS site_type_dim WITH SYNONYMS=('type','site type') COMMENT='Site type (TOWER/ROOFTOP/INDOOR)',
-        INFRA.STATUS AS site_status_dim WITH SYNONYMS=('status','site status') COMMENT='Site status',
+        INFRA.SITE_TYPE AS site_type WITH SYNONYMS=('type') COMMENT='Site type (TOWER/ROOFTOP/INDOOR)',
+        INFRA.STATUS AS infra_status WITH SYNONYMS=('status','site status') COMMENT='Site status',
         INFRA.DEPARTMENT_NAME AS department_name WITH SYNONYMS=('department') COMMENT='Department',
         INFRA.REGION_NAME AS region_name WITH SYNONYMS=('region','territory') COMMENT='French region'
     )
@@ -175,9 +175,9 @@ CREATE OR REPLACE SEMANTIC VIEW TDF_DATA_PLATFORM.ANALYTICS.SV_CAPEX_LIFECYCLE
         EQUIP.RECORD_COUNT AS 1 COMMENT='Count of records'
     )
     DIMENSIONS (
-        EQUIP.LIFECYCLE_STATUS AS lifecycle_status_dim WITH SYNONYMS=('status','lifecycle status') COMMENT='Lifecycle status',
+        EQUIP.LIFECYCLE_STATUS AS lifecycle_status WITH SYNONYMS=('status') COMMENT='Lifecycle status',
         EQUIP.EQUIPMENT_CATEGORY AS equipment_category WITH SYNONYMS=('category') COMMENT='Equipment category',
-        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type_name WITH SYNONYMS=('equipment type','type') COMMENT='Equipment type'
+        EQUIP.EQUIPMENT_TYPE_NAME AS equipment_type_name WITH SYNONYMS=('equipment type') COMMENT='Equipment type'
     )
     METRICS (
         EQUIP.TOTAL_EQUIPMENT AS SUM(equip.equipment_count) COMMENT='Total equipment',
