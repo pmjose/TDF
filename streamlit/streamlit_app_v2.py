@@ -1610,60 +1610,210 @@ def page_executive_dashboard():
     # =========================================================================
 
     with tab_clients:
-        st.markdown("### 🤝 Client Portfolio & Health")
-
-        # Client Health data
-        client_health_df = run_query("""
+        
+        # Fetch comprehensive client data
+        client_data_df = run_query("""
             SELECT 
                 o.OPERATOR_NAME,
                 o.OPERATOR_CODE,
+                o.OPERATOR_TYPE,
                 o.ANNUAL_REVENUE_EUR / 1000000 as REVENUE_M,
                 o.CONTRACT_END_DATE,
+                o.CONTRACT_START_DATE,
                 o.CREDIT_RATING,
-                DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY
+                o.IS_STRATEGIC_CLIENT,
+                DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY,
+                DATEDIFF(YEAR, o.CONTRACT_START_DATE, CURRENT_DATE()) as YEARS_AS_CLIENT
             FROM TDF_DATA_PLATFORM.CORE.OPERATORS o
             WHERE o.ANNUAL_REVENUE_EUR > 0
             ORDER BY o.ANNUAL_REVENUE_EUR DESC
-            LIMIT 6
         """)
-
-        if not client_health_df.empty:
-            for _, client in client_health_df.iterrows():
-                days_to_expiry = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
-                if days_to_expiry < 365:
-                    status_text = f'Expires {days_to_expiry}d'
-                    status_color = '#e63946'
-                elif days_to_expiry < 730:
-                    status_text = f'Renewal in {days_to_expiry//30}mo'
-                    status_color = '#f39c12'
-                else:
-                    status_text = 'Secured'
-                    status_color = '#27ae60'
-
-                initials = ''.join([w[0] for w in client['OPERATOR_NAME'].split()[:2]]).upper()
+        
+        if not client_data_df.empty:
+            total_revenue = client_data_df['REVENUE_M'].sum()
+            strategic_count = len(client_data_df[client_data_df['IS_STRATEGIC_CLIENT'] == True])
+            avg_tenure = client_data_df['YEARS_AS_CLIENT'].mean()
+            
+            # -------------------------------------------------------------------------
+            # ROW 1: Key Portfolio Metrics
+            # -------------------------------------------------------------------------
+            st.markdown("### 🤝 Strategic Client Intelligence")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
                 st.markdown(f"""
-                    <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                        <div style="background: #1a2b4a; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 1rem;">{initials}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #1a2b4a;">{client['OPERATOR_NAME']}</div>
-                            <div style="color: #666; font-size: 0.8rem;">Rating: {client['CREDIT_RATING']}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-weight: bold; color: #1a2b4a;">€{client['REVENUE_M']:.0f}M</div>
-                            <div style="background: {status_color}; color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem;">{status_text}</div>
-                        </div>
+                    <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3436 100%); border-radius: 12px; padding: 1.5rem; text-align: center; color: white;">
+                        <div style="font-size: 2.5rem; font-weight: 700;">€{total_revenue:.0f}M</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">Total Portfolio Revenue</div>
                     </div>
                 """, unsafe_allow_html=True)
-
-            # Summary metrics
-            at_risk = client_health_df[client_health_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
-            secured = client_health_df[client_health_df['DAYS_TO_EXPIRY'] >= 730]['REVENUE_M'].sum()
-            st.markdown("---")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Revenue Secured", f"€{secured:.0f}M", "Contracted 2+ yrs")
             with col2:
-                st.metric("Revenue to Renew", f"€{at_risk:.0f}M", "Within 24 months", delta_color="inverse")
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 1.5rem; text-align: center; color: white;">
+                        <div style="font-size: 2.5rem; font-weight: 700;">{strategic_count}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">Strategic Partners</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with col3:
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #e63946 0%, #f39c12 100%); border-radius: 12px; padding: 1.5rem; text-align: center; color: white;">
+                        <div style="font-size: 2.5rem; font-weight: 700;">{avg_tenure:.0f}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">Avg. Years Partnership</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with col4:
+                top_client_pct = (client_data_df['REVENUE_M'].iloc[0] / total_revenue) * 100
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 12px; padding: 1.5rem; text-align: center; color: white;">
+                        <div style="font-size: 2.5rem; font-weight: 700;">{top_client_pct:.0f}%</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">Top Client Concentration</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # -------------------------------------------------------------------------
+            # ROW 2: Revenue by Segment + Contract Timeline
+            # -------------------------------------------------------------------------
+            col_chart, col_timeline = st.columns([1, 1])
+            
+            with col_chart:
+                st.markdown("#### 📊 Revenue by Client Type")
+                
+                # Group by operator type
+                type_revenue = client_data_df.groupby('OPERATOR_TYPE')['REVENUE_M'].sum().reset_index()
+                type_revenue = type_revenue.sort_values('REVENUE_M', ascending=False)
+                
+                colors = ['#1a2b4a', '#e63946', '#27ae60', '#f39c12', '#9b59b6']
+                
+                fig = go.Figure(data=[go.Pie(
+                    labels=type_revenue['OPERATOR_TYPE'],
+                    values=type_revenue['REVENUE_M'],
+                    hole=0.5,
+                    marker=dict(colors=colors[:len(type_revenue)]),
+                    textinfo='label+percent',
+                    textposition='outside',
+                    textfont=dict(size=12),
+                    hovertemplate='%{label}<br>€%{value:.0f}M<br>%{percent}<extra></extra>'
+                )])
+                
+                fig.update_layout(
+                    height=300,
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    annotations=[dict(
+                        text=f'<b>€{total_revenue:.0f}M</b><br>Total',
+                        x=0.5, y=0.5,
+                        font=dict(size=16, color='#1a2b4a'),
+                        showarrow=False
+                    )]
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col_timeline:
+                st.markdown("#### 📅 Contract Renewal Timeline")
+                
+                # Create timeline visualization
+                for _, client in client_data_df.head(6).iterrows():
+                    days = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
+                    
+                    if days < 365:
+                        color = '#e63946'
+                        urgency = '🔴 URGENT'
+                    elif days < 730:
+                        color = '#f39c12'
+                        urgency = '🟡 UPCOMING'
+                    else:
+                        color = '#27ae60'
+                        urgency = '🟢 SECURED'
+                    
+                    # Progress bar (max 5 years = 1825 days)
+                    progress = min(100, (days / 1825) * 100)
+                    
+                    st.markdown(f"""
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                <span style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem;">{client['OPERATOR_NAME']}</span>
+                                <span style="font-size: 0.75rem; color: {color}; font-weight: 600;">{urgency}</span>
+                            </div>
+                            <div style="background: #e9ecef; border-radius: 10px; height: 8px; overflow: hidden;">
+                                <div style="background: {color}; width: {progress}%; height: 100%; border-radius: 10px;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; margin-top: 0.15rem;">
+                                <span>€{client['REVENUE_M']:.0f}M/yr</span>
+                                <span>{client['CONTRACT_END_DATE'].strftime('%b %Y') if client['CONTRACT_END_DATE'] else 'N/A'}</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # -------------------------------------------------------------------------
+            # ROW 3: Client Health Scorecard
+            # -------------------------------------------------------------------------
+            st.markdown("#### 🏆 Top Client Scorecard")
+            
+            # Create scorecard for top 4 clients
+            top_clients = client_data_df.head(4)
+            cols = st.columns(4)
+            
+            for idx, (_, client) in enumerate(top_clients.iterrows()):
+                with cols[idx]:
+                    days = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
+                    tenure = client['YEARS_AS_CLIENT']
+                    rating = client['CREDIT_RATING']
+                    strategic = client['IS_STRATEGIC_CLIENT']
+                    
+                    # Calculate health score (0-100)
+                    health_score = min(100, (
+                        (min(days, 1825) / 1825) * 40 +  # Contract stability
+                        (min(tenure, 15) / 15) * 30 +    # Relationship tenure
+                        (30 if strategic else 15)         # Strategic importance
+                    ))
+                    
+                    if health_score >= 80:
+                        score_color = '#27ae60'
+                        score_label = 'Excellent'
+                    elif health_score >= 60:
+                        score_color = '#f39c12'
+                        score_label = 'Good'
+                    else:
+                        score_color = '#e63946'
+                        score_label = 'At Risk'
+                    
+                    initials = ''.join([w[0] for w in client['OPERATOR_NAME'].split()[:2]]).upper()
+                    
+                    st.markdown(f"""
+                        <div style="background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="background: #1a2b4a; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; margin: 0 auto 0.75rem auto;">{initials}</div>
+                            <div style="font-weight: 700; color: #1a2b4a; font-size: 1rem; margin-bottom: 0.25rem;">{client['OPERATOR_NAME']}</div>
+                            <div style="color: #666; font-size: 0.75rem; margin-bottom: 0.75rem;">{client['OPERATOR_TYPE']} • {rating}</div>
+                            <div style="background: {score_color}; color: white; border-radius: 20px; padding: 0.5rem 1rem; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">{health_score:.0f}</div>
+                            <div style="color: {score_color}; font-size: 0.8rem; font-weight: 600;">{score_label}</div>
+                            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #eee;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #1a2b4a;">€{client['REVENUE_M']:.0f}M</div>
+                                <div style="color: #888; font-size: 0.7rem;">{tenure:.0f} years partner</div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # -------------------------------------------------------------------------
+            # ROW 4: Revenue Risk Summary
+            # -------------------------------------------------------------------------
+            at_risk = client_data_df[client_data_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
+            secured = client_data_df[client_data_df['DAYS_TO_EXPIRY'] >= 730]['REVENUE_M'].sum()
+            critical = client_data_df[client_data_df['DAYS_TO_EXPIRY'] < 365]['REVENUE_M'].sum()
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("🟢 Revenue Secured", f"€{secured:.0f}M", f"{(secured/total_revenue)*100:.0f}% of portfolio")
+            with col2:
+                st.metric("🟡 Renewal Pipeline", f"€{at_risk:.0f}M", f"{(at_risk/total_revenue)*100:.0f}% within 24mo", delta_color="off")
+            with col3:
+                st.metric("🔴 Urgent Renewals", f"€{critical:.0f}M", f"{(critical/total_revenue)*100:.0f}% within 12mo", delta_color="inverse")
 
     # -------------------------------------------------------------------------
     # FOOTER
