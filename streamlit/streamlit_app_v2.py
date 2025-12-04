@@ -888,11 +888,11 @@ def page_executive_dashboard():
                         <div style="background: {border_color}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{item['value']}</div>
                     </div>
                 """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
+        
+        # -------------------------------------------------------------------------
         # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
         # -------------------------------------------------------------------------
-    
+        
         col_map, col_clients = st.columns([3, 2])
     
         with col_map:
