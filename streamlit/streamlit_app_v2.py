@@ -1837,7 +1837,7 @@ def page_executive_dashboard():
 def page_capacity_planning():
     render_header(
         "Adéquation Charge / Capacité",
-        "Prévision charge/capacité en temps réel • Horizon 18 mois • Modélisation dynamique"
+        "Real-time capacity-to-demand forecasting • 18-month horizon • Dynamic scenario modeling"
     )
     
     # =========================================================================
@@ -1845,14 +1845,14 @@ def page_capacity_planning():
     # =========================================================================
     
     tab_overview, tab_gaps, tab_reco, tab_regions = st.tabs([
-        "📊 Vue d'ensemble",
-        "🎯 Écarts & Risques",
-        "💡 Recommandations",
-        "🗺️ Régions & Équipes"
+        "📊 Overview",
+        "🎯 Gaps & Risks",
+        "💡 Recommendations",
+        "🗺️ Regions & Teams"
     ])
     
     # =========================================================================
-    # TAB 1: VUE D'ENSEMBLE (Overview)
+    # TAB 1: OVERVIEW
     # =========================================================================
     
     with tab_overview:
@@ -2056,7 +2056,7 @@ def page_capacity_planning():
         # -------------------------------------------------------------------------
 
     # =========================================================================
-    # TAB 2: ÉCARTS & RISQUES (Gaps & Risks)
+    # TAB 2: GAPS & RISKS
     # =========================================================================
 
     with tab_gaps:
@@ -2156,7 +2156,7 @@ def page_capacity_planning():
         # -------------------------------------------------------------------------
 
     # =========================================================================
-    # TAB 3: RECOMMANDATIONS
+    # TAB 3: RECOMMENDATIONS
     # =========================================================================
 
     with tab_reco:
@@ -2336,7 +2336,7 @@ def page_capacity_planning():
         # -------------------------------------------------------------------------
 
     # =========================================================================
-    # TAB 4: RÉGIONS & ÉQUIPES
+    # TAB 4: REGIONS & TEAMS
     # =========================================================================
 
     with tab_regions:
