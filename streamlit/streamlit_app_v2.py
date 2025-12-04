@@ -1837,1053 +1837,1088 @@ def page_executive_dashboard():
 def page_capacity_planning():
     render_header(
         "Adéquation Charge / Capacité",
-        "Real-time capacity-to-demand forecasting • 18-month horizon • Dynamic scenario modeling"
+        "Prévision charge/capacité en temps réel • Horizon 18 mois • Modélisation dynamique"
     )
     
-    # -------------------------------------------------------------------------
-    # ROW 1: Executive Summary KPIs
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # TABS ORGANIZATION
+    # =========================================================================
     
-    # Fetch capacity data - normalize to actual employee base (~1,500 employees in DB)
-    # The WORKFORCE_CAPACITY table has dimensional data (BU x Region x Skill), so we use employee count as base
-    capacity_df = run_query("""
-        SELECT 
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') as EMPLOYEE_COUNT,
-            AVG(UTILIZATION_PCT) as AVG_UTILIZATION
-        FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY
-        WHERE YEAR_MONTH = (SELECT MAX(YEAR_MONTH) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY)
-    """)
+    tab_overview, tab_gaps, tab_reco, tab_regions = st.tabs([
+        "📊 Vue d'ensemble",
+        "🎯 Écarts & Risques",
+        "💡 Recommandations",
+        "🗺️ Régions & Équipes"
+    ])
     
-    # Fetch demand forecast (using correct column name FORECAST_ID)
-    demand_df = run_query("""
-        SELECT 
-            COUNT(DISTINCT FORECAST_ID) as DEMAND_RECORDS,
-            AVG(CONFIDENCE_PCT) as AVG_CONFIDENCE
-        FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST
-        WHERE TARGET_MONTH BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 3, CURRENT_DATE())
-    """)
+    # =========================================================================
+    # TAB 1: VUE D'ENSEMBLE (Overview)
+    # =========================================================================
     
-    # Handle NaN values safely
-    def safe_value(df, col, default):
-        try:
-            val = df[col].iloc[0] if not df.empty else None
-            if val is None or (isinstance(val, float) and pd.isna(val)):
+    with tab_overview:
+    
+            # -------------------------------------------------------------------------
+            # ROW 1: Executive Summary KPIs
+            # -------------------------------------------------------------------------
+        
+            # Fetch capacity data - normalize to actual employee base (~1,500 employees in DB)
+        # The WORKFORCE_CAPACITY table has dimensional data (BU x Region x Skill), so we use employee count as base
+        capacity_df = run_query("""
+            SELECT 
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE') as EMPLOYEE_COUNT,
+                AVG(UTILIZATION_PCT) as AVG_UTILIZATION
+            FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY
+            WHERE YEAR_MONTH = (SELECT MAX(YEAR_MONTH) FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY)
+        """)
+    
+        # Fetch demand forecast (using correct column name FORECAST_ID)
+        demand_df = run_query("""
+            SELECT 
+                COUNT(DISTINCT FORECAST_ID) as DEMAND_RECORDS,
+                AVG(CONFIDENCE_PCT) as AVG_CONFIDENCE
+            FROM TDF_DATA_PLATFORM.COMMERCIAL.DEMAND_FORECAST
+            WHERE TARGET_MONTH BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 3, CURRENT_DATE())
+        """)
+    
+        # Handle NaN values safely
+        def safe_value(df, col, default):
+            try:
+                val = df[col].iloc[0] if not df.empty else None
+                if val is None or (isinstance(val, float) and pd.isna(val)):
+                    return default
+                return val
+            except:
                 return default
-            return val
-        except:
-            return default
     
-    # Get employee count from database, fallback to 1,500 (DB seed default)
-    db_employee_count = safe_value(capacity_df, 'EMPLOYEE_COUNT', 0)
-    employee_count = db_employee_count if db_employee_count > 100 else 1500
+        # Get employee count from database, fallback to 1,500 (DB seed default)
+        db_employee_count = safe_value(capacity_df, 'EMPLOYEE_COUNT', 0)
+        employee_count = db_employee_count if db_employee_count > 100 else 1500
     
-    # Capacity = employees + contractors (≈10% extra) = 1,500 + 150 = ~1,650 FTE capacity
-    total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = ~1,650 FTE
-    allocated_fte = int(total_capacity * 0.87)   # 87% allocated = ~1,770 FTE
-    utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 87)
+        # Capacity = employees + contractors (≈10% extra) = 1,500 + 150 = ~1,650 FTE capacity
+        total_capacity = int(employee_count * 1.10)  # 10% contractor buffer = ~1,650 FTE
+        allocated_fte = int(total_capacity * 0.87)   # 87% allocated = ~1,770 FTE
+        utilization = safe_value(capacity_df, 'AVG_UTILIZATION', 87)
     
-    # Demand = capacity + growth need (≈8% above capacity for growth projects)
-    total_demand = int(total_capacity * 1.08)    # 8% above capacity = ~2,198 FTE
+        # Demand = capacity + growth need (≈8% above capacity for growth projects)
+        total_demand = int(total_capacity * 1.08)    # 8% above capacity = ~2,198 FTE
     
-    gap = total_capacity - total_demand
-    gap_pct = (gap / total_demand) * 100 if total_demand > 0 else 0
+        gap = total_capacity - total_demand
+        gap_pct = (gap / total_demand) * 100 if total_demand > 0 else 0
     
-    st.markdown("### 📊 Capacity Overview")
+        st.markdown("### 📊 Capacity Overview")
     
-    col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric(
-            "Current Capacity",
-            f"{int(total_capacity):,} FTE",
-            delta="+45 vs last month"
-        )
+        with col1:
+            st.metric(
+                "Current Capacity",
+                f"{int(total_capacity):,} FTE",
+                delta="+45 vs last month"
+            )
     
-    with col2:
-        st.metric(
-            "Forecasted Demand",
-            f"{int(total_demand):,} FTE",
-            delta="+8% YoY",
-            delta_color="inverse"
-        )
+        with col2:
+            st.metric(
+                "Forecasted Demand",
+                f"{int(total_demand):,} FTE",
+                delta="+8% YoY",
+                delta_color="inverse"
+            )
     
-    with col3:
-        gap_color = "normal" if gap >= 0 else "inverse"
-        gap_label = "Surplus" if gap >= 0 else "Shortage"
-        st.metric(
-            f"Capacity Gap",
-            f"{int(abs(gap)):,} FTE",
-            delta=f"{gap_pct:+.1f}% ({gap_label})",
-            delta_color=gap_color
-        )
+        with col3:
+            gap_color = "normal" if gap >= 0 else "inverse"
+            gap_label = "Surplus" if gap >= 0 else "Shortage"
+            st.metric(
+                f"Capacity Gap",
+                f"{int(abs(gap)):,} FTE",
+                delta=f"{gap_pct:+.1f}% ({gap_label})",
+                delta_color=gap_color
+            )
     
-    with col4:
-        # Utilization gauge
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=utilization,
-            number={'suffix': '%', 'font': {'size': 32, 'color': '#1a2b4a'}},
-            gauge={
-                'axis': {'range': [0, 100], 'tickwidth': 1},
-                'bar': {'color': '#1a2b4a' if utilization < 90 else '#e63946'},
-                'steps': [
-                    {'range': [0, 70], 'color': '#d1fae5'},
-                    {'range': [70, 85], 'color': '#fef3c7'},
-                    {'range': [85, 100], 'color': '#fee2e2'}
-                ],
-                'threshold': {'line': {'color': '#e63946', 'width': 3}, 'thickness': 0.8, 'value': 90}
-            },
-            title={'text': 'Utilization', 'font': {'size': 14, 'color': '#666'}}
-        ))
-        fig.update_layout(height=150, margin=dict(l=20, r=20, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig, use_container_width=True)
+        with col4:
+            # Utilization gauge
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=utilization,
+                number={'suffix': '%', 'font': {'size': 32, 'color': '#1a2b4a'}},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickwidth': 1},
+                    'bar': {'color': '#1a2b4a' if utilization < 90 else '#e63946'},
+                    'steps': [
+                        {'range': [0, 70], 'color': '#d1fae5'},
+                        {'range': [70, 85], 'color': '#fef3c7'},
+                        {'range': [85, 100], 'color': '#fee2e2'}
+                    ],
+                    'threshold': {'line': {'color': '#e63946', 'width': 3}, 'thickness': 0.8, 'value': 90}
+                },
+                title={'text': 'Utilization', 'font': {'size': 14, 'color': '#666'}}
+            ))
+            fig.update_layout(height=150, margin=dict(l=20, r=20, t=40, b=10), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
     
-    # -------------------------------------------------------------------------
-    # ROW 2: 18-Month Capacity vs Demand Forecast
-    # -------------------------------------------------------------------------
+        # -------------------------------------------------------------------------
+        # ROW 2: 18-Month Capacity vs Demand Forecast
+        # -------------------------------------------------------------------------
     
-    st.markdown("### 📈 18-Month Capacity vs Demand Forecast")
+        st.markdown("### 📈 18-Month Capacity vs Demand Forecast")
     
-    # Generate forecast data - based on ~1,500 employees (~1,650 FTE with contractors)
-    # Starting from December 2025
-    forecast_df = run_query(f"""
-        WITH months AS (
-            SELECT DATEADD(MONTH, SEQ4(), TO_DATE('2025-12-01')) as FORECAST_MONTH
-            FROM TABLE(GENERATOR(ROWCOUNT => 18))
-        ),
-        capacity_trend AS (
+        # Generate forecast data - based on ~1,500 employees (~1,650 FTE with contractors)
+        # Starting from December 2025
+        forecast_df = run_query(f"""
+            WITH months AS (
+                SELECT DATEADD(MONTH, SEQ4(), TO_DATE('2025-12-01')) as FORECAST_MONTH
+                FROM TABLE(GENERATOR(ROWCOUNT => 18))
+            ),
+            capacity_trend AS (
+                SELECT 
+                    m.FORECAST_MONTH,
+                    -- Start at ~1,650 FTE (1,500 employees + 10% contractors), grow ~5 FTE/month
+                    {total_capacity} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 5) + UNIFORM(-10, 15, RANDOM()) as CAPACITY_FTE
+                FROM months m
+            ),
+            demand_trend AS (
+                SELECT 
+                    m.FORECAST_MONTH,
+                    -- Demand starts ~8% above capacity and grows faster (~8 FTE/month)
+                    {total_demand} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 8) + UNIFORM(-15, 25, RANDOM()) as DEMAND_FTE
+                FROM months m
+            )
             SELECT 
-                m.FORECAST_MONTH,
-                -- Start at ~1,650 FTE (1,500 employees + 10% contractors), grow ~5 FTE/month
-                {total_capacity} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 5) + UNIFORM(-10, 15, RANDOM()) as CAPACITY_FTE
-            FROM months m
-        ),
-        demand_trend AS (
-            SELECT 
-                m.FORECAST_MONTH,
-                -- Demand starts ~8% above capacity and grows faster (~8 FTE/month)
-                {total_demand} + (ROW_NUMBER() OVER (ORDER BY m.FORECAST_MONTH) * 8) + UNIFORM(-15, 25, RANDOM()) as DEMAND_FTE
-            FROM months m
-        )
-        SELECT 
-            c.FORECAST_MONTH,
-            c.CAPACITY_FTE,
-            d.DEMAND_FTE
-        FROM capacity_trend c
-        JOIN demand_trend d ON c.FORECAST_MONTH = d.FORECAST_MONTH
-        ORDER BY c.FORECAST_MONTH
-    """)
+                c.FORECAST_MONTH,
+                c.CAPACITY_FTE,
+                d.DEMAND_FTE
+            FROM capacity_trend c
+            JOIN demand_trend d ON c.FORECAST_MONTH = d.FORECAST_MONTH
+            ORDER BY c.FORECAST_MONTH
+        """)
     
-    if not forecast_df.empty:
-        fig = go.Figure()
+        if not forecast_df.empty:
+            fig = go.Figure()
         
-        # Capacity line
-        fig.add_trace(go.Scatter(
-            x=forecast_df['FORECAST_MONTH'],
-            y=forecast_df['CAPACITY_FTE'],
-            mode='lines+markers',
-            name='Capacity',
-            line=dict(color='#1a2b4a', width=3),
-            marker=dict(size=8),
-            fill='tonexty',
-            fillcolor='rgba(26, 43, 74, 0.1)'
-        ))
+            # Capacity line
+            fig.add_trace(go.Scatter(
+                x=forecast_df['FORECAST_MONTH'],
+                y=forecast_df['CAPACITY_FTE'],
+                mode='lines+markers',
+                name='Capacity',
+                line=dict(color='#1a2b4a', width=3),
+                marker=dict(size=8),
+                fill='tonexty',
+                fillcolor='rgba(26, 43, 74, 0.1)'
+            ))
         
-        # Demand line
-        fig.add_trace(go.Scatter(
-            x=forecast_df['FORECAST_MONTH'],
-            y=forecast_df['DEMAND_FTE'],
-            mode='lines+markers',
-            name='Demand',
-            line=dict(color='#e63946', width=3),
-            marker=dict(size=8)
-        ))
+            # Demand line
+            fig.add_trace(go.Scatter(
+                x=forecast_df['FORECAST_MONTH'],
+                y=forecast_df['DEMAND_FTE'],
+                mode='lines+markers',
+                name='Demand',
+                line=dict(color='#e63946', width=3),
+                marker=dict(size=8)
+            ))
         
-        # Add gap shading
-        fig.add_trace(go.Scatter(
-            x=forecast_df['FORECAST_MONTH'],
-            y=forecast_df['DEMAND_FTE'],
-            mode='lines',
-            name='Gap',
-            line=dict(color='rgba(0,0,0,0)'),
-            fill='tonexty',
-            fillcolor='rgba(230, 57, 70, 0.2)',
-            showlegend=False
-        ))
+            # Add gap shading
+            fig.add_trace(go.Scatter(
+                x=forecast_df['FORECAST_MONTH'],
+                y=forecast_df['DEMAND_FTE'],
+                mode='lines',
+                name='Gap',
+                line=dict(color='rgba(0,0,0,0)'),
+                fill='tonexty',
+                fillcolor='rgba(230, 57, 70, 0.2)',
+                showlegend=False
+            ))
         
-        fig.update_layout(
-            height=350,
+            fig.update_layout(
+                height=350,
+                margin=dict(l=20, r=20, t=20, b=40),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', tickformat='%b %Y'),
+                yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE'),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+                hovermode='x unified'
+            )
+        
+            # Add seasonal demand bands
+            fig.add_vrect(x0="2025-06-01", x1="2025-08-31", fillcolor="rgba(243, 156, 18, 0.1)", 
+                          layer="below", line_width=0, annotation_text="Peak Season", 
+                          annotation_position="top left")
+            fig.add_vrect(x0="2026-06-01", x1="2026-08-31", fillcolor="rgba(243, 156, 18, 0.1)", 
+                          layer="below", line_width=0)
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
+            # Seasonal insight
+            st.caption("🌡️ Yellow bands = Peak maintenance season (June-August) - plan +25% contractor capacity")
+        else:
+            st.info("Loading forecast data...")
+    
+        # -------------------------------------------------------------------------
+
+    # =========================================================================
+    # TAB 2: ÉCARTS & RISQUES (Gaps & Risks)
+    # =========================================================================
+
+    with tab_gaps:
+        # ROW 3: Skill Gap + Attrition Risk
+        # -------------------------------------------------------------------------
+    
+        col_skills, col_attrition = st.columns(2)
+    
+        with col_skills:
+            st.markdown("### 🔥 Critical Skill Gaps")
+        
+            # Fetch skill gaps
+            skills_df = run_query("""
+                SELECT 
+                    sc.SKILL_CATEGORY_NAME as SKILL,
+                    COALESCE(SUM(wc.FTE_AVAILABLE), 100) as AVAILABLE,
+                    COALESCE(SUM(wc.FTE_AVAILABLE) * 1.15, 115) as NEEDED,
+                    COALESCE(SUM(wc.FTE_AVAILABLE) * 0.15, 15) as GAP
+                FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
+                LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON sc.SKILL_CATEGORY_ID = wc.SKILL_CATEGORY_ID
+                GROUP BY sc.SKILL_CATEGORY_NAME
+                ORDER BY GAP DESC
+                LIMIT 8
+            """)
+        
+            if not skills_df.empty and 'GAP' in skills_df.columns:
+                # Fill NaN values
+                skills_df['GAP'] = skills_df['GAP'].fillna(15)
+            
+                # Create horizontal bar chart for skill gaps
+                fig = go.Figure()
+            
+                colors = ['#e63946' if g > 20 else '#f39c12' if g > 10 else '#27ae60' for g in skills_df['GAP']]
+            
+                fig.add_trace(go.Bar(
+                    y=skills_df['SKILL'],
+                    x=skills_df['GAP'],
+                    orientation='h',
+                    marker=dict(color=colors),
+                    text=[f"-{int(g)} FTE" for g in skills_df['GAP']],
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b><br>Gap: %{x:.0f} FTE<extra></extra>'
+                ))
+            
+                fig.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=60, t=10, b=10),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE Gap'),
+                    yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                    showlegend=False
+                )
+            
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Loading skill data...")
+    
+        with col_attrition:
+            st.markdown("### 📉 Attrition Risk Radar")
+        
+            # Attrition risk data (simulated from employee data patterns)
+            attrition_data = [
+                {"role": "Tower Climbers (15+ yrs)", "count": 5, "risk": 92, "impact": "€425K", "timeline": "12 mo"},
+                {"role": "RF Engineers (Senior)", "count": 3, "risk": 78, "impact": "€280K", "timeline": "18 mo"},
+                {"role": "Project Managers", "count": 2, "risk": 65, "impact": "€180K", "timeline": "24 mo"},
+                {"role": "Site Supervisors", "count": 4, "risk": 55, "impact": "€220K", "timeline": "18 mo"},
+                {"role": "Network Specialists", "count": 2, "risk": 45, "impact": "€95K", "timeline": "24 mo"},
+            ]
+        
+            for item in attrition_data[:4]:
+                risk_color = '#e63946' if item['risk'] >= 75 else '#f39c12' if item['risk'] >= 50 else '#27ae60'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {risk_color}; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem;">{item['role']}</div>
+                            <div style="color: #888; font-size: 0.7rem;">{item['count']} employees • {item['timeline']}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="background: {risk_color}20; color: {risk_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">{item['risk']}% risk</div>
+                            <div style="color: #888; font-size: 0.65rem; margin-top: 0.25rem;">Impact: {item['impact']}</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            total_at_risk = sum(item['count'] for item in attrition_data)
+            total_impact = "€1.2M"
+            st.markdown(f"""
+                <div style="background: #1a2b4a; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; color: white; text-align: center;">
+                    <span style="font-size: 0.75rem;">Total at risk: </span>
+                    <span style="font-weight: 700;">{total_at_risk} employees</span>
+                    <span style="font-size: 0.75rem;"> • Knowledge loss: </span>
+                    <span style="font-weight: 700; color: #e63946;">{total_impact}</span>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+
+    # =========================================================================
+    # TAB 3: RECOMMANDATIONS
+    # =========================================================================
+
+    with tab_reco:
+        # 🤖 AI RECOMMENDATIONS PANEL - Smart Insights
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🤖 AI-Powered Recommendations")
+    
+        # Generate smart recommendations based on data
+        recommendations = []
+    
+        # Check for skill gaps
+        if gap < 0:
+            recommendations.append({
+                "icon": "💡",
+                "title": "Cross-Training Opportunity",
+                "text": f"Cross-train 8 Electrical staff for Tower Climbing - closes 40% of gap at 60% lower cost than hiring",
+                "impact": "Save €180K",
+                "urgency": "high"
+            })
+    
+        # Attrition warning
+        recommendations.append({
+            "icon": "⚠️",
+            "title": "Retirement Risk",
+            "text": "5 senior Tower Climbers (15+ years tenure) eligible for retirement in 12 months - no successors identified",
+            "impact": "€425K knowledge loss",
+            "urgency": "critical"
+        })
+    
+        # Contract optimization
+        recommendations.append({
+            "icon": "📈",
+            "title": "Contract Renewal Impact",
+            "text": f"If Orange contract renews (+€45M), start hiring RF Engineers NOW - 58-day average lead time",
+            "impact": "+18 FTE needed",
+            "urgency": "medium"
+        })
+    
+        # Productivity insight
+        recommendations.append({
+            "icon": "🎯",
+            "title": "Productivity Opportunity",
+            "text": "Île-de-France RF Engineers are 22% more productive than other regions - replicate best practices",
+            "impact": "+€2.1M revenue",
+            "urgency": "medium"
+        })
+    
+        # Display recommendations in cards
+        rec_cols = st.columns(len(recommendations))
+        for i, rec in enumerate(recommendations):
+            with rec_cols[i]:
+                urgency_color = '#e63946' if rec['urgency'] == 'critical' else '#f39c12' if rec['urgency'] == 'high' else '#3498db'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 10px; padding: 1rem; border-left: 4px solid {urgency_color}; height: 180px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{rec['icon']}</div>
+                        <div style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem; margin-bottom: 0.5rem;">{rec['title']}</div>
+                        <div style="color: #666; font-size: 0.75rem; margin-bottom: 0.5rem;">{rec['text']}</div>
+                        <div style="background: {urgency_color}15; color: {urgency_color}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block;">{rec['impact']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+        # 💰 BUILD VS BUY ANALYSIS
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 💰 Build vs Buy Analysis")
+        st.caption("Compare costs: Permanent Hire vs Contractors vs Upskilling")
+    
+        # Calculate costs for 20 FTE need
+        fte_need = max(20, int(abs(gap))) if gap < 0 else 20
+    
+        # Cost scenarios
+        hire_cost = {
+            "recruitment": fte_need * 8000,
+            "salary_y1": fte_need * 45000,
+            "benefits": fte_need * 45000 * 0.35,
+            "training": fte_need * 3000,
+            "total": fte_need * (8000 + 45000 + 45000*0.35 + 3000)
+        }
+    
+        contractor_cost = {
+            "daily_rate": 450,
+            "days_per_year": 220,
+            "overhead": 1.1,
+            "total": fte_need * 450 * 220 * 1.1
+        }
+    
+        upskill_cost = {
+            "training": int(fte_need * 0.6) * 15000,  # Can upskill 60%
+            "productivity_loss": int(fte_need * 0.6) * 5000,
+            "gap_remaining": int(fte_need * 0.4),
+            "hire_remaining": int(fte_need * 0.4) * 71750,
+            "total": int(fte_need * 0.6) * 20000 + int(fte_need * 0.4) * 71750
+        }
+    
+        bvb_col1, bvb_col2, bvb_col3 = st.columns(3)
+    
+        with bvb_col1:
+            st.markdown(f"""
+                <div style="background: #1a2b4a; border-radius: 10px; padding: 1.5rem; color: white;">
+                    <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">OPTION A: HIRE PERMANENT</div>
+                    <div style="font-size: 2rem; font-weight: 700;">€{hire_cost['total']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; color: #888; margin-top: 1rem;">
+                        Recruitment: €{hire_cost['recruitment']/1000:.0f}K<br>
+                        Year 1 Salary: €{hire_cost['salary_y1']/1000:.0f}K<br>
+                        Benefits (35%): €{hire_cost['benefits']/1000:.0f}K<br>
+                        Onboarding: €{hire_cost['training']/1000:.0f}K
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
+                        ✅ Long-term stability<br>
+                        ✅ Knowledge retention<br>
+                        ⏱️ 45-65 days to hire
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with bvb_col2:
+            savings_vs_hire = ((hire_cost['total'] - contractor_cost['total']) / hire_cost['total']) * 100
+            st.markdown(f"""
+                <div style="background: #e63946; border-radius: 10px; padding: 1.5rem; color: white;">
+                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem;">OPTION B: CONTRACTORS</div>
+                    <div style="font-size: 2rem; font-weight: 700;">€{contractor_cost['total']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 1rem;">
+                        Daily rate: €{contractor_cost['daily_rate']}<br>
+                        Days/year: {contractor_cost['days_per_year']}<br>
+                        Agency overhead: 10%<br>
+                        {fte_need} contractors
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
+                        ⚡ Immediate availability<br>
+                        🔄 Flexibility<br>
+                        ❌ No knowledge retention
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with bvb_col3:
+            st.markdown(f"""
+                <div style="background: #27ae60; border-radius: 10px; padding: 1.5rem; color: white;">
+                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem;">OPTION C: UPSKILL + HIRE</div>
+                    <div style="font-size: 2rem; font-weight: 700;">€{upskill_cost['total']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 1rem;">
+                        Train {int(fte_need * 0.6)} existing: €{upskill_cost['training']/1000:.0f}K<br>
+                        Productivity loss: €{upskill_cost['productivity_loss']/1000:.0f}K<br>
+                        Hire {upskill_cost['gap_remaining']} new: €{upskill_cost['hire_remaining']/1000:.0f}K
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
+                        ⭐ RECOMMENDED<br>
+                        ✅ Best ROI<br>
+                        ✅ Career development
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # ROI comparison chart
+        fig_roi = go.Figure()
+        years = ['Year 1', 'Year 2', 'Year 3']
+    
+        fig_roi.add_trace(go.Bar(name='Permanent Hire', x=years, y=[hire_cost['total'], hire_cost['total']*0.85, hire_cost['total']*0.8], marker_color='#1a2b4a'))
+        fig_roi.add_trace(go.Bar(name='Contractors', x=years, y=[contractor_cost['total'], contractor_cost['total']*1.05, contractor_cost['total']*1.1], marker_color='#e63946'))
+        fig_roi.add_trace(go.Bar(name='Upskill+Hire', x=years, y=[upskill_cost['total'], upskill_cost['total']*0.7, upskill_cost['total']*0.6], marker_color='#27ae60'))
+    
+        fig_roi.update_layout(
+            barmode='group',
+            height=250,
             margin=dict(l=20, r=20, t=20, b=40),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', tickformat='%b %Y'),
-            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE'),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-            hovermode='x unified'
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Annual Cost (€)', tickformat=',.0f'),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
         )
+        st.plotly_chart(fig_roi, use_container_width=True)
+        st.caption("💡 Upskill+Hire breaks even in Year 2 and saves €" + f"{(contractor_cost['total']*3 - upskill_cost['total']*2.3)/1000:.0f}K over 3 years")
+    
+        # -------------------------------------------------------------------------
+
+    # =========================================================================
+    # TAB 4: RÉGIONS & ÉQUIPES
+    # =========================================================================
+
+    with tab_regions:
+        # ROW 4: Regional Capacity + Cross-Region Rebalancing
+        # -------------------------------------------------------------------------
+    
+        col_regional, col_rebalance = st.columns(2)
+    
+        with col_regional:
+            st.markdown("### 🗺️ Regional Capacity Status")
         
-        # Add seasonal demand bands
-        fig.add_vrect(x0="2025-06-01", x1="2025-08-31", fillcolor="rgba(243, 156, 18, 0.1)", 
-                      layer="below", line_width=0, annotation_text="Peak Season", 
-                      annotation_position="top left")
-        fig.add_vrect(x0="2026-06-01", x1="2026-08-31", fillcolor="rgba(243, 156, 18, 0.1)", 
-                      layer="below", line_width=0)
+            # Fetch regional capacity
+            regional_cap_df = run_query("""
+                SELECT 
+                    r.REGION_NAME,
+                    r.REGION_CODE,
+                    COALESCE(SUM(wc.FTE_AVAILABLE), 100) as CAPACITY,
+                    COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as DEMAND,
+                    COALESCE(SUM(wc.FTE_AVAILABLE), 100) - COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as GAP_FTE
+                FROM TDF_DATA_PLATFORM.CORE.REGIONS r
+                LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON r.REGION_ID = wc.REGION_ID
+                GROUP BY r.REGION_NAME, r.REGION_CODE
+                ORDER BY GAP_FTE ASC
+                LIMIT 10
+            """)
         
-        st.plotly_chart(fig, use_container_width=True)
+            if not regional_cap_df.empty:
+                regional_cap_df['GAP_PCT'] = (regional_cap_df['GAP_FTE'] / regional_cap_df['DEMAND'] * 100).round(0)
+            
+                fig = go.Figure()
+            
+                colors = ['#e63946' if g < -10 else '#f39c12' if g < 0 else '#27ae60' for g in regional_cap_df['GAP_PCT']]
+            
+                fig.add_trace(go.Bar(
+                    y=regional_cap_df['REGION_NAME'],
+                    x=regional_cap_df['GAP_PCT'],
+                    orientation='h',
+                    marker=dict(color=colors),
+                    text=[f"{int(g):+d}%" for g in regional_cap_df['GAP_PCT']],
+                    textposition='outside',
+                    hovertemplate='<b>%{y}</b><br>Gap: %{x:.0f}%<extra></extra>'
+                ))
+            
+                fig.update_layout(
+                    height=280,
+                    margin=dict(l=10, r=50, t=10, b=10),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Capacity Gap %', zeroline=True, zerolinecolor='#ccc'),
+                    yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                    showlegend=False
+                )
+            
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Loading regional data...")
+    
+        with col_rebalance:
+            st.markdown("### 🔄 Cross-Region Rebalancing")
         
-        # Seasonal insight
-        st.caption("🌡️ Yellow bands = Peak maintenance season (June-August) - plan +25% contractor capacity")
-    else:
-        st.info("Loading forecast data...")
-    
-    # -------------------------------------------------------------------------
-    # 🤖 AI RECOMMENDATIONS PANEL - Smart Insights
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🤖 AI-Powered Recommendations")
-    
-    # Generate smart recommendations based on data
-    recommendations = []
-    
-    # Check for skill gaps
-    if gap < 0:
-        recommendations.append({
-            "icon": "💡",
-            "title": "Cross-Training Opportunity",
-            "text": f"Cross-train 8 Electrical staff for Tower Climbing - closes 40% of gap at 60% lower cost than hiring",
-            "impact": "Save €180K",
-            "urgency": "high"
-        })
-    
-    # Attrition warning
-    recommendations.append({
-        "icon": "⚠️",
-        "title": "Retirement Risk",
-        "text": "5 senior Tower Climbers (15+ years tenure) eligible for retirement in 12 months - no successors identified",
-        "impact": "€425K knowledge loss",
-        "urgency": "critical"
-    })
-    
-    # Contract optimization
-    recommendations.append({
-        "icon": "📈",
-        "title": "Contract Renewal Impact",
-        "text": f"If Orange contract renews (+€45M), start hiring RF Engineers NOW - 58-day average lead time",
-        "impact": "+18 FTE needed",
-        "urgency": "medium"
-    })
-    
-    # Productivity insight
-    recommendations.append({
-        "icon": "🎯",
-        "title": "Productivity Opportunity",
-        "text": "Île-de-France RF Engineers are 22% more productive than other regions - replicate best practices",
-        "impact": "+€2.1M revenue",
-        "urgency": "medium"
-    })
-    
-    # Display recommendations in cards
-    rec_cols = st.columns(len(recommendations))
-    for i, rec in enumerate(recommendations):
-        with rec_cols[i]:
-            urgency_color = '#e63946' if rec['urgency'] == 'critical' else '#f39c12' if rec['urgency'] == 'high' else '#3498db'
-            st.markdown(f"""
-                <div style="background: white; border-radius: 10px; padding: 1rem; border-left: 4px solid {urgency_color}; height: 180px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{rec['icon']}</div>
-                    <div style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem; margin-bottom: 0.5rem;">{rec['title']}</div>
-                    <div style="color: #666; font-size: 0.75rem; margin-bottom: 0.5rem;">{rec['text']}</div>
-                    <div style="background: {urgency_color}15; color: {urgency_color}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block;">{rec['impact']}</div>
-                </div>
+            st.markdown("""
+                <div style="background: #f8f9fa; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">RECOMMENDED TRANSFERS</div>
             """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # 💰 BUILD VS BUY ANALYSIS
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 💰 Build vs Buy Analysis")
-    st.caption("Compare costs: Permanent Hire vs Contractors vs Upskilling")
-    
-    # Calculate costs for 20 FTE need
-    fte_need = max(20, int(abs(gap))) if gap < 0 else 20
-    
-    # Cost scenarios
-    hire_cost = {
-        "recruitment": fte_need * 8000,
-        "salary_y1": fte_need * 45000,
-        "benefits": fte_need * 45000 * 0.35,
-        "training": fte_need * 3000,
-        "total": fte_need * (8000 + 45000 + 45000*0.35 + 3000)
-    }
-    
-    contractor_cost = {
-        "daily_rate": 450,
-        "days_per_year": 220,
-        "overhead": 1.1,
-        "total": fte_need * 450 * 220 * 1.1
-    }
-    
-    upskill_cost = {
-        "training": int(fte_need * 0.6) * 15000,  # Can upskill 60%
-        "productivity_loss": int(fte_need * 0.6) * 5000,
-        "gap_remaining": int(fte_need * 0.4),
-        "hire_remaining": int(fte_need * 0.4) * 71750,
-        "total": int(fte_need * 0.6) * 20000 + int(fte_need * 0.4) * 71750
-    }
-    
-    bvb_col1, bvb_col2, bvb_col3 = st.columns(3)
-    
-    with bvb_col1:
-        st.markdown(f"""
-            <div style="background: #1a2b4a; border-radius: 10px; padding: 1.5rem; color: white;">
-                <div style="font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem;">OPTION A: HIRE PERMANENT</div>
-                <div style="font-size: 2rem; font-weight: 700;">€{hire_cost['total']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; color: #888; margin-top: 1rem;">
-                    Recruitment: €{hire_cost['recruitment']/1000:.0f}K<br>
-                    Year 1 Salary: €{hire_cost['salary_y1']/1000:.0f}K<br>
-                    Benefits (35%): €{hire_cost['benefits']/1000:.0f}K<br>
-                    Onboarding: €{hire_cost['training']/1000:.0f}K
-                </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
-                    ✅ Long-term stability<br>
-                    ✅ Knowledge retention<br>
-                    ⏱️ 45-65 days to hire
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with bvb_col2:
-        savings_vs_hire = ((hire_cost['total'] - contractor_cost['total']) / hire_cost['total']) * 100
-        st.markdown(f"""
-            <div style="background: #e63946; border-radius: 10px; padding: 1.5rem; color: white;">
-                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem;">OPTION B: CONTRACTORS</div>
-                <div style="font-size: 2rem; font-weight: 700;">€{contractor_cost['total']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 1rem;">
-                    Daily rate: €{contractor_cost['daily_rate']}<br>
-                    Days/year: {contractor_cost['days_per_year']}<br>
-                    Agency overhead: 10%<br>
-                    {fte_need} contractors
-                </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
-                    ⚡ Immediate availability<br>
-                    🔄 Flexibility<br>
-                    ❌ No knowledge retention
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with bvb_col3:
-        st.markdown(f"""
-            <div style="background: #27ae60; border-radius: 10px; padding: 1.5rem; color: white;">
-                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-bottom: 0.5rem;">OPTION C: UPSKILL + HIRE</div>
-                <div style="font-size: 2rem; font-weight: 700;">€{upskill_cost['total']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 1rem;">
-                    Train {int(fte_need * 0.6)} existing: €{upskill_cost['training']/1000:.0f}K<br>
-                    Productivity loss: €{upskill_cost['productivity_loss']/1000:.0f}K<br>
-                    Hire {upskill_cost['gap_remaining']} new: €{upskill_cost['hire_remaining']/1000:.0f}K
-                </div>
-                <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.2); font-size: 0.7rem;">
-                    ⭐ RECOMMENDED<br>
-                    ✅ Best ROI<br>
-                    ✅ Career development
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # ROI comparison chart
-    fig_roi = go.Figure()
-    years = ['Year 1', 'Year 2', 'Year 3']
-    
-    fig_roi.add_trace(go.Bar(name='Permanent Hire', x=years, y=[hire_cost['total'], hire_cost['total']*0.85, hire_cost['total']*0.8], marker_color='#1a2b4a'))
-    fig_roi.add_trace(go.Bar(name='Contractors', x=years, y=[contractor_cost['total'], contractor_cost['total']*1.05, contractor_cost['total']*1.1], marker_color='#e63946'))
-    fig_roi.add_trace(go.Bar(name='Upskill+Hire', x=years, y=[upskill_cost['total'], upskill_cost['total']*0.7, upskill_cost['total']*0.6], marker_color='#27ae60'))
-    
-    fig_roi.update_layout(
-        barmode='group',
-        height=250,
-        margin=dict(l=20, r=20, t=20, b=40),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Annual Cost (€)', tickformat=',.0f'),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
-    )
-    st.plotly_chart(fig_roi, use_container_width=True)
-    st.caption("💡 Upskill+Hire breaks even in Year 2 and saves €" + f"{(contractor_cost['total']*3 - upskill_cost['total']*2.3)/1000:.0f}K over 3 years")
-    
-    # -------------------------------------------------------------------------
-    # ROW 3: Skill Gap + Attrition Risk
-    # -------------------------------------------------------------------------
-    
-    col_skills, col_attrition = st.columns(2)
-    
-    with col_skills:
-        st.markdown("### 🔥 Critical Skill Gaps")
         
-        # Fetch skill gaps
-        skills_df = run_query("""
-            SELECT 
-                sc.SKILL_CATEGORY_NAME as SKILL,
-                COALESCE(SUM(wc.FTE_AVAILABLE), 100) as AVAILABLE,
-                COALESCE(SUM(wc.FTE_AVAILABLE) * 1.15, 115) as NEEDED,
-                COALESCE(SUM(wc.FTE_AVAILABLE) * 0.15, 15) as GAP
-            FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
-            LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON sc.SKILL_CATEGORY_ID = wc.SKILL_CATEGORY_ID
-            GROUP BY sc.SKILL_CATEGORY_NAME
-            ORDER BY GAP DESC
-            LIMIT 8
+            # Rebalancing recommendations
+            transfers = [
+                {"from": "Bretagne", "to": "Île-de-France", "count": 5, "role": "Tower Techs", "savings": "€40K"},
+                {"from": "Nouvelle-Aquitaine", "to": "Hauts-de-France", "count": 3, "role": "RF Engineers", "savings": "€24K"},
+                {"from": "Occitanie", "to": "Grand Est", "count": 2, "role": "Electricians", "savings": "€16K"},
+            ]
+        
+            for t in transfers:
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="flex: 1;">
+                            <span style="color: #27ae60; font-weight: 600;">{t['from']}</span>
+                            <span style="color: #888;"> → </span>
+                            <span style="color: #e63946; font-weight: 600;">{t['to']}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: #1a2b4a;">{t['count']} {t['role']}</div>
+                            <div style="font-size: 0.7rem; color: #27ae60;">Save {t['savings']} vs hire</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+            total_transfer_savings = "€80K"
+            st.success(f"💡 Rebalancing {sum(t['count'] for t in transfers)} FTE saves **{total_transfer_savings}** vs new hires")
+    
+        # -------------------------------------------------------------------------
+        # ROW 5: Productivity Benchmarks + BU Utilization
+        # -------------------------------------------------------------------------
+    
+        col_productivity, col_bu = st.columns(2)
+    
+        with col_productivity:
+            st.markdown("### 📊 Productivity Benchmarks")
+        
+            # Productivity metrics
+            productivity_data = [
+                {"metric": "Revenue per FTE", "value": "€533K", "vs_industry": "+12%", "trend": "up"},
+                {"metric": "Work Orders/Tech/Month", "value": "18.5", "vs_industry": "+8%", "trend": "up"},
+                {"metric": "Site Visits/Day", "value": "3.2", "vs_industry": "+5%", "trend": "up"},
+                {"metric": "First-Time Fix Rate", "value": "87%", "vs_industry": "-2%", "trend": "down"},
+            ]
+        
+            for item in productivity_data:
+                trend_color = '#27ae60' if item['trend'] == 'up' else '#e63946'
+                trend_icon = '↑' if item['trend'] == 'up' else '↓'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="color: #666; font-size: 0.85rem;">{item['metric']}</div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 700; color: #1a2b4a; font-size: 1.1rem;">{item['value']}</span>
+                            <span style="color: {trend_color}; font-size: 0.75rem; margin-left: 0.5rem;">{trend_icon} {item['vs_industry']} vs industry</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            st.caption("📈 Benchmarks: Syntec Telecom Infrastructure 2024")
+    
+        with col_bu:
+            st.markdown("### 📊 Utilization by Business Unit")
+        
+            bu_df = run_query("""
+                SELECT 
+                    bu.BU_NAME,
+                    COALESCE(AVG(wc.UTILIZATION_PCT), 75 + UNIFORM(0, 20, RANDOM())) as UTILIZATION
+                FROM TDF_DATA_PLATFORM.CORE.BUSINESS_UNITS bu
+                LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON bu.BU_ID = wc.BU_ID
+                WHERE bu.BU_TYPE != 'CORPORATE'
+                GROUP BY bu.BU_NAME
+                ORDER BY UTILIZATION DESC
+            """)
+        
+            if not bu_df.empty and 'UTILIZATION' in bu_df.columns:
+                # Fill NaN values with default
+                bu_df['UTILIZATION'] = bu_df['UTILIZATION'].fillna(80)
+            
+                fig = go.Figure()
+            
+                colors = ['#e63946' if u > 90 else '#f39c12' if u > 80 else '#27ae60' for u in bu_df['UTILIZATION']]
+            
+                fig.add_trace(go.Bar(
+                    y=bu_df['BU_NAME'],
+                    x=bu_df['UTILIZATION'],
+                    orientation='h',
+                    marker=dict(color=colors),
+                    text=[f"{int(u)}%" for u in bu_df['UTILIZATION']],
+                    textposition='inside',
+                    textfont=dict(color='white'),
+                    hovertemplate='<b>%{y}</b><br>Utilization: %{x:.0f}%<extra></extra>'
+                ))
+            
+                fig.update_layout(
+                    height=250,
+                    margin=dict(l=10, r=20, t=10, b=10),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='#f0f0f0', range=[0, 100], title='Utilization %'),
+                    yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                    showlegend=False
+                )
+            
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Loading BU data...")
+        
+            # Hiring Pipeline inside BU column
+            st.markdown("##### 👥 Hiring Pipeline")
+            hp_col1, hp_col2 = st.columns(2)
+            with hp_col1:
+                st.metric("Open Positions", "45", delta="+12 this month")
+            with hp_col2:
+                st.metric("Avg Time to Fill", "52 days", delta="-5 days")
+    
+        # -------------------------------------------------------------------------
+        # ROW 5: Regional Scenario Simulator
+        # -------------------------------------------------------------------------
+    
+        st.markdown("---")
+        st.markdown("### 🎮 Regional Scenario Simulator")
+    
+        # Fetch regions for dropdown
+        regions_list = run_query("""
+            SELECT REGION_ID, REGION_NAME, REGION_CODE 
+            FROM TDF_DATA_PLATFORM.CORE.REGIONS 
+            ORDER BY REGION_NAME
         """)
-        
-        if not skills_df.empty and 'GAP' in skills_df.columns:
-            # Fill NaN values
-            skills_df['GAP'] = skills_df['GAP'].fillna(15)
-            
-            # Create horizontal bar chart for skill gaps
-            fig = go.Figure()
-            
-            colors = ['#e63946' if g > 20 else '#f39c12' if g > 10 else '#27ae60' for g in skills_df['GAP']]
-            
-            fig.add_trace(go.Bar(
-                y=skills_df['SKILL'],
-                x=skills_df['GAP'],
-                orientation='h',
-                marker=dict(color=colors),
-                text=[f"-{int(g)} FTE" for g in skills_df['GAP']],
-                textposition='outside',
-                hovertemplate='<b>%{y}</b><br>Gap: %{x:.0f} FTE<extra></extra>'
-            ))
-            
-            fig.update_layout(
-                height=300,
-                margin=dict(l=10, r=60, t=10, b=10),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE Gap'),
-                yaxis=dict(showgrid=False, categoryorder='total ascending'),
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Loading skill data...")
     
-    with col_attrition:
-        st.markdown("### 📉 Attrition Risk Radar")
-        
-        # Attrition risk data (simulated from employee data patterns)
-        attrition_data = [
-            {"role": "Tower Climbers (15+ yrs)", "count": 5, "risk": 92, "impact": "€425K", "timeline": "12 mo"},
-            {"role": "RF Engineers (Senior)", "count": 3, "risk": 78, "impact": "€280K", "timeline": "18 mo"},
-            {"role": "Project Managers", "count": 2, "risk": 65, "impact": "€180K", "timeline": "24 mo"},
-            {"role": "Site Supervisors", "count": 4, "risk": 55, "impact": "€220K", "timeline": "18 mo"},
-            {"role": "Network Specialists", "count": 2, "risk": 45, "impact": "€95K", "timeline": "24 mo"},
-        ]
-        
-        for item in attrition_data[:4]:
-            risk_color = '#e63946' if item['risk'] >= 75 else '#f39c12' if item['risk'] >= 50 else '#27ae60'
-            st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {risk_color}; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 600; color: #1a2b4a; font-size: 0.85rem;">{item['role']}</div>
-                        <div style="color: #888; font-size: 0.7rem;">{item['count']} employees • {item['timeline']}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="background: {risk_color}20; color: {risk_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">{item['risk']}% risk</div>
-                        <div style="color: #888; font-size: 0.65rem; margin-top: 0.25rem;">Impact: {item['impact']}</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        total_at_risk = sum(item['count'] for item in attrition_data)
-        total_impact = "€1.2M"
-        st.markdown(f"""
-            <div style="background: #1a2b4a; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem; color: white; text-align: center;">
-                <span style="font-size: 0.75rem;">Total at risk: </span>
-                <span style="font-weight: 700;">{total_at_risk} employees</span>
-                <span style="font-size: 0.75rem;"> • Knowledge loss: </span>
-                <span style="font-weight: 700; color: #e63946;">{total_impact}</span>
-            </div>
-        """, unsafe_allow_html=True)
+        col_controls, col_results = st.columns([1, 2])
     
-    # -------------------------------------------------------------------------
-    # ROW 4: Regional Capacity + Cross-Region Rebalancing
-    # -------------------------------------------------------------------------
-    
-    col_regional, col_rebalance = st.columns(2)
-    
-    with col_regional:
-        st.markdown("### 🗺️ Regional Capacity Status")
+        with col_controls:
+            st.markdown("**Configure Scenario:**")
         
-        # Fetch regional capacity
-        regional_cap_df = run_query("""
-            SELECT 
-                r.REGION_NAME,
-                r.REGION_CODE,
-                COALESCE(SUM(wc.FTE_AVAILABLE), 100) as CAPACITY,
-                COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as DEMAND,
-                COALESCE(SUM(wc.FTE_AVAILABLE), 100) - COALESCE(SUM(wc.FTE_AVAILABLE) * (0.9 + UNIFORM(0, 0.3, RANDOM())), 110) as GAP_FTE
-            FROM TDF_DATA_PLATFORM.CORE.REGIONS r
-            LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON r.REGION_ID = wc.REGION_ID
-            GROUP BY r.REGION_NAME, r.REGION_CODE
-            ORDER BY GAP_FTE ASC
-            LIMIT 10
-        """)
+            # Region selector
+            if not regions_list.empty:
+                selected_region = st.selectbox(
+                    "🗺️ Select Region",
+                    options=regions_list['REGION_NAME'].tolist(),
+                    index=0
+                )
+                selected_region_id = regions_list[regions_list['REGION_NAME'] == selected_region]['REGION_ID'].iloc[0]
+            else:
+                selected_region = "Île-de-France"
+                selected_region_id = "REG-IDF"
         
-        if not regional_cap_df.empty:
-            regional_cap_df['GAP_PCT'] = (regional_cap_df['GAP_FTE'] / regional_cap_df['DEMAND'] * 100).round(0)
-            
-            fig = go.Figure()
-            
-            colors = ['#e63946' if g < -10 else '#f39c12' if g < 0 else '#27ae60' for g in regional_cap_df['GAP_PCT']]
-            
-            fig.add_trace(go.Bar(
-                y=regional_cap_df['REGION_NAME'],
-                x=regional_cap_df['GAP_PCT'],
-                orientation='h',
-                marker=dict(color=colors),
-                text=[f"{int(g):+d}%" for g in regional_cap_df['GAP_PCT']],
-                textposition='outside',
-                hovertemplate='<b>%{y}</b><br>Gap: %{x:.0f}%<extra></extra>'
-            ))
-            
-            fig.update_layout(
-                height=280,
-                margin=dict(l=10, r=50, t=10, b=10),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Capacity Gap %', zeroline=True, zerolinecolor='#ccc'),
-                yaxis=dict(showgrid=False, categoryorder='total ascending'),
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Loading regional data...")
-    
-    with col_rebalance:
-        st.markdown("### 🔄 Cross-Region Rebalancing")
-        
-        st.markdown("""
-            <div style="background: #f8f9fa; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-                <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">RECOMMENDED TRANSFERS</div>
-        """, unsafe_allow_html=True)
-        
-        # Rebalancing recommendations
-        transfers = [
-            {"from": "Bretagne", "to": "Île-de-France", "count": 5, "role": "Tower Techs", "savings": "€40K"},
-            {"from": "Nouvelle-Aquitaine", "to": "Hauts-de-France", "count": 3, "role": "RF Engineers", "savings": "€24K"},
-            {"from": "Occitanie", "to": "Grand Est", "count": 2, "role": "Electricians", "savings": "€16K"},
-        ]
-        
-        for t in transfers:
-            st.markdown(f"""
-                <div style="background: white; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <div style="flex: 1;">
-                        <span style="color: #27ae60; font-weight: 600;">{t['from']}</span>
-                        <span style="color: #888;"> → </span>
-                        <span style="color: #e63946; font-weight: 600;">{t['to']}</span>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 600; color: #1a2b4a;">{t['count']} {t['role']}</div>
-                        <div style="font-size: 0.7rem; color: #27ae60;">Save {t['savings']} vs hire</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        total_transfer_savings = "€80K"
-        st.success(f"💡 Rebalancing {sum(t['count'] for t in transfers)} FTE saves **{total_transfer_savings}** vs new hires")
-    
-    # -------------------------------------------------------------------------
-    # ROW 5: Productivity Benchmarks + BU Utilization
-    # -------------------------------------------------------------------------
-    
-    col_productivity, col_bu = st.columns(2)
-    
-    with col_productivity:
-        st.markdown("### 📊 Productivity Benchmarks")
-        
-        # Productivity metrics
-        productivity_data = [
-            {"metric": "Revenue per FTE", "value": "€533K", "vs_industry": "+12%", "trend": "up"},
-            {"metric": "Work Orders/Tech/Month", "value": "18.5", "vs_industry": "+8%", "trend": "up"},
-            {"metric": "Site Visits/Day", "value": "3.2", "vs_industry": "+5%", "trend": "up"},
-            {"metric": "First-Time Fix Rate", "value": "87%", "vs_industry": "-2%", "trend": "down"},
-        ]
-        
-        for item in productivity_data:
-            trend_color = '#27ae60' if item['trend'] == 'up' else '#e63946'
-            trend_icon = '↑' if item['trend'] == 'up' else '↓'
-            st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="color: #666; font-size: 0.85rem;">{item['metric']}</div>
-                    <div style="text-align: right;">
-                        <span style="font-weight: 700; color: #1a2b4a; font-size: 1.1rem;">{item['value']}</span>
-                        <span style="color: {trend_color}; font-size: 0.75rem; margin-left: 0.5rem;">{trend_icon} {item['vs_industry']} vs industry</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.caption("📈 Benchmarks: Syntec Telecom Infrastructure 2024")
-    
-    with col_bu:
-        st.markdown("### 📊 Utilization by Business Unit")
-        
-        bu_df = run_query("""
-            SELECT 
-                bu.BU_NAME,
-                COALESCE(AVG(wc.UTILIZATION_PCT), 75 + UNIFORM(0, 20, RANDOM())) as UTILIZATION
-            FROM TDF_DATA_PLATFORM.CORE.BUSINESS_UNITS bu
-            LEFT JOIN TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc ON bu.BU_ID = wc.BU_ID
-            WHERE bu.BU_TYPE != 'CORPORATE'
-            GROUP BY bu.BU_NAME
-            ORDER BY UTILIZATION DESC
-        """)
-        
-        if not bu_df.empty and 'UTILIZATION' in bu_df.columns:
-            # Fill NaN values with default
-            bu_df['UTILIZATION'] = bu_df['UTILIZATION'].fillna(80)
-            
-            fig = go.Figure()
-            
-            colors = ['#e63946' if u > 90 else '#f39c12' if u > 80 else '#27ae60' for u in bu_df['UTILIZATION']]
-            
-            fig.add_trace(go.Bar(
-                y=bu_df['BU_NAME'],
-                x=bu_df['UTILIZATION'],
-                orientation='h',
-                marker=dict(color=colors),
-                text=[f"{int(u)}%" for u in bu_df['UTILIZATION']],
-                textposition='inside',
-                textfont=dict(color='white'),
-                hovertemplate='<b>%{y}</b><br>Utilization: %{x:.0f}%<extra></extra>'
-            ))
-            
-            fig.update_layout(
-                height=250,
-                margin=dict(l=10, r=20, t=10, b=10),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', range=[0, 100], title='Utilization %'),
-                yaxis=dict(showgrid=False, categoryorder='total ascending'),
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Loading BU data...")
-        
-        # Hiring Pipeline inside BU column
-        st.markdown("##### 👥 Hiring Pipeline")
-        hp_col1, hp_col2 = st.columns(2)
-        with hp_col1:
-            st.metric("Open Positions", "45", delta="+12 this month")
-        with hp_col2:
-            st.metric("Avg Time to Fill", "52 days", delta="-5 days")
-    
-    # -------------------------------------------------------------------------
-    # ROW 5: Regional Scenario Simulator
-    # -------------------------------------------------------------------------
-    
-    st.markdown("---")
-    st.markdown("### 🎮 Regional Scenario Simulator")
-    
-    # Fetch regions for dropdown
-    regions_list = run_query("""
-        SELECT REGION_ID, REGION_NAME, REGION_CODE 
-        FROM TDF_DATA_PLATFORM.CORE.REGIONS 
-        ORDER BY REGION_NAME
-    """)
-    
-    col_controls, col_results = st.columns([1, 2])
-    
-    with col_controls:
-        st.markdown("**Configure Scenario:**")
-        
-        # Region selector
-        if not regions_list.empty:
-            selected_region = st.selectbox(
-                "🗺️ Select Region",
-                options=regions_list['REGION_NAME'].tolist(),
+            # Scenario selector
+            scenario = st.selectbox(
+                "📈 Demand Scenario",
+                options=["Base Case", "Orange Renewal (+€45M)", "SFR Expansion (+€20M)", "Contract Loss (-€30M)", "High Growth (+15%)"],
                 index=0
             )
-            selected_region_id = regions_list[regions_list['REGION_NAME'] == selected_region]['REGION_ID'].iloc[0]
-        else:
-            selected_region = "Île-de-France"
-            selected_region_id = "REG-IDF"
         
-        # Scenario selector
-        scenario = st.selectbox(
-            "📈 Demand Scenario",
-            options=["Base Case", "Orange Renewal (+€45M)", "SFR Expansion (+€20M)", "Contract Loss (-€30M)", "High Growth (+15%)"],
-            index=0
-        )
+            # Demand multiplier based on scenario
+            scenario_multipliers = {
+                "Base Case": 1.0,
+                "Orange Renewal (+€45M)": 1.15,
+                "SFR Expansion (+€20M)": 1.08,
+                "Contract Loss (-€30M)": 0.88,
+                "High Growth (+15%)": 1.15
+            }
+            multiplier = scenario_multipliers.get(scenario, 1.0)
         
-        # Demand multiplier based on scenario
-        scenario_multipliers = {
-            "Base Case": 1.0,
-            "Orange Renewal (+€45M)": 1.15,
-            "SFR Expansion (+€20M)": 1.08,
-            "Contract Loss (-€30M)": 0.88,
-            "High Growth (+15%)": 1.15
-        }
-        multiplier = scenario_multipliers.get(scenario, 1.0)
+            # Forecast horizon
+            horizon = st.slider("📅 Forecast Horizon (months)", 3, 18, 12)
         
-        # Forecast horizon
-        horizon = st.slider("📅 Forecast Horizon (months)", 3, 18, 12)
-        
-        # Attrition toggle
-        include_attrition = st.checkbox("Include Attrition (8% annual)", value=True)
+            # Attrition toggle
+            include_attrition = st.checkbox("Include Attrition (8% annual)", value=True)
     
-    with col_results:
-        # Fetch REAL employee count for this region (this is the true base)
-        employee_data = run_query(f"""
-            SELECT COUNT(*) as EMP_COUNT
-            FROM TDF_DATA_PLATFORM.HR.EMPLOYEES e
-            WHERE e.REGION_ID = '{selected_region_id}'
-            AND e.EMPLOYMENT_STATUS = 'ACTIVE'
-        """)
-        
-        # Fetch utilization average for this region
-        utilization_data = run_query(f"""
-            SELECT AVG(wc.UTILIZATION_PCT) as AVG_UTIL
-            FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc
-            WHERE wc.REGION_ID = '{selected_region_id}'
-        """)
-        
-        # Get regional population for fallback estimates
-        region_pop = run_query(f"""
-            SELECT REGION_NAME, POPULATION FROM TDF_DATA_PLATFORM.CORE.REGIONS WHERE REGION_ID = '{selected_region_id}'
-        """)
-        pop = region_pop['POPULATION'].iloc[0] if not region_pop.empty else 5000000
-        region_name_db = region_pop['REGION_NAME'].iloc[0] if not region_pop.empty else selected_region
-        
-        # Employee count from database or estimate based on population
-        # Total TDF: ~1,500 employees, France pop ~67M → ~0.0224 employees per 1K pop
-        emp_count = int(employee_data['EMP_COUNT'].iloc[0]) if not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0 else int(pop * 0.0000276)
-        
-        # Minimum of 50 employees per region for operational presence
-        emp_count = max(emp_count, 50)
-        
-        # FTE Capacity = Employees + 10% contractors
-        base_capacity = emp_count * 1.10
-        
-        # Utilization from database
-        base_utilization = float(utilization_data['AVG_UTIL'].iloc[0]) if not utilization_data.empty and utilization_data['AVG_UTIL'].iloc[0] > 0 else 85
-        
-        # Demand = Capacity * 1.08 (8% growth target)
-        base_demand = base_capacity * 1.08
-        
-        # Apply scenario multiplier
-        scenario_demand = base_demand * multiplier
-        
-        # Apply attrition (French telecom industry avg: 6-8%)
-        if include_attrition:
-            attrition_rate = 0.07  # 7% annual attrition
-            attrition_impact = base_capacity * attrition_rate * (horizon / 12)
-            effective_capacity = base_capacity - attrition_impact
-        else:
-            effective_capacity = base_capacity
-            attrition_impact = 0
-        
-        gap = effective_capacity - scenario_demand
-        gap_pct = (gap / scenario_demand) * 100 if scenario_demand > 0 else 0
-        
-        # Display results
-        st.markdown(f"#### 📍 {selected_region} - Scenario Results")
-        
-        # Show data source info
-        data_source = "📊 Live data" if (not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0) else "📊 Estimated"
-        st.caption(f"{data_source} from HR.EMPLOYEES & HR.WORKFORCE_CAPACITY")
-        
-        # Results metrics
-        res_col1, res_col2, res_col3 = st.columns(3)
-        
-        with res_col1:
-            st.markdown(f"""
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="color: #666; font-size: 0.8rem;">CAPACITY</div>
-                    <div style="color: #1a2b4a; font-size: 1.8rem; font-weight: 700;">{int(effective_capacity)}</div>
-                    <div style="color: #888; font-size: 0.75rem;">FTE Available</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with res_col2:
-            st.markdown(f"""
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="color: #666; font-size: 0.8rem;">DEMAND</div>
-                    <div style="color: #e63946; font-size: 1.8rem; font-weight: 700;">{int(scenario_demand)}</div>
-                    <div style="color: #888; font-size: 0.75rem;">FTE Needed</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with res_col3:
-            gap_color = '#27ae60' if gap >= 0 else '#e63946'
-            gap_label = 'SURPLUS' if gap >= 0 else 'SHORTAGE'
-            st.markdown(f"""
-                <div style="background: {gap_color}15; padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid {gap_color};">
-                    <div style="color: #666; font-size: 0.8rem;">{gap_label}</div>
-                    <div style="color: {gap_color}; font-size: 1.8rem; font-weight: 700;">{int(abs(gap))}</div>
-                    <div style="color: #888; font-size: 0.75rem;">{gap_pct:+.0f}% Gap</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        # Impact summary
-        st.markdown("#### 💡 Scenario Impact")
-        
-        if gap < 0:
-            total_gap = int(abs(gap))
-            
-            # French telecom industry salary benchmarks by skill name (2024-2025)
-            # Source: INSEE, Apec, Syntec salary surveys
-            # Maps skill name keywords to salary/time data
-            def get_salary_benchmark(skill_name):
-                skill_lower = skill_name.lower() if skill_name else ""
-                if 'tower' in skill_lower or 'climb' in skill_lower or 'rigging' in skill_lower:
-                    return {'salary': 38500, 'time': 42, 'priority_base': 90}
-                elif 'rf' in skill_lower or 'radio' in skill_lower:
-                    return {'salary': 52000, 'time': 58, 'priority_base': 88}
-                elif 'electric' in skill_lower or 'hv' in skill_lower or 'high voltage' in skill_lower:
-                    return {'salary': 44000, 'time': 48, 'priority_base': 85}
-                elif 'civil' in skill_lower or 'structural' in skill_lower:
-                    return {'salary': 41000, 'time': 45, 'priority_base': 75}
-                elif 'network' in skill_lower or 'telecom' in skill_lower:
-                    return {'salary': 48000, 'time': 52, 'priority_base': 82}
-                elif 'data' in skill_lower or 'it' in skill_lower:
-                    return {'salary': 55000, 'time': 55, 'priority_base': 78}
-                elif 'project' in skill_lower or 'management' in skill_lower:
-                    return {'salary': 62000, 'time': 65, 'priority_base': 70}
-                elif 'safety' in skill_lower or 'health' in skill_lower or 'environment' in skill_lower:
-                    return {'salary': 46000, 'time': 40, 'priority_base': 80}
-                elif 'broadcast' in skill_lower or 'transmission' in skill_lower:
-                    return {'salary': 50000, 'time': 50, 'priority_base': 76}
-                elif 'engineer' in skill_lower:
-                    return {'salary': 48000, 'time': 52, 'priority_base': 80}
-                else:
-                    return {'salary': 45000, 'time': 50, 'priority_base': 75}
-            
-            # Fetch skill categories from database
-            skill_data = run_query("""
-                SELECT 
-                    sc.SKILL_CATEGORY_NAME as SKILL_NAME,
-                    sc.SKILL_CATEGORY_ID
-                FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
-                WHERE sc.IS_ACTIVE = TRUE
-                ORDER BY sc.SKILL_CATEGORY_NAME
+        with col_results:
+            # Fetch REAL employee count for this region (this is the true base)
+            employee_data = run_query(f"""
+                SELECT COUNT(*) as EMP_COUNT
+                FROM TDF_DATA_PLATFORM.HR.EMPLOYEES e
+                WHERE e.REGION_ID = '{selected_region_id}'
+                AND e.EMPLOYMENT_STATUS = 'ACTIVE'
             """)
-            
-            # Calculate per-role hiring needs with differentiated data
-            roles_data = []
-            total_hiring_cost = 0
-            total_annual_salary = 0
-            
-            if not skill_data.empty and len(skill_data) > 0:
-                num_skills = len(skill_data)
-                
-                # Different distribution percentages for each role type
-                role_weights = {}
-                for idx, row in skill_data.iterrows():
-                    skill_name = row['SKILL_NAME']
-                    benchmark = get_salary_benchmark(skill_name)
-                    # Weight based on priority_base - higher priority = more hiring need
-                    role_weights[skill_name] = benchmark['priority_base']
-                
-                total_weight = sum(role_weights.values())
-                
-                for idx, row in skill_data.iterrows():
-                    skill_name = row['SKILL_NAME']
-                    benchmark = get_salary_benchmark(skill_name)
-                    
-                    # Proportional distribution based on priority weights
-                    proportion = role_weights[skill_name] / total_weight if total_weight > 0 else 1/num_skills
-                    fte_needed = max(1, round(total_gap * proportion))
-                    
-                    # Vary current FTE based on role type (realistic distribution)
-                    base_fte = int(base_capacity * proportion) if base_capacity > 0 else 10
-                    current_fte = max(5, base_fte + (idx * 2) - 5)  # Add some variation
-                    
-                    # Recruitment cost: French market avg 15-18% of annual salary
-                    # Junior: ~15%, Senior: ~18%, includes agency fees + onboarding
-                    recruitment_pct = 0.15 + (benchmark['salary'] - 38000) / 500000  # 15-18%
-                    recruitment_per_hire = int(benchmark['salary'] * recruitment_pct)
-                    recruitment_cost = int(fte_needed * recruitment_per_hire)
-                    annual_salary_cost = fte_needed * benchmark['salary']
-                    
-                    total_hiring_cost += recruitment_cost
-                    total_annual_salary += annual_salary_cost
-                    
-                    # Priority based on benchmark priority
-                    priority_score = benchmark['priority_base']
-                    priority = "🔴 Critical" if priority_score >= 85 else "🟡 High" if priority_score >= 75 else "🟢 Normal"
-                    
-                    roles_data.append({
-                        "Role": skill_name,
-                        "FTE Needed": fte_needed,
-                        "Current FTE": current_fte,
-                        "Avg Salary": f"€{benchmark['salary']:,}",
-                        "Recruitment Cost": f"€{recruitment_cost:,}",
-                        "Time to Hire": f"{benchmark['time']} days",
-                        "Priority": priority
-                    })
-                
-                # Sort by FTE needed descending
-                roles_data = sorted(roles_data, key=lambda x: x['FTE Needed'], reverse=True)
+        
+            # Fetch utilization average for this region
+            utilization_data = run_query(f"""
+                SELECT AVG(wc.UTILIZATION_PCT) as AVG_UTIL
+                FROM TDF_DATA_PLATFORM.HR.WORKFORCE_CAPACITY wc
+                WHERE wc.REGION_ID = '{selected_region_id}'
+            """)
+        
+            # Get regional population for fallback estimates
+            region_pop = run_query(f"""
+                SELECT REGION_NAME, POPULATION FROM TDF_DATA_PLATFORM.CORE.REGIONS WHERE REGION_ID = '{selected_region_id}'
+            """)
+            pop = region_pop['POPULATION'].iloc[0] if not region_pop.empty else 5000000
+            region_name_db = region_pop['REGION_NAME'].iloc[0] if not region_pop.empty else selected_region
+        
+            # Employee count from database or estimate based on population
+            # Total TDF: ~1,500 employees, France pop ~67M → ~0.0224 employees per 1K pop
+            emp_count = int(employee_data['EMP_COUNT'].iloc[0]) if not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0 else int(pop * 0.0000276)
+        
+            # Minimum of 50 employees per region for operational presence
+            emp_count = max(emp_count, 50)
+        
+            # FTE Capacity = Employees + 10% contractors
+            base_capacity = emp_count * 1.10
+        
+            # Utilization from database
+            base_utilization = float(utilization_data['AVG_UTIL'].iloc[0]) if not utilization_data.empty and utilization_data['AVG_UTIL'].iloc[0] > 0 else 85
+        
+            # Demand = Capacity * 1.08 (8% growth target)
+            base_demand = base_capacity * 1.08
+        
+            # Apply scenario multiplier
+            scenario_demand = base_demand * multiplier
+        
+            # Apply attrition (French telecom industry avg: 6-8%)
+            if include_attrition:
+                attrition_rate = 0.07  # 7% annual attrition
+                attrition_impact = base_capacity * attrition_rate * (horizon / 12)
+                effective_capacity = base_capacity - attrition_impact
             else:
-                # Fallback with differentiated default data
-                default_roles = [
-                    {"name": "Tower Climbing & Rigging", "pct": 0.22, "salary": 38500, "time": 42},
-                    {"name": "RF Engineering", "pct": 0.16, "salary": 52000, "time": 58},
-                    {"name": "Electrical Systems", "pct": 0.14, "salary": 44000, "time": 48},
-                    {"name": "Network Operations", "pct": 0.12, "salary": 48000, "time": 52},
-                    {"name": "Civil Engineering", "pct": 0.10, "salary": 41000, "time": 45},
-                    {"name": "Data Center Operations", "pct": 0.09, "salary": 55000, "time": 55},
-                    {"name": "Project Management", "pct": 0.08, "salary": 62000, "time": 65},
-                    {"name": "Health & Safety", "pct": 0.05, "salary": 46000, "time": 40},
-                    {"name": "Environmental", "pct": 0.04, "salary": 44000, "time": 45},
-                ]
-                base_current = max(10, int(base_capacity / len(default_roles)))
-                for idx, role in enumerate(default_roles):
-                    fte = max(1, round(total_gap * role["pct"]))
-                    # Recruitment cost: 15-18% of salary (French market standard)
-                    rec_pct = 0.15 + (role["salary"] - 38000) / 500000
-                    rec_cost = int(fte * role["salary"] * rec_pct)
-                    total_hiring_cost += rec_cost
-                    current = base_current + (idx * 3) - 10 + int(role["pct"] * 100)
-                    priority = "🔴 Critical" if role["pct"] >= 0.15 else "🟡 High" if role["pct"] >= 0.08 else "🟢 Normal"
-                    roles_data.append({
-                        "Role": role["name"],
-                        "FTE Needed": fte,
-                        "Current FTE": max(5, current),
-                        "Avg Salary": f"€{role['salary']:,}",
-                        "Recruitment Cost": f"€{rec_cost:,}",
-                        "Time to Hire": f"{role['time']} days",
-                        "Priority": priority
-                    })
+                effective_capacity = base_capacity
+                attrition_impact = 0
+        
+            gap = effective_capacity - scenario_demand
+            gap_pct = (gap / scenario_demand) * 100 if scenario_demand > 0 else 0
+        
+            # Display results
+            st.markdown(f"#### 📍 {selected_region} - Scenario Results")
+        
+            # Show data source info
+            data_source = "📊 Live data" if (not employee_data.empty and employee_data['EMP_COUNT'].iloc[0] > 0) else "📊 Estimated"
+            st.caption(f"{data_source} from HR.EMPLOYEES & HR.WORKFORCE_CAPACITY")
+        
+            # Results metrics
+            res_col1, res_col2, res_col3 = st.columns(3)
+        
+            with res_col1:
+                st.markdown(f"""
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="color: #666; font-size: 0.8rem;">CAPACITY</div>
+                        <div style="color: #1a2b4a; font-size: 1.8rem; font-weight: 700;">{int(effective_capacity)}</div>
+                        <div style="color: #888; font-size: 0.75rem;">FTE Available</div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            with res_col2:
+                st.markdown(f"""
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="color: #666; font-size: 0.8rem;">DEMAND</div>
+                        <div style="color: #e63946; font-size: 1.8rem; font-weight: 700;">{int(scenario_demand)}</div>
+                        <div style="color: #888; font-size: 0.75rem;">FTE Needed</div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            with res_col3:
+                gap_color = '#27ae60' if gap >= 0 else '#e63946'
+                gap_label = 'SURPLUS' if gap >= 0 else 'SHORTAGE'
+                st.markdown(f"""
+                    <div style="background: {gap_color}15; padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid {gap_color};">
+                        <div style="color: #666; font-size: 0.8rem;">{gap_label}</div>
+                        <div style="color: {gap_color}; font-size: 1.8rem; font-weight: 700;">{int(abs(gap))}</div>
+                        <div style="color: #888; font-size: 0.75rem;">{gap_pct:+.0f}% Gap</div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            # Impact summary
+            st.markdown("#### 💡 Scenario Impact")
+        
+            if gap < 0:
+                total_gap = int(abs(gap))
             
-            # Calculate realistic metrics based on French market data
-            avg_time_to_hire = 50  # days (French telecom avg)
-            hiring_capacity_per_month = max(2, int(total_gap * 0.15))  # Can hire ~15% of need per month
-            months_to_close = max(2, int(total_gap / hiring_capacity_per_month))
+                # French telecom industry salary benchmarks by skill name (2024-2025)
+                # Source: INSEE, Apec, Syntec salary surveys
+                # Maps skill name keywords to salary/time data
+                def get_salary_benchmark(skill_name):
+                    skill_lower = skill_name.lower() if skill_name else ""
+                    if 'tower' in skill_lower or 'climb' in skill_lower or 'rigging' in skill_lower:
+                        return {'salary': 38500, 'time': 42, 'priority_base': 90}
+                    elif 'rf' in skill_lower or 'radio' in skill_lower:
+                        return {'salary': 52000, 'time': 58, 'priority_base': 88}
+                    elif 'electric' in skill_lower or 'hv' in skill_lower or 'high voltage' in skill_lower:
+                        return {'salary': 44000, 'time': 48, 'priority_base': 85}
+                    elif 'civil' in skill_lower or 'structural' in skill_lower:
+                        return {'salary': 41000, 'time': 45, 'priority_base': 75}
+                    elif 'network' in skill_lower or 'telecom' in skill_lower:
+                        return {'salary': 48000, 'time': 52, 'priority_base': 82}
+                    elif 'data' in skill_lower or 'it' in skill_lower:
+                        return {'salary': 55000, 'time': 55, 'priority_base': 78}
+                    elif 'project' in skill_lower or 'management' in skill_lower:
+                        return {'salary': 62000, 'time': 65, 'priority_base': 70}
+                    elif 'safety' in skill_lower or 'health' in skill_lower or 'environment' in skill_lower:
+                        return {'salary': 46000, 'time': 40, 'priority_base': 80}
+                    elif 'broadcast' in skill_lower or 'transmission' in skill_lower:
+                        return {'salary': 50000, 'time': 50, 'priority_base': 76}
+                    elif 'engineer' in skill_lower:
+                        return {'salary': 48000, 'time': 52, 'priority_base': 80}
+                    else:
+                        return {'salary': 45000, 'time': 50, 'priority_base': 75}
             
-            # Revenue per FTE based on TDF financials: €799M / 1500 employees ≈ €533K per employee
-            # Technical staff generate ~60% of this directly
-            revenue_per_fte = 320000  # €320K revenue contribution per technical FTE
-            revenue_at_risk = total_gap * revenue_per_fte
+                # Fetch skill categories from database
+                skill_data = run_query("""
+                    SELECT 
+                        sc.SKILL_CATEGORY_NAME as SKILL_NAME,
+                        sc.SKILL_CATEGORY_ID
+                    FROM TDF_DATA_PLATFORM.CORE.SKILL_CATEGORIES sc
+                    WHERE sc.IS_ACTIVE = TRUE
+                    ORDER BY sc.SKILL_CATEGORY_NAME
+                """)
             
-            # First year cost = recruitment + salary
-            first_year_total_cost = total_hiring_cost + (total_annual_salary if 'total_annual_salary' in dir() else total_gap * 45000)
+                # Calculate per-role hiring needs with differentiated data
+                roles_data = []
+                total_hiring_cost = 0
+                total_annual_salary = 0
             
-            # Summary metrics with real calculations
-            st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); padding: 1.5rem; border-radius: 10px; color: white;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
-                        <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">🔧 TOTAL HIRING NEED</div>
-                            <div style="font-size: 1.5rem; font-weight: 600;">{total_gap} FTE</div>
-                            <div style="color: #888; font-size: 0.7rem;">across {len(roles_data)} skill areas</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">💰 RECRUITMENT BUDGET</div>
-                            <div style="font-size: 1.5rem; font-weight: 600;">€{total_hiring_cost/1000:.0f}K</div>
-                            <div style="color: #888; font-size: 0.7rem;">avg €{int(total_hiring_cost/max(total_gap,1)):,}/hire</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">⏱️ TIME TO CLOSE GAP</div>
-                            <div style="font-size: 1.5rem; font-weight: 600;">{months_to_close} months</div>
-                            <div style="color: #888; font-size: 0.7rem;">~{hiring_capacity_per_month} hires/month</div>
-                        </div>
-                        <div>
-                            <div style="color: #aaa; font-size: 0.75rem;">⚠️ REVENUE AT RISK</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #e63946;">€{revenue_at_risk/1000000:.1f}M</div>
-                            <div style="color: #888; font-size: 0.7rem;">€{int(revenue_per_fte/1000)}K/FTE annual</div>
+                if not skill_data.empty and len(skill_data) > 0:
+                    num_skills = len(skill_data)
+                
+                    # Different distribution percentages for each role type
+                    role_weights = {}
+                    for idx, row in skill_data.iterrows():
+                        skill_name = row['SKILL_NAME']
+                        benchmark = get_salary_benchmark(skill_name)
+                        # Weight based on priority_base - higher priority = more hiring need
+                        role_weights[skill_name] = benchmark['priority_base']
+                
+                    total_weight = sum(role_weights.values())
+                
+                    for idx, row in skill_data.iterrows():
+                        skill_name = row['SKILL_NAME']
+                        benchmark = get_salary_benchmark(skill_name)
+                    
+                        # Proportional distribution based on priority weights
+                        proportion = role_weights[skill_name] / total_weight if total_weight > 0 else 1/num_skills
+                        fte_needed = max(1, round(total_gap * proportion))
+                    
+                        # Vary current FTE based on role type (realistic distribution)
+                        base_fte = int(base_capacity * proportion) if base_capacity > 0 else 10
+                        current_fte = max(5, base_fte + (idx * 2) - 5)  # Add some variation
+                    
+                        # Recruitment cost: French market avg 15-18% of annual salary
+                        # Junior: ~15%, Senior: ~18%, includes agency fees + onboarding
+                        recruitment_pct = 0.15 + (benchmark['salary'] - 38000) / 500000  # 15-18%
+                        recruitment_per_hire = int(benchmark['salary'] * recruitment_pct)
+                        recruitment_cost = int(fte_needed * recruitment_per_hire)
+                        annual_salary_cost = fte_needed * benchmark['salary']
+                    
+                        total_hiring_cost += recruitment_cost
+                        total_annual_salary += annual_salary_cost
+                    
+                        # Priority based on benchmark priority
+                        priority_score = benchmark['priority_base']
+                        priority = "🔴 Critical" if priority_score >= 85 else "🟡 High" if priority_score >= 75 else "🟢 Normal"
+                    
+                        roles_data.append({
+                            "Role": skill_name,
+                            "FTE Needed": fte_needed,
+                            "Current FTE": current_fte,
+                            "Avg Salary": f"€{benchmark['salary']:,}",
+                            "Recruitment Cost": f"€{recruitment_cost:,}",
+                            "Time to Hire": f"{benchmark['time']} days",
+                            "Priority": priority
+                        })
+                
+                    # Sort by FTE needed descending
+                    roles_data = sorted(roles_data, key=lambda x: x['FTE Needed'], reverse=True)
+                else:
+                    # Fallback with differentiated default data
+                    default_roles = [
+                        {"name": "Tower Climbing & Rigging", "pct": 0.22, "salary": 38500, "time": 42},
+                        {"name": "RF Engineering", "pct": 0.16, "salary": 52000, "time": 58},
+                        {"name": "Electrical Systems", "pct": 0.14, "salary": 44000, "time": 48},
+                        {"name": "Network Operations", "pct": 0.12, "salary": 48000, "time": 52},
+                        {"name": "Civil Engineering", "pct": 0.10, "salary": 41000, "time": 45},
+                        {"name": "Data Center Operations", "pct": 0.09, "salary": 55000, "time": 55},
+                        {"name": "Project Management", "pct": 0.08, "salary": 62000, "time": 65},
+                        {"name": "Health & Safety", "pct": 0.05, "salary": 46000, "time": 40},
+                        {"name": "Environmental", "pct": 0.04, "salary": 44000, "time": 45},
+                    ]
+                    base_current = max(10, int(base_capacity / len(default_roles)))
+                    for idx, role in enumerate(default_roles):
+                        fte = max(1, round(total_gap * role["pct"]))
+                        # Recruitment cost: 15-18% of salary (French market standard)
+                        rec_pct = 0.15 + (role["salary"] - 38000) / 500000
+                        rec_cost = int(fte * role["salary"] * rec_pct)
+                        total_hiring_cost += rec_cost
+                        current = base_current + (idx * 3) - 10 + int(role["pct"] * 100)
+                        priority = "🔴 Critical" if role["pct"] >= 0.15 else "🟡 High" if role["pct"] >= 0.08 else "🟢 Normal"
+                        roles_data.append({
+                            "Role": role["name"],
+                            "FTE Needed": fte,
+                            "Current FTE": max(5, current),
+                            "Avg Salary": f"€{role['salary']:,}",
+                            "Recruitment Cost": f"€{rec_cost:,}",
+                            "Time to Hire": f"{role['time']} days",
+                            "Priority": priority
+                        })
+            
+                # Calculate realistic metrics based on French market data
+                avg_time_to_hire = 50  # days (French telecom avg)
+                hiring_capacity_per_month = max(2, int(total_gap * 0.15))  # Can hire ~15% of need per month
+                months_to_close = max(2, int(total_gap / hiring_capacity_per_month))
+            
+                # Revenue per FTE based on TDF financials: €799M / 1500 employees ≈ €533K per employee
+                # Technical staff generate ~60% of this directly
+                revenue_per_fte = 320000  # €320K revenue contribution per technical FTE
+                revenue_at_risk = total_gap * revenue_per_fte
+            
+                # First year cost = recruitment + salary
+                first_year_total_cost = total_hiring_cost + (total_annual_salary if 'total_annual_salary' in dir() else total_gap * 45000)
+            
+                # Summary metrics with real calculations
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); padding: 1.5rem; border-radius: 10px; color: white;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                            <div>
+                                <div style="color: #aaa; font-size: 0.75rem;">🔧 TOTAL HIRING NEED</div>
+                                <div style="font-size: 1.5rem; font-weight: 600;">{total_gap} FTE</div>
+                                <div style="color: #888; font-size: 0.7rem;">across {len(roles_data)} skill areas</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.75rem;">💰 RECRUITMENT BUDGET</div>
+                                <div style="font-size: 1.5rem; font-weight: 600;">€{total_hiring_cost/1000:.0f}K</div>
+                                <div style="color: #888; font-size: 0.7rem;">avg €{int(total_hiring_cost/max(total_gap,1)):,}/hire</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.75rem;">⏱️ TIME TO CLOSE GAP</div>
+                                <div style="font-size: 1.5rem; font-weight: 600;">{months_to_close} months</div>
+                                <div style="color: #888; font-size: 0.7rem;">~{hiring_capacity_per_month} hires/month</div>
+                            </div>
+                            <div>
+                                <div style="color: #aaa; font-size: 0.75rem;">⚠️ REVENUE AT RISK</div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: #e63946;">€{revenue_at_risk/1000000:.1f}M</div>
+                                <div style="color: #888; font-size: 0.7rem;">€{int(revenue_per_fte/1000)}K/FTE annual</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
             
-            # Role breakdown table
-            st.markdown("#### 👥 Hiring Breakdown by Role")
+                # Role breakdown table
+                st.markdown("#### 👥 Hiring Breakdown by Role")
             
-            roles_df = pd.DataFrame(roles_data)
+                roles_df = pd.DataFrame(roles_data)
             
-            # Create visual bar chart for roles
-            fig = go.Figure()
+                # Create visual bar chart for roles
+                fig = go.Figure()
             
-            colors = ['#e63946' if 'Critical' in p else '#f39c12' if 'High' in p else '#27ae60' 
-                     for p in roles_df['Priority']]
+                colors = ['#e63946' if 'Critical' in p else '#f39c12' if 'High' in p else '#27ae60' 
+                         for p in roles_df['Priority']]
             
-            fig.add_trace(go.Bar(
-                y=roles_df['Role'],
-                x=roles_df['FTE Needed'],
-                orientation='h',
-                marker=dict(color=colors),
-                text=roles_df['FTE Needed'],
-                textposition='inside',
-                textfont=dict(color='white', size=12),
-                hovertemplate=(
-                    '<b>%{y}</b><br>' +
-                    'FTE Needed: %{x}<br>' +
-                    '<extra></extra>'
+                fig.add_trace(go.Bar(
+                    y=roles_df['Role'],
+                    x=roles_df['FTE Needed'],
+                    orientation='h',
+                    marker=dict(color=colors),
+                    text=roles_df['FTE Needed'],
+                    textposition='inside',
+                    textfont=dict(color='white', size=12),
+                    hovertemplate=(
+                        '<b>%{y}</b><br>' +
+                        'FTE Needed: %{x}<br>' +
+                        '<extra></extra>'
+                    )
+                ))
+            
+                fig.update_layout(
+                    height=320,
+                    margin=dict(l=10, r=20, t=10, b=10),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE to Hire'),
+                    yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                    showlegend=False
                 )
-            ))
             
-            fig.update_layout(
-                height=320,
-                margin=dict(l=10, r=20, t=10, b=10),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='FTE to Hire'),
-                yaxis=dict(showgrid=False, categoryorder='total ascending'),
-                showlegend=False
-            )
+                st.plotly_chart(fig, use_container_width=True)
             
-            st.plotly_chart(fig, use_container_width=True)
+                # Detailed table with Current FTE for context
+                st.markdown("##### 📋 Detailed Hiring Plan")
             
-            # Detailed table with Current FTE for context
-            st.markdown("##### 📋 Detailed Hiring Plan")
+                # Show table with real data
+                display_cols = ['Role', 'Current FTE', 'FTE Needed', 'Avg Salary', 'Recruitment Cost', 'Time to Hire', 'Priority']
+                display_cols = [c for c in display_cols if c in roles_df.columns]
             
-            # Show table with real data
-            display_cols = ['Role', 'Current FTE', 'FTE Needed', 'Avg Salary', 'Recruitment Cost', 'Time to Hire', 'Priority']
-            display_cols = [c for c in display_cols if c in roles_df.columns]
+                st.dataframe(
+                    roles_df[display_cols],
+                    use_container_width=True,
+                    hide_index=True
+                )
             
-            st.dataframe(
-                roles_df[display_cols],
-                use_container_width=True,
-                hide_index=True
-            )
+                # Data source note
+                st.caption("💾 Data sources: HR.WORKFORCE_CAPACITY, COMMERCIAL.DEMAND_FORECAST, CORE.SKILL_CATEGORIES")
             
-            # Data source note
-            st.caption("💾 Data sources: HR.WORKFORCE_CAPACITY, COMMERCIAL.DEMAND_FORECAST, CORE.SKILL_CATEGORIES")
+                # Timeline based on actual hiring capacity
+                critical_roles = [r for r in roles_data if '🔴' in r.get('Priority', '')]
+                high_roles = [r for r in roles_data if '🟡' in r.get('Priority', '')]
             
-            # Timeline based on actual hiring capacity
-            critical_roles = [r for r in roles_data if '🔴' in r.get('Priority', '')]
-            high_roles = [r for r in roles_data if '🟡' in r.get('Priority', '')]
-            
-            st.info(f"""
-                **📅 Recommended Hiring Timeline for {selected_region}:**
-                - **Month 1-{min(2, months_to_close)}:** Focus on {len(critical_roles)} 🔴 Critical roles first
-                - **Month {min(3, months_to_close)}-{min(4, months_to_close)}:** {len(high_roles)} 🟡 High priority roles  
-                - **Month {min(5, months_to_close)}+:** Remaining 🟢 Normal priority positions
+                st.info(f"""
+                    **📅 Recommended Hiring Timeline for {selected_region}:**
+                    - **Month 1-{min(2, months_to_close)}:** Focus on {len(critical_roles)} 🔴 Critical roles first
+                    - **Month {min(3, months_to_close)}-{min(4, months_to_close)}:** {len(high_roles)} 🟡 High priority roles  
+                    - **Month {min(5, months_to_close)}+:** Remaining 🟢 Normal priority positions
                 
-                *Based on regional hiring capacity of ~{hiring_capacity_per_month} FTE/month*
-            """)
+                    *Based on regional hiring capacity of ~{hiring_capacity_per_month} FTE/month*
+                """)
             
-        else:
-            st.success(f"✅ **{selected_region}** has sufficient capacity for this scenario with {int(gap)} FTE surplus.")
+            else:
+                st.success(f"✅ **{selected_region}** has sufficient capacity for this scenario with {int(gap)} FTE surplus.")
             
-            # Show reallocation opportunity
-            st.markdown("#### 💡 Optimization Opportunity")
-            st.markdown(f"""
-                With **{int(gap)} surplus FTE**, consider:
-                - Cross-training staff for other regions with shortages
-                - Supporting major project deployments
-                - Building bench strength for upcoming contracts
-            """)
+                # Show reallocation opportunity
+                st.markdown("#### 💡 Optimization Opportunity")
+                st.markdown(f"""
+                    With **{int(gap)} surplus FTE**, consider:
+                    - Cross-training staff for other regions with shortages
+                    - Supporting major project deployments
+                    - Building bench strength for upcoming contracts
+                """)
     
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-        <div style="text-align: center; color: #888; font-size: 0.8rem;">
+        # Footer
+        st.markdown("---")
+        st.markdown("""
+            <div style="text-align: center; color: #888; font-size: 0.8rem;">
             📊 Adéquation Charge / Capacité • Data from HR, Commercial & Operations • Powered by Snowflake
         </div>
     """, unsafe_allow_html=True)
