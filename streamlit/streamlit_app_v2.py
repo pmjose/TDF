@@ -647,8 +647,8 @@ with st.sidebar:
             "Executive Dashboard",
             "Adéquation Charge / Capacité",
             "ESG Regulatory Reporting",
-            "Digital Twin",
             "CAPEX & Lifecycle",
+            "Digital Twin",
             "Architecture"
         ],
         label_visibility="collapsed"
@@ -9058,10 +9058,10 @@ elif page == "Adéquation Charge / Capacité":
     page_capacity_planning()
 elif page == "ESG Regulatory Reporting":
     page_esg_reporting()
-elif page == "Digital Twin":
-    page_digital_twin()
 elif page == "CAPEX & Lifecycle":
     page_capex_lifecycle()
+elif page == "Digital Twin":
+    page_digital_twin()
 elif page == "Architecture":
     page_architecture()
 
