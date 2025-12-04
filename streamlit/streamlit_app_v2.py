@@ -1529,79 +1529,83 @@ def page_executive_dashboard():
                 st.warning("No regional data found.")
     
         with col_clients:
-            st.markdown("### 💰 Client Health Monitor")
+            st.markdown("### 🔧 Service Level by Client")
         
-            # Fetch client health data
-            client_health_df = run_query("""
+            # Fetch client infrastructure metrics
+            client_infra_df = run_query("""
                 SELECT 
                     o.OPERATOR_NAME,
                     o.OPERATOR_CODE,
-                    o.ANNUAL_REVENUE_EUR / 1000000 as REVENUE_M,
-                    o.CONTRACT_END_DATE,
-                    o.CREDIT_RATING,
-                    DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY,
-                    COALESCE(
-                        (SELECT COUNT(*) 
-                         FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS wo 
-                         JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES s ON wo.SITE_ID = s.SITE_ID
-                         JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.CLIENT_INSTALLATIONS ci ON s.SITE_ID = ci.SITE_ID
-                         WHERE ci.OPERATOR_ID = o.OPERATOR_ID
-                         AND wo.STATUS = 'OPEN'
-                         AND wo.PRIORITY IN ('CRITICAL', 'HIGH')), 0
-                    ) as OPEN_ISSUES
+                    o.OPERATOR_TYPE,
+                    COUNT(DISTINCT ci.SITE_ID) as SITES_COUNT,
+                    COUNT(DISTINCT ci.INSTALLATION_ID) as INSTALLATIONS,
+                    SUM(ci.EQUIPMENT_COUNT) as EQUIPMENT_COUNT,
+                    AVG(CASE WHEN wo.SLA_MET = TRUE THEN 100 ELSE 0 END) as SLA_PCT,
+                    SUM(CASE WHEN wo.STATUS = 'OPEN' AND wo.PRIORITY IN ('CRITICAL', 'HIGH') THEN 1 ELSE 0 END) as CRITICAL_TICKETS
                 FROM TDF_DATA_PLATFORM.CORE.OPERATORS o
+                LEFT JOIN TDF_DATA_PLATFORM.INFRASTRUCTURE.CLIENT_INSTALLATIONS ci ON o.OPERATOR_ID = ci.OPERATOR_ID
+                LEFT JOIN TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS wo ON ci.SITE_ID = wo.SITE_ID
                 WHERE o.ANNUAL_REVENUE_EUR > 0
-                ORDER BY o.ANNUAL_REVENUE_EUR DESC
+                GROUP BY o.OPERATOR_ID, o.OPERATOR_NAME, o.OPERATOR_CODE, o.OPERATOR_TYPE
+                ORDER BY COUNT(DISTINCT ci.SITE_ID) DESC
                 LIMIT 6
             """)
         
-            if not client_health_df.empty:
-                for _, client in client_health_df.iterrows():
-                    # Determine health status
-                    days_to_expiry = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
-                
-                    if days_to_expiry < 365:
-                        health_class = 'risk'
-                        status_class = 'at-risk'
-                        status_text = f'Expires {days_to_expiry}d'
-                    elif days_to_expiry < 730:
-                        health_class = 'warning'
-                        status_class = 'expiring'
-                        status_text = f'Renewal in {days_to_expiry//30}mo'
+            if not client_infra_df.empty:
+                for _, client in client_infra_df.iterrows():
+                    sites = int(client['SITES_COUNT']) if client['SITES_COUNT'] else 0
+                    sla = client['SLA_PCT'] if client['SLA_PCT'] else 99.5
+                    tickets = int(client['CRITICAL_TICKETS']) if client['CRITICAL_TICKETS'] else 0
+                    equipment = int(client['EQUIPMENT_COUNT']) if client['EQUIPMENT_COUNT'] else 0
+                    
+                    # Status based on SLA and tickets
+                    if sla >= 99 and tickets == 0:
+                        status_color = '#27ae60'
+                        status_icon = '🟢'
+                        status_text = 'Healthy'
+                    elif sla >= 95 or tickets <= 2:
+                        status_color = '#f39c12'
+                        status_icon = '🟡'
+                        status_text = f'{tickets} tickets'
                     else:
-                        health_class = ''
-                        status_class = 'healthy'
-                        status_text = 'Secured'
-                
-                    # Logo initials
+                        status_color = '#e63946'
+                        status_icon = '🔴'
+                        status_text = f'{tickets} critical'
+                    
                     initials = ''.join([w[0] for w in client['OPERATOR_NAME'].split()[:2]]).upper()
-                
+                    
                     st.markdown(f"""
-                        <div class="client-health-card {health_class}">
-                            <div class="client-logo">{initials}</div>
-                            <div class="client-info">
-                                <div class="client-name">{client['OPERATOR_NAME']}</div>
-                                <div class="client-meta">Rating: {client['CREDIT_RATING']} • {client['OPEN_ISSUES']} open issues</div>
-                            </div>
-                            <div class="client-metrics">
-                                <div class="client-revenue">€{client['REVENUE_M']:.0f}M</div>
-                                <div class="client-status {status_class}">{status_text}</div>
+                        <div style="background: white; border-left: 4px solid {status_color}; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="background: #1a2b4a; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">{initials}</div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1a2b4a; font-size: 0.9rem;">{client['OPERATOR_NAME']}</div>
+                                        <div style="color: #666; font-size: 0.75rem;">📡 {sites:,} sites • 🔧 {equipment:,} equipment</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: 700; color: #1a2b4a; font-size: 1rem;">{sla:.1f}%</div>
+                                    <div style="background: {status_color}; color: white; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.65rem; font-weight: 600;">{status_icon} {status_text}</div>
+                                </div>
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
-            
-                # Revenue at risk summary
-                at_risk = client_health_df[client_health_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
-                secured = client_health_df[client_health_df['DAYS_TO_EXPIRY'] >= 730]['REVENUE_M'].sum()
-            
+                
+                # Summary metrics
+                total_sites = client_infra_df['SITES_COUNT'].sum()
+                avg_sla = client_infra_df['SLA_PCT'].mean() if client_infra_df['SLA_PCT'].mean() else 99.5
+                total_tickets = client_infra_df['CRITICAL_TICKETS'].sum()
+                
                 st.markdown("---")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Revenue Secured", f"€{secured:.0f}M", delta="Contracted 2+ yrs")
+                    st.metric("Avg SLA Performance", f"{avg_sla:.1f}%", "Target: 99.5%")
                 with col2:
-                    st.metric("Revenue to Renew", f"€{at_risk:.0f}M", delta="Within 24 months", delta_color="inverse")
+                    delta_color = "inverse" if total_tickets > 0 else "normal"
+                    st.metric("Open Critical Tickets", f"{int(total_tickets)}", f"Across {int(total_sites):,} sites", delta_color=delta_color)
             else:
-                st.info("Loading client data...")
+                st.info("Loading infrastructure data...")
     
         # -------------------------------------------------------------------------
 
