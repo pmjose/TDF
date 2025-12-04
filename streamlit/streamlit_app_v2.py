@@ -656,14 +656,30 @@ with st.sidebar:
     
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     
-    # Info
+    # Info - Fetch live data for sidebar
     st.markdown("### Data Platform")
-    st.markdown("""
+    
+    # Query sidebar metrics
+    sidebar_sites = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'")
+    sidebar_towers = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE' AND SITE_TYPE = 'TOWER'")
+    sidebar_employees = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE STATUS = 'ACTIVE'")
+    sidebar_revenue = run_query("""
+        SELECT SUM(REVENUE_EUR) / 7 * 12 / 1000000 as ANNUAL_REV 
+        FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
+        WHERE FISCAL_YEAR = 2025
+    """)
+    
+    sites_count = int(sidebar_sites['CNT'].iloc[0]) if not sidebar_sites.empty else 8785
+    towers_count = int(sidebar_towers['CNT'].iloc[0]) if not sidebar_towers.empty else 7877
+    emp_count = int(sidebar_employees['CNT'].iloc[0]) if not sidebar_employees.empty else 1500
+    rev_amount = sidebar_revenue['ANNUAL_REV'].iloc[0] if not sidebar_revenue.empty and sidebar_revenue['ANNUAL_REV'].iloc[0] else 808.2
+    
+    st.markdown(f"""
         <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
-            <p>📡 8,785 Active Sites</p>
-            <p>🗼 7,877 Towers</p>
-            <p>👥 1,500 Employees</p>
-            <p>💶 EUR 799.1M Revenue</p>
+            <p>📡 {sites_count:,} Active Sites</p>
+            <p>🗼 {towers_count:,} Towers</p>
+            <p>👥 {emp_count:,} Employees</p>
+            <p>💶 EUR {rev_amount:.1f}M Revenue</p>
         </div>
     """, unsafe_allow_html=True)
     
