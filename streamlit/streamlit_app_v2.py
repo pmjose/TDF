@@ -645,7 +645,7 @@ with st.sidebar:
         "Select Dashboard",
         options=[
             "Executive Dashboard",
-            "Resource & Capacity Planning",
+            "Adéquation Charge / Capacité",
             "ESG Regulatory Reporting",
             "Digital Twin",
             "CAPEX & Lifecycle",
@@ -1836,7 +1836,7 @@ def page_executive_dashboard():
 
 def page_capacity_planning():
     render_header(
-        "Resource & Capacity Planning",
+        "Adéquation Charge / Capacité",
         "Real-time capacity-to-demand forecasting • 18-month horizon • Dynamic scenario modeling"
     )
     
@@ -2884,7 +2884,7 @@ def page_capacity_planning():
     st.markdown("---")
     st.markdown("""
         <div style="text-align: center; color: #888; font-size: 0.8rem;">
-            📊 Resource & Capacity Planning • Data from HR, Commercial & Operations • Powered by Snowflake
+            📊 Adéquation Charge / Capacité • Data from HR, Commercial & Operations • Powered by Snowflake
         </div>
     """, unsafe_allow_html=True)
 
@@ -8977,7 +8977,7 @@ def page_architecture():
 
 if page == "Executive Dashboard":
     page_executive_dashboard()
-elif page == "Resource & Capacity Planning":
+elif page == "Adéquation Charge / Capacité":
     page_capacity_planning()
 elif page == "ESG Regulatory Reporting":
     page_esg_reporting()
