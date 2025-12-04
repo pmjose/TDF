@@ -4347,1354 +4347,1388 @@ def page_digital_twin():
         "Infrastructure Data Control Tower • Single Source of Truth • Real-Time Quality Monitoring"
     )
     
-    # -------------------------------------------------------------------------
-    # ROW 1: Data Control Tower KPIs
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # TABS STRUCTURE
+    # =========================================================================
+    tab_overview, tab_discrepancies, tab_models, tab_monitoring, tab_analysis = st.tabs([
+        "📊 Overview",
+        "🔍 Discrepancies",
+        "🏗️ 3D Models",
+        "📡 Monitoring",
+        "📈 Analysis"
+    ])
     
-    st.markdown("### 🎛️ Infrastructure Data Control Tower")
+    # =========================================================================
+    # TAB 1: OVERVIEW
+    # =========================================================================
+    with tab_overview:
+        # ROW 1: Data Control Tower KPIs
+        # -------------------------------------------------------------------------
     
-    # Fetch data quality metrics
-    quality_data = run_query("""
-        SELECT 
-            COUNT(*) as TOTAL_RECORDS,
-            AVG(CASE WHEN SITE_NAME IS NOT NULL AND LATITUDE IS NOT NULL AND LONGITUDE IS NOT NULL THEN 100 ELSE 0 END) as COMPLETENESS,
-            COUNT(CASE WHEN STATUS = 'ACTIVE' THEN 1 END) as ACTIVE_COUNT
-        FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES
-    """)
+        st.markdown("### 🎛️ Infrastructure Data Control Tower")
     
-    total_records = quality_data['TOTAL_RECORDS'].iloc[0] if not quality_data.empty else 8785
-    completeness = quality_data['COMPLETENESS'].iloc[0] if not quality_data.empty else 94.2
+        # Fetch data quality metrics
+        quality_data = run_query("""
+            SELECT 
+                COUNT(*) as TOTAL_RECORDS,
+                AVG(CASE WHEN SITE_NAME IS NOT NULL AND LATITUDE IS NOT NULL AND LONGITUDE IS NOT NULL THEN 100 ELSE 0 END) as COMPLETENESS,
+                COUNT(CASE WHEN STATUS = 'ACTIVE' THEN 1 END) as ACTIVE_COUNT
+            FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES
+        """)
     
-    kpi_cols = st.columns(4)
+        total_records = quality_data['TOTAL_RECORDS'].iloc[0] if not quality_data.empty else 8785
+        completeness = quality_data['COMPLETENESS'].iloc[0] if not quality_data.empty else 94.2
     
-    with kpi_cols[0]:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Data Completeness</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">94.2%</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">↑ 2.1% vs last month</div>
-            </div>
-        """, unsafe_allow_html=True)
+        kpi_cols = st.columns(4)
     
-    with kpi_cols[1]:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Data Accuracy</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">97.8%</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">Validated vs field surveys</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_cols[2]:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Digital Twin Sync</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">✓ Live</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">Last sync: 2 min ago</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_cols[3]:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #e67e22, #d35400); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Open Discrepancies</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">47</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">↓ 12 resolved this week</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 2: Single Source of Truth - Infrastructure Inventory
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📊 Single Source of Truth - Infrastructure Inventory")
-    st.caption("Harmonized data across all systems • Operations, Technology & CAPEX teams")
-    
-    # Fetch infrastructure counts - count all records (tables have different status column names)
-    infra_counts = run_query("""
-        SELECT 
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE') as SITES,
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.TOWERS) as TOWERS,
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.ANTENNAS) as ANTENNAS,
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.DATA_CENTERS) as DATA_CENTERS,
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.BROADCAST_TRANSMITTERS) as TRANSMITTERS,
-            (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.FIBRE_NETWORK) as FIBRE_SEGMENTS
-    """)
-    
-    # Use realistic defaults for demo if tables are empty or have zero records
-    sites_raw = infra_counts['SITES'].iloc[0] if not infra_counts.empty else 0
-    towers_raw = infra_counts['TOWERS'].iloc[0] if not infra_counts.empty else 0
-    antennas_raw = infra_counts['ANTENNAS'].iloc[0] if not infra_counts.empty else 0
-    dcs_raw = infra_counts['DATA_CENTERS'].iloc[0] if not infra_counts.empty else 0
-    transmitters_raw = infra_counts['TRANSMITTERS'].iloc[0] if not infra_counts.empty else 0
-    fibre_raw = infra_counts['FIBRE_SEGMENTS'].iloc[0] if not infra_counts.empty else 0
-    
-    # Apply realistic defaults for demo when data is missing or zero
-    sites = sites_raw if sites_raw > 0 else 8785
-    towers = towers_raw if towers_raw > 0 else 7877
-    antennas = antennas_raw if antennas_raw > 0 else 24500
-    dcs = dcs_raw if dcs_raw > 0 else 12
-    transmitters = transmitters_raw if transmitters_raw > 0 else 1850
-    fibre = fibre_raw if fibre_raw > 0 else 4200
-    
-    inv_cols = st.columns(6)
-    inventory_items = [
-        {"icon": "📡", "name": "Sites", "count": sites, "twin_pct": 98, "color": "#1a2b4a"},
-        {"icon": "🗼", "name": "Towers", "count": towers, "twin_pct": 95, "color": "#e63946"},
-        {"icon": "📶", "name": "Antennas", "count": antennas, "twin_pct": 87, "color": "#3498db"},
-        {"icon": "🏢", "name": "Data Centers", "count": dcs, "twin_pct": 100, "color": "#27ae60"},
-        {"icon": "📺", "name": "Transmitters", "count": transmitters, "twin_pct": 92, "color": "#9b59b6"},
-        {"icon": "🔌", "name": "Fibre Segments", "count": fibre, "twin_pct": 78, "color": "#e67e22"},
-    ]
-    
-    for i, item in enumerate(inventory_items):
-        with inv_cols[i]:
+        with kpi_cols[0]:
             st.markdown(f"""
-                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {item['color']}; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                    <div style="font-size: 2rem;">{item['icon']}</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{item['count']:,}</div>
-                    <div style="font-size: 0.8rem; color: #666;">{item['name']}</div>
-                    <div style="margin-top: 0.5rem;">
-                        <div style="background: #f0f0f0; border-radius: 4px; height: 6px;">
-                            <div style="background: {item['color']}; width: {item['twin_pct']}%; height: 100%; border-radius: 4px;"></div>
-                        </div>
-                        <div style="font-size: 0.65rem; color: #888; margin-top: 0.25rem;">{item['twin_pct']}% in 3D Model</div>
-                    </div>
+                <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Data Completeness</div>
+                    <div style="font-size: 2.5rem; font-weight: 700;">94.2%</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">↑ 2.1% vs last month</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    # -------------------------------------------------------------------------
-    # ROW 3: Discrepancy Detection & Resolution
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🔍 Discrepancy Detection & Resolution")
-    
-    disc_col1, disc_col2 = st.columns([2, 1])
-    
-    with disc_col1:
-        st.markdown("#### Open Discrepancies")
-        
-        discrepancies = [
-            {"id": "DISC-001", "source_a": "GIS System", "source_b": "SAP PM", "asset": "SITE-003421", "field": "Tower Height", "value_a": "45m", "value_b": "42m", "status": "Open", "priority": "High", "age": "3 days"},
-            {"id": "DISC-002", "source_a": "Inventory DB", "source_b": "Field Survey", "asset": "TOWER-002187", "field": "Antenna Count", "value_a": "3", "value_b": "4", "status": "In Review", "priority": "Medium", "age": "5 days"},
-            {"id": "DISC-003", "source_a": "Digital Twin", "source_b": "Client Portal", "asset": "SITE-005892", "field": "Coordinates", "value_a": "48.8566, 2.3522", "value_b": "48.8568, 2.3520", "status": "Open", "priority": "Low", "age": "1 day"},
-            {"id": "DISC-004", "source_a": "Asset Register", "source_b": "Maintenance Log", "asset": "DC-PARIS-01", "field": "Power Capacity", "value_a": "2.5 MW", "value_b": "2.8 MW", "status": "Open", "priority": "High", "age": "7 days"},
-            {"id": "DISC-005", "source_a": "GIS System", "source_b": "Planning Tool", "asset": "SITE-007234", "field": "Site Type", "value_a": "Rooftop", "value_b": "Ground", "status": "Resolved", "priority": "Medium", "age": "2 days"},
-        ]
-        
-        for d in discrepancies[:4]:
-            status_color = '#e63946' if d['status'] == 'Open' else '#f39c12' if d['status'] == 'In Review' else '#27ae60'
-            priority_color = '#e63946' if d['priority'] == 'High' else '#f39c12' if d['priority'] == 'Medium' else '#3498db'
-            
+        with kpi_cols[1]:
             st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; border-left: 4px solid {status_color}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <div style="flex: 2;">
-                            <div style="font-weight: 600; color: #1a2b4a; font-size: 0.9rem;">{d['id']}: {d['field']} Mismatch</div>
-                            <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">{d['asset']} • {d['age']} old</div>
+                <div style="background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Data Accuracy</div>
+                    <div style="font-size: 2.5rem; font-weight: 700;">97.8%</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">Validated vs field surveys</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with kpi_cols[2]:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Digital Twin Sync</div>
+                    <div style="font-size: 2.5rem; font-weight: 700;">✓ Live</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">Last sync: 2 min ago</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with kpi_cols[3]:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #e67e22, #d35400); border-radius: 12px; padding: 1.5rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Open Discrepancies</div>
+                    <div style="font-size: 2.5rem; font-weight: 700;">47</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">↓ 12 resolved this week</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+        # ROW 2: Single Source of Truth - Infrastructure Inventory
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📊 Single Source of Truth - Infrastructure Inventory")
+        st.caption("Harmonized data across all systems • Operations, Technology & CAPEX teams")
+    
+        # Fetch infrastructure counts - count all records (tables have different status column names)
+        infra_counts = run_query("""
+            SELECT 
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE') as SITES,
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.TOWERS) as TOWERS,
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.ANTENNAS) as ANTENNAS,
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.DATA_CENTERS) as DATA_CENTERS,
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.BROADCAST_TRANSMITTERS) as TRANSMITTERS,
+                (SELECT COUNT(*) FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.FIBRE_NETWORK) as FIBRE_SEGMENTS
+        """)
+    
+        # Use realistic defaults for demo if tables are empty or have zero records
+        sites_raw = infra_counts['SITES'].iloc[0] if not infra_counts.empty else 0
+        towers_raw = infra_counts['TOWERS'].iloc[0] if not infra_counts.empty else 0
+        antennas_raw = infra_counts['ANTENNAS'].iloc[0] if not infra_counts.empty else 0
+        dcs_raw = infra_counts['DATA_CENTERS'].iloc[0] if not infra_counts.empty else 0
+        transmitters_raw = infra_counts['TRANSMITTERS'].iloc[0] if not infra_counts.empty else 0
+        fibre_raw = infra_counts['FIBRE_SEGMENTS'].iloc[0] if not infra_counts.empty else 0
+    
+        # Apply realistic defaults for demo when data is missing or zero
+        sites = sites_raw if sites_raw > 0 else 8785
+        towers = towers_raw if towers_raw > 0 else 7877
+        antennas = antennas_raw if antennas_raw > 0 else 24500
+        dcs = dcs_raw if dcs_raw > 0 else 12
+        transmitters = transmitters_raw if transmitters_raw > 0 else 1850
+        fibre = fibre_raw if fibre_raw > 0 else 4200
+    
+        inv_cols = st.columns(6)
+        inventory_items = [
+            {"icon": "📡", "name": "Sites", "count": sites, "twin_pct": 98, "color": "#1a2b4a"},
+            {"icon": "🗼", "name": "Towers", "count": towers, "twin_pct": 95, "color": "#e63946"},
+            {"icon": "📶", "name": "Antennas", "count": antennas, "twin_pct": 87, "color": "#3498db"},
+            {"icon": "🏢", "name": "Data Centers", "count": dcs, "twin_pct": 100, "color": "#27ae60"},
+            {"icon": "📺", "name": "Transmitters", "count": transmitters, "twin_pct": 92, "color": "#9b59b6"},
+            {"icon": "🔌", "name": "Fibre Segments", "count": fibre, "twin_pct": 78, "color": "#e67e22"},
+        ]
+    
+        for i, item in enumerate(inventory_items):
+            with inv_cols[i]:
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {item['color']}; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                        <div style="font-size: 2rem;">{item['icon']}</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{item['count']:,}</div>
+                        <div style="font-size: 0.8rem; color: #666;">{item['name']}</div>
+                        <div style="margin-top: 0.5rem;">
+                            <div style="background: #f0f0f0; border-radius: 4px; height: 6px;">
+                                <div style="background: {item['color']}; width: {item['twin_pct']}%; height: 100%; border-radius: 4px;"></div>
+                            </div>
+                            <div style="font-size: 0.65rem; color: #888; margin-top: 0.25rem;">{item['twin_pct']}% in 3D Model</div>
                         </div>
-                        <div style="flex: 2; text-align: center;">
-                            <div style="font-size: 0.7rem; color: #888;">{d['source_a']} vs {d['source_b']}</div>
-                            <div style="font-size: 0.85rem; margin-top: 0.25rem;"><span style="color: #e63946;">{d['value_a']}</span> ≠ <span style="color: #3498db;">{d['value_b']}</span></div>
-                        </div>
-                        <div style="flex: 1; text-align: right;">
-                            <span style="background: {priority_color}20; color: {priority_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">{d['priority']}</span>
-                            <div style="margin-top: 0.25rem;">
-                                <span style="background: {status_color}20; color: {status_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">{d['status']}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+    
+    # =========================================================================
+    # TAB 2: DISCREPANCIES
+    # =========================================================================
+    with tab_discrepancies:
+        # ROW 3: Discrepancy Detection & Resolution
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🔍 Discrepancy Detection & Resolution")
+    
+        disc_col1, disc_col2 = st.columns([2, 1])
+    
+        with disc_col1:
+            st.markdown("#### Open Discrepancies")
+        
+            discrepancies = [
+                {"id": "DISC-001", "source_a": "GIS System", "source_b": "SAP PM", "asset": "SITE-003421", "field": "Tower Height", "value_a": "45m", "value_b": "42m", "status": "Open", "priority": "High", "age": "3 days"},
+                {"id": "DISC-002", "source_a": "Inventory DB", "source_b": "Field Survey", "asset": "TOWER-002187", "field": "Antenna Count", "value_a": "3", "value_b": "4", "status": "In Review", "priority": "Medium", "age": "5 days"},
+                {"id": "DISC-003", "source_a": "Digital Twin", "source_b": "Client Portal", "asset": "SITE-005892", "field": "Coordinates", "value_a": "48.8566, 2.3522", "value_b": "48.8568, 2.3520", "status": "Open", "priority": "Low", "age": "1 day"},
+                {"id": "DISC-004", "source_a": "Asset Register", "source_b": "Maintenance Log", "asset": "DC-PARIS-01", "field": "Power Capacity", "value_a": "2.5 MW", "value_b": "2.8 MW", "status": "Open", "priority": "High", "age": "7 days"},
+                {"id": "DISC-005", "source_a": "GIS System", "source_b": "Planning Tool", "asset": "SITE-007234", "field": "Site Type", "value_a": "Rooftop", "value_b": "Ground", "status": "Resolved", "priority": "Medium", "age": "2 days"},
+            ]
+        
+            for d in discrepancies[:4]:
+                status_color = '#e63946' if d['status'] == 'Open' else '#f39c12' if d['status'] == 'In Review' else '#27ae60'
+                priority_color = '#e63946' if d['priority'] == 'High' else '#f39c12' if d['priority'] == 'Medium' else '#3498db'
+            
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; border-left: 4px solid {status_color}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 2;">
+                                <div style="font-weight: 600; color: #1a2b4a; font-size: 0.9rem;">{d['id']}: {d['field']} Mismatch</div>
+                                <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">{d['asset']} • {d['age']} old</div>
+                            </div>
+                            <div style="flex: 2; text-align: center;">
+                                <div style="font-size: 0.7rem; color: #888;">{d['source_a']} vs {d['source_b']}</div>
+                                <div style="font-size: 0.85rem; margin-top: 0.25rem;"><span style="color: #e63946;">{d['value_a']}</span> ≠ <span style="color: #3498db;">{d['value_b']}</span></div>
+                            </div>
+                            <div style="flex: 1; text-align: right;">
+                                <span style="background: {priority_color}20; color: {priority_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">{d['priority']}</span>
+                                <div style="margin-top: 0.25rem;">
+                                    <span style="background: {status_color}20; color: {status_color}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">{d['status']}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+                """, unsafe_allow_html=True)
+    
+        with disc_col2:
+            st.markdown("#### By Category")
+        
+            categories = ['Coordinates', 'Dimensions', 'Equipment', 'Capacity', 'Status', 'Other']
+            counts = [12, 8, 15, 5, 4, 3]
+            colors = ['#e63946', '#f39c12', '#3498db', '#27ae60', '#9b59b6', '#888']
+        
+            fig = go.Figure(go.Bar(
+                y=categories,
+                x=counts,
+                orientation='h',
+                marker=dict(color=colors),
+                text=counts,
+                textposition='outside'
+            ))
+        
+            fig.update_layout(
+                height=250,
+                margin=dict(l=10, r=40, t=10, b=10),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
+                yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                showlegend=False
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
+            # Resolution stats
+            st.markdown("""
+                <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #666;">Avg Resolution Time</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">4.2 days</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    with disc_col2:
-        st.markdown("#### By Category")
-        
-        categories = ['Coordinates', 'Dimensions', 'Equipment', 'Capacity', 'Status', 'Other']
-        counts = [12, 8, 15, 5, 4, 3]
-        colors = ['#e63946', '#f39c12', '#3498db', '#27ae60', '#9b59b6', '#888']
-        
-        fig = go.Figure(go.Bar(
-            y=categories,
-            x=counts,
-            orientation='h',
-            marker=dict(color=colors),
-            text=counts,
-            textposition='outside'
-        ))
-        
-        fig.update_layout(
-            height=250,
-            margin=dict(l=10, r=40, t=10, b=10),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='#f0f0f0'),
-            yaxis=dict(showgrid=False, categoryorder='total ascending'),
-            showlegend=False
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Resolution stats
-        st.markdown("""
-            <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                <div style="font-size: 0.75rem; color: #666;">Avg Resolution Time</div>
-                <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">4.2 days</div>
-            </div>
-        """, unsafe_allow_html=True)
+        # -------------------------------------------------------------------------
+        # ROW 4g: Photo-to-Product Reference Reconciliation (KEY PAIN POINT)
+        # -------------------------------------------------------------------------
     
-    # -------------------------------------------------------------------------
-    # ROW 4: Digital Twin 3D Model Coverage
-    # -------------------------------------------------------------------------
+        st.markdown("### 🔍 Photo-to-Product Reference Reconciliation")
+        st.caption("Cross-checking Digital Twin assets with Product Reference Master Data")
     
-    st.markdown("### 🏗️ Digital Twin 3D Model Coverage")
+        # KPIs for reconciliation status
+        recon_col1, recon_col2, recon_col3, recon_col4 = st.columns(4)
     
-    twin_col1, twin_col2 = st.columns([1, 2])
-    
-    with twin_col1:
-        st.markdown("#### Model Statistics")
-        
-        model_stats = [
-            {"metric": "Pylons Modeled", "value": "2,147", "target": "2,000", "status": "achieved"},
-            {"metric": "Sites with 3D", "value": "8,245", "target": "8,785", "status": "on_track"},
-            {"metric": "LOD Level", "value": "LOD 300", "target": "LOD 300", "status": "achieved"},
-            {"metric": "Last Full Scan", "value": "Nov 15", "target": "Monthly", "status": "on_track"},
-            {"metric": "Model Accuracy", "value": "±5cm", "target": "±10cm", "status": "achieved"},
-        ]
-        
-        for stat in model_stats:
-            status_icon = '✅' if stat['status'] == 'achieved' else '🔵'
-            st.markdown(f"""
-                <div style="background: white; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #666; font-size: 0.85rem;">{stat['metric']}</span>
-                    <span style="font-weight: 600; color: #1a2b4a;">{stat['value']} {status_icon}</span>
+        with recon_col1:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #3498db;">
+                    <div style="font-size: 0.75rem; color: #888;">📸 Digital Twin Assets</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #1a2b4a;">247,834</div>
+                    <div style="font-size: 0.7rem; color: #3498db;">Photos & 3D scans captured</div>
                 </div>
             """, unsafe_allow_html=True)
+    
+        with recon_col2:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #27ae60;">
+                    <div style="font-size: 0.75rem; color: #888;">✅ Matched to Reference</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #27ae60;">198,412</div>
+                    <div style="font-size: 0.7rem; color: #27ae60;">80.1% reconciled</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with recon_col3:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #f39c12;">
+                    <div style="font-size: 0.75rem; color: #888;">⚠️ Pending Review</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #f39c12;">35,847</div>
+                    <div style="font-size: 0.7rem; color: #f39c12;">14.5% needs validation</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with recon_col4:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #e63946;">
+                    <div style="font-size: 0.75rem; color: #888;">❌ Unmatched Items</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #e63946;">13,575</div>
+                    <div style="font-size: 0.7rem; color: #e63946;">5.4% discrepancies</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # Discrepancy Types + Reconciliation Queue
+        disc_col, queue_col = st.columns(2)
+    
+        with disc_col:
+            st.markdown("#### 📊 Discrepancy Breakdown")
         
-        # 3D Model badge
+            discrepancy_types = {
+                "Photo exists, no reference": 5234,
+                "Reference exists, no photo": 4891,
+                "Serial number mismatch": 1823,
+                "Model/type mismatch": 987,
+                "Location mismatch": 640
+            }
+        
+            fig_disc = go.Figure(data=[go.Bar(
+                y=list(discrepancy_types.keys()),
+                x=list(discrepancy_types.values()),
+                orientation='h',
+                marker_color=['#e63946', '#c0392b', '#f39c12', '#e67e22', '#d35400'],
+                text=list(discrepancy_types.values()),
+                textposition='outside'
+            )])
+            fig_disc.update_layout(
+                height=250,
+                margin=dict(l=10, r=60, t=10, b=10),
+                xaxis_title="Count",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_disc, use_container_width=True)
+        
+            st.markdown("""
+                <div style="background: #fff3cd; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                    <span style="font-weight: 600;">💡 Root Cause:</span> Product reference list was last updated in March 2024. 
+                    Digital Twin photos captured equipment installed since then.
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with queue_col:
+            st.markdown("#### 🔄 Priority Reconciliation Queue")
+        
+            queue_items = [
+                {"asset": "ANT-RF-4523", "site": "SITE-003421", "issue": "No reference entry", "priority": "High", "age": "45d"},
+                {"asset": "CAB-FO-8912", "site": "SITE-005892", "issue": "Serial mismatch", "priority": "High", "age": "32d"},
+                {"asset": "PWR-UPS-234", "site": "SITE-007234", "issue": "Model differs", "priority": "Med", "age": "28d"},
+                {"asset": "RAD-5G-1098", "site": "SITE-001256", "issue": "No photo found", "priority": "Med", "age": "21d"},
+                {"asset": "TRM-DVB-456", "site": "SITE-002891", "issue": "Location wrong", "priority": "Low", "age": "15d"},
+            ]
+        
+            for item in queue_items:
+                priority_color = '#e63946' if item['priority'] == 'High' else '#f39c12' if item['priority'] == 'Med' else '#27ae60'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {priority_color};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-weight: 600; color: #1a2b4a;">{item['asset']}</span>
+                                <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">@ {item['site']}</span>
+                            </div>
+                            <span style="background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">{item['priority']}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">⚠️ {item['issue']} · 📅 Open {item['age']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                st.button("📋 View Full Queue (847)", use_container_width=True)
+            with btn_col2:
+                st.button("📥 Export to Excel", use_container_width=True)
+    
+        # Product Reference Sync Status
+        st.markdown("#### 🔗 Product Reference System Integration")
+    
+        sys_col1, sys_col2, sys_col3 = st.columns(3)
+    
+        with sys_col1:
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.8rem; opacity: 0.8;">📷 Digital Twin Platform</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Photos & 3D Models</div>
+                    <div style="font-size: 0.75rem; opacity: 0.7;">Last sync: 2 hours ago</div>
+                    <div style="background: #27ae60; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">● Connected</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with sys_col2:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border: 2px dashed #e63946;">
+                    <div style="font-size: 2rem;">⚡</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #e63946;">Reconciliation Engine</div>
+                    <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">AI-powered matching</div>
+                    <div style="font-size: 0.7rem; color: #666; margin-top: 0.5rem;">Processing 1,247 items/hour</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with sys_col3:
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.8rem; opacity: 0.8;">📚 Product Reference Master</div>
+                    <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Equipment Catalog</div>
+                    <div style="font-size: 0.75rem; opacity: 0.7;">45,892 products registered</div>
+                    <div style="background: #f39c12; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">⚠ Needs Update</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # Recommendation box
         st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); border-radius: 10px; padding: 1rem; margin-top: 1rem; text-align: center; color: white;">
-                <div style="font-size: 2rem;">🏗️</div>
-                <div style="font-weight: 600;">Digital Twin Status</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin-top: 0.5rem;">OPERATIONAL</div>
-                <div style="font-size: 0.7rem; color: #aaa;">Real-time sync enabled</div>
+            <div style="background: linear-gradient(135deg, #e6394610 0%, #f39c1210 100%); border: 1px solid #e63946; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
+                <div style="font-weight: 700; color: #e63946; margin-bottom: 0.5rem;">🎯 Recommended Actions</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div style="font-size: 0.85rem; color: #666;">1️⃣ <b>Sync Product Reference</b> - Update catalog with Q4 2024 installations</div>
+                    <div style="font-size: 0.85rem; color: #666;">2️⃣ <b>Bulk Photo Upload</b> - 3,200 photos pending from October surveys</div>
+                    <div style="font-size: 0.85rem; color: #666;">3️⃣ <b>Serial Number Audit</b> - 1,823 mismatches flagged for validation</div>
+                    <div style="font-size: 0.85rem; color: #666;">4️⃣ <b>Train AI Model</b> - Improve auto-matching accuracy from 78% to 90%+</div>
+                </div>
             </div>
         """, unsafe_allow_html=True)
     
-    with twin_col2:
-        st.markdown("#### Regional 3D Coverage")
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+    
+    # =========================================================================
+    # TAB 3: 3D MODELS
+    # =========================================================================
+    with tab_models:
+        # ROW 4: Digital Twin 3D Model Coverage
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🏗️ Digital Twin 3D Model Coverage")
+    
+        twin_col1, twin_col2 = st.columns([1, 2])
+    
+        with twin_col1:
+            st.markdown("#### Model Statistics")
         
-        # Regional coverage data
-        regions = ['Île-de-France', 'Auvergne-Rhône-Alpes', 'Nouvelle-Aquitaine', 'Occitanie', 'Hauts-de-France', 
-                   'Grand Est', 'Provence-Alpes-Côte d\'Azur', 'Pays de la Loire', 'Bretagne', 'Normandie']
-        coverage = [98, 96, 94, 93, 91, 89, 88, 85, 82, 78]
-        sites_count = [1245, 892, 756, 698, 645, 612, 589, 534, 487, 423]
+            model_stats = [
+                {"metric": "Pylons Modeled", "value": "2,147", "target": "2,000", "status": "achieved"},
+                {"metric": "Sites with 3D", "value": "8,245", "target": "8,785", "status": "on_track"},
+                {"metric": "LOD Level", "value": "LOD 300", "target": "LOD 300", "status": "achieved"},
+                {"metric": "Last Full Scan", "value": "Nov 15", "target": "Monthly", "status": "on_track"},
+                {"metric": "Model Accuracy", "value": "±5cm", "target": "±10cm", "status": "achieved"},
+            ]
         
-        fig = go.Figure()
+            for stat in model_stats:
+                status_icon = '✅' if stat['status'] == 'achieved' else '🔵'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #666; font-size: 0.85rem;">{stat['metric']}</span>
+                        <span style="font-weight: 600; color: #1a2b4a;">{stat['value']} {status_icon}</span>
+                    </div>
+                """, unsafe_allow_html=True)
         
-        fig.add_trace(go.Bar(
-            y=regions,
-            x=coverage,
-            orientation='h',
-            marker=dict(color=['#27ae60' if c >= 90 else '#f39c12' if c >= 80 else '#e63946' for c in coverage]),
-            text=[f"{c}% ({s:,} sites)" for c, s in zip(coverage, sites_count)],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Coverage: %{x}%<extra></extra>'
-        ))
+            # 3D Model badge
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #1a2b4a, #2d3436); border-radius: 10px; padding: 1rem; margin-top: 1rem; text-align: center; color: white;">
+                    <div style="font-size: 2rem;">🏗️</div>
+                    <div style="font-weight: 600;">Digital Twin Status</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin-top: 0.5rem;">OPERATIONAL</div>
+                    <div style="font-size: 0.7rem; color: #aaa;">Real-time sync enabled</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with twin_col2:
+            st.markdown("#### Regional 3D Coverage")
         
-        fig.update_layout(
-            height=350,
-            margin=dict(l=10, r=80, t=10, b=10),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', range=[0, 110], title='3D Model Coverage %'),
-            yaxis=dict(showgrid=False, categoryorder='total ascending'),
-            showlegend=False
+            # Regional coverage data
+            regions = ['Île-de-France', 'Auvergne-Rhône-Alpes', 'Nouvelle-Aquitaine', 'Occitanie', 'Hauts-de-France', 
+                       'Grand Est', 'Provence-Alpes-Côte d\'Azur', 'Pays de la Loire', 'Bretagne', 'Normandie']
+            coverage = [98, 96, 94, 93, 91, 89, 88, 85, 82, 78]
+            sites_count = [1245, 892, 756, 698, 645, 612, 589, 534, 487, 423]
+        
+            fig = go.Figure()
+        
+            fig.add_trace(go.Bar(
+                y=regions,
+                x=coverage,
+                orientation='h',
+                marker=dict(color=['#27ae60' if c >= 90 else '#f39c12' if c >= 80 else '#e63946' for c in coverage]),
+                text=[f"{c}% ({s:,} sites)" for c, s in zip(coverage, sites_count)],
+                textposition='outside',
+                hovertemplate='<b>%{y}</b><br>Coverage: %{x}%<extra></extra>'
+            ))
+        
+            fig.update_layout(
+                height=350,
+                margin=dict(l=10, r=80, t=10, b=10),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', range=[0, 110], title='3D Model Coverage %'),
+                yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                showlegend=False
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+    
+        # -------------------------------------------------------------------------
+        # ROW 4b: 3D Cell Tower Model
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🗼 3D Cell Tower Model - Interactive Viewer")
+        st.caption("Detailed 3D representation of TDF tower infrastructure • Rotate and zoom to explore")
+    
+        # Tower database with unique configurations
+        tower_database = {
+            "SITE-003421 (Paris 15ème)": {
+                "id": "SITE-003421",
+                "location": "Paris 15ème",
+                "type": "Lattice",
+                "height": 65,
+                "year": 2008,
+                "max_load": 2500,
+                "current_load": 1847,
+                "color": "#e63946",
+                "tenants": [
+                    {"name": "Orange", "tech": "4G/5G", "height": 25, "color": "#3498db", "count": 3},
+                    {"name": "SFR", "tech": "5G", "height": 40, "color": "#27ae60", "count": 3},
+                    {"name": "Bouygues", "tech": "4G", "height": 55, "color": "#f39c12", "count": 3},
+                    {"name": "Free", "tech": "5G", "height": 62, "color": "#9b59b6", "count": 2},
+                ]
+            },
+            "SITE-005892 (Lyon Part-Dieu)": {
+                "id": "SITE-005892",
+                "location": "Lyon Part-Dieu",
+                "type": "Monopole",
+                "height": 45,
+                "year": 2015,
+                "max_load": 1800,
+                "current_load": 1245,
+                "color": "#3498db",
+                "tenants": [
+                    {"name": "Orange", "tech": "5G", "height": 30, "color": "#3498db", "count": 3},
+                    {"name": "SFR", "tech": "4G/5G", "height": 40, "color": "#27ae60", "count": 3},
+                ]
+            },
+            "SITE-007234 (Marseille Vieux-Port)": {
+                "id": "SITE-007234",
+                "location": "Marseille Vieux-Port",
+                "type": "Rooftop",
+                "height": 25,
+                "year": 2019,
+                "max_load": 800,
+                "current_load": 520,
+                "color": "#27ae60",
+                "tenants": [
+                    {"name": "Bouygues", "tech": "5G", "height": 20, "color": "#f39c12", "count": 3},
+                    {"name": "Free", "tech": "4G", "height": 23, "color": "#9b59b6", "count": 2},
+                ]
+            },
+            "SITE-001256 (Bordeaux Mériadeck)": {
+                "id": "SITE-001256",
+                "location": "Bordeaux Mériadeck",
+                "type": "Lattice",
+                "height": 80,
+                "year": 2003,
+                "max_load": 3200,
+                "current_load": 2890,
+                "color": "#e74c3c",
+                "tenants": [
+                    {"name": "Orange", "tech": "4G", "height": 30, "color": "#3498db", "count": 3},
+                    {"name": "SFR", "tech": "4G", "height": 45, "color": "#27ae60", "count": 3},
+                    {"name": "Bouygues", "tech": "4G/5G", "height": 60, "color": "#f39c12", "count": 3},
+                    {"name": "Free", "tech": "5G", "height": 75, "color": "#9b59b6", "count": 3},
+                    {"name": "TDF Broadcast", "tech": "DTT", "height": 78, "color": "#e63946", "count": 2},
+                ]
+            },
+            "SITE-002891 (Toulouse Blagnac)": {
+                "id": "SITE-002891",
+                "location": "Toulouse Blagnac",
+                "type": "Guyed Mast",
+                "height": 120,
+                "year": 1998,
+                "max_load": 5000,
+                "current_load": 3750,
+                "color": "#9b59b6",
+                "tenants": [
+                    {"name": "TDF Broadcast", "tech": "FM Radio", "height": 50, "color": "#e63946", "count": 4},
+                    {"name": "TDF Broadcast", "tech": "DTT", "height": 80, "color": "#c0392b", "count": 6},
+                    {"name": "Orange", "tech": "4G", "height": 100, "color": "#3498db", "count": 3},
+                    {"name": "SFR", "tech": "5G", "height": 110, "color": "#27ae60", "count": 3},
+                ]
+            },
+            "SITE-004567 (Nantes Île de Nantes)": {
+                "id": "SITE-004567",
+                "location": "Nantes Île de Nantes",
+                "type": "Camouflaged (Tree)",
+                "height": 35,
+                "year": 2021,
+                "max_load": 1200,
+                "current_load": 680,
+                "color": "#27ae60",
+                "tenants": [
+                    {"name": "Free", "tech": "5G", "height": 28, "color": "#9b59b6", "count": 3},
+                    {"name": "Bouygues", "tech": "5G", "height": 32, "color": "#f39c12", "count": 3},
+                ]
+            },
+        }
+    
+        # Tower selector
+        selected_tower_name = st.selectbox(
+            "🗼 Select Tower to View",
+            options=list(tower_database.keys()),
+            index=0
         )
+    
+        tower = tower_database[selected_tower_name]
+        tower_height = tower["height"]
+    
+        viz_col1, viz_col2 = st.columns([2, 1])
+    
+        with viz_col1:
+            import numpy as np
         
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 4b: 3D Cell Tower Model
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🗼 3D Cell Tower Model - Interactive Viewer")
-    st.caption("Detailed 3D representation of TDF tower infrastructure • Rotate and zoom to explore")
-    
-    # Tower database with unique configurations
-    tower_database = {
-        "SITE-003421 (Paris 15ème)": {
-            "id": "SITE-003421",
-            "location": "Paris 15ème",
-            "type": "Lattice",
-            "height": 65,
-            "year": 2008,
-            "max_load": 2500,
-            "current_load": 1847,
-            "color": "#e63946",
-            "tenants": [
-                {"name": "Orange", "tech": "4G/5G", "height": 25, "color": "#3498db", "count": 3},
-                {"name": "SFR", "tech": "5G", "height": 40, "color": "#27ae60", "count": 3},
-                {"name": "Bouygues", "tech": "4G", "height": 55, "color": "#f39c12", "count": 3},
-                {"name": "Free", "tech": "5G", "height": 62, "color": "#9b59b6", "count": 2},
-            ]
-        },
-        "SITE-005892 (Lyon Part-Dieu)": {
-            "id": "SITE-005892",
-            "location": "Lyon Part-Dieu",
-            "type": "Monopole",
-            "height": 45,
-            "year": 2015,
-            "max_load": 1800,
-            "current_load": 1245,
-            "color": "#3498db",
-            "tenants": [
-                {"name": "Orange", "tech": "5G", "height": 30, "color": "#3498db", "count": 3},
-                {"name": "SFR", "tech": "4G/5G", "height": 40, "color": "#27ae60", "count": 3},
-            ]
-        },
-        "SITE-007234 (Marseille Vieux-Port)": {
-            "id": "SITE-007234",
-            "location": "Marseille Vieux-Port",
-            "type": "Rooftop",
-            "height": 25,
-            "year": 2019,
-            "max_load": 800,
-            "current_load": 520,
-            "color": "#27ae60",
-            "tenants": [
-                {"name": "Bouygues", "tech": "5G", "height": 20, "color": "#f39c12", "count": 3},
-                {"name": "Free", "tech": "4G", "height": 23, "color": "#9b59b6", "count": 2},
-            ]
-        },
-        "SITE-001256 (Bordeaux Mériadeck)": {
-            "id": "SITE-001256",
-            "location": "Bordeaux Mériadeck",
-            "type": "Lattice",
-            "height": 80,
-            "year": 2003,
-            "max_load": 3200,
-            "current_load": 2890,
-            "color": "#e74c3c",
-            "tenants": [
-                {"name": "Orange", "tech": "4G", "height": 30, "color": "#3498db", "count": 3},
-                {"name": "SFR", "tech": "4G", "height": 45, "color": "#27ae60", "count": 3},
-                {"name": "Bouygues", "tech": "4G/5G", "height": 60, "color": "#f39c12", "count": 3},
-                {"name": "Free", "tech": "5G", "height": 75, "color": "#9b59b6", "count": 3},
-                {"name": "TDF Broadcast", "tech": "DTT", "height": 78, "color": "#e63946", "count": 2},
-            ]
-        },
-        "SITE-002891 (Toulouse Blagnac)": {
-            "id": "SITE-002891",
-            "location": "Toulouse Blagnac",
-            "type": "Guyed Mast",
-            "height": 120,
-            "year": 1998,
-            "max_load": 5000,
-            "current_load": 3750,
-            "color": "#9b59b6",
-            "tenants": [
-                {"name": "TDF Broadcast", "tech": "FM Radio", "height": 50, "color": "#e63946", "count": 4},
-                {"name": "TDF Broadcast", "tech": "DTT", "height": 80, "color": "#c0392b", "count": 6},
-                {"name": "Orange", "tech": "4G", "height": 100, "color": "#3498db", "count": 3},
-                {"name": "SFR", "tech": "5G", "height": 110, "color": "#27ae60", "count": 3},
-            ]
-        },
-        "SITE-004567 (Nantes Île de Nantes)": {
-            "id": "SITE-004567",
-            "location": "Nantes Île de Nantes",
-            "type": "Camouflaged (Tree)",
-            "height": 35,
-            "year": 2021,
-            "max_load": 1200,
-            "current_load": 680,
-            "color": "#27ae60",
-            "tenants": [
-                {"name": "Free", "tech": "5G", "height": 28, "color": "#9b59b6", "count": 3},
-                {"name": "Bouygues", "tech": "5G", "height": 32, "color": "#f39c12", "count": 3},
-            ]
-        },
-    }
-    
-    # Tower selector
-    selected_tower_name = st.selectbox(
-        "🗼 Select Tower to View",
-        options=list(tower_database.keys()),
-        index=0
-    )
-    
-    tower = tower_database[selected_tower_name]
-    tower_height = tower["height"]
-    
-    viz_col1, viz_col2 = st.columns([2, 1])
-    
-    with viz_col1:
-        import numpy as np
+            # Create a detailed 3D cell tower model based on selected tower
+            fig_tower = go.Figure()
         
-        # Create a detailed 3D cell tower model based on selected tower
-        fig_tower = go.Figure()
+            # === TOWER STRUCTURE (varies by type) ===
+            tower_color = tower["color"]
         
-        # === TOWER STRUCTURE (varies by type) ===
-        tower_color = tower["color"]
-        
-        if tower["type"] in ["Lattice", "Guyed Mast"]:
-            # Lattice tower with 4 legs
-            leg_offset = 1.5 + (tower_height / 100)  # Larger base for taller towers
-            for x, y in [(-leg_offset, -leg_offset), (leg_offset, -leg_offset), 
-                         (leg_offset, leg_offset), (-leg_offset, leg_offset)]:
-                z_points = list(range(0, tower_height + 1, 5))
-                taper = [1 - (z / tower_height) * 0.6 for z in z_points]
-                x_points = [x * t for t in taper]
-                y_points = [y * t for t in taper]
+            if tower["type"] in ["Lattice", "Guyed Mast"]:
+                # Lattice tower with 4 legs
+                leg_offset = 1.5 + (tower_height / 100)  # Larger base for taller towers
+                for x, y in [(-leg_offset, -leg_offset), (leg_offset, -leg_offset), 
+                             (leg_offset, leg_offset), (-leg_offset, leg_offset)]:
+                    z_points = list(range(0, tower_height + 1, 5))
+                    taper = [1 - (z / tower_height) * 0.6 for z in z_points]
+                    x_points = [x * t for t in taper]
+                    y_points = [y * t for t in taper]
                 
-                fig_tower.add_trace(go.Scatter3d(
-                    x=x_points, y=y_points, z=z_points,
-                    mode='lines',
-                    line=dict(color=tower_color, width=8),
-                    name='Tower Structure',
-                    showlegend=False,
-                    hoverinfo='skip'
-                ))
-            
-            # Cross bracing
-            brace_interval = 10 if tower_height < 80 else 15
-            for z in range(5, tower_height, brace_interval):
-                taper = 1 - (z / tower_height) * 0.6
-                offset = leg_offset * taper
-                ring_x = [-offset, offset, offset, -offset, -offset]
-                ring_y = [-offset, -offset, offset, offset, -offset]
-                ring_z = [z] * 5
-                fig_tower.add_trace(go.Scatter3d(
-                    x=ring_x, y=ring_y, z=ring_z,
-                    mode='lines',
-                    line=dict(color='#7f8c8d', width=4),
-                    showlegend=False,
-                    hoverinfo='skip'
-                ))
-                
-        elif tower["type"] == "Monopole":
-            # Single pole structure
-            z_points = list(range(0, tower_height + 1, 2))
-            x_points = [0] * len(z_points)
-            y_points = [0] * len(z_points)
-            fig_tower.add_trace(go.Scatter3d(
-                x=x_points, y=y_points, z=z_points,
-                mode='lines',
-                line=dict(color=tower_color, width=20),
-                name='Monopole',
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            
-        elif tower["type"] == "Rooftop":
-            # Building base + small mast
-            # Building representation
-            building_size = 8
-            fig_tower.add_trace(go.Mesh3d(
-                x=[-building_size, building_size, building_size, -building_size, -building_size, building_size, building_size, -building_size],
-                y=[-building_size, -building_size, building_size, building_size, -building_size, -building_size, building_size, building_size],
-                z=[0, 0, 0, 0, -15, -15, -15, -15],
-                color='#bdc3c7',
-                opacity=0.5,
-                name='Building',
-                hoverinfo='name'
-            ))
-            # Small mast on top
-            fig_tower.add_trace(go.Scatter3d(
-                x=[0, 0], y=[0, 0], z=[0, tower_height],
-                mode='lines',
-                line=dict(color=tower_color, width=15),
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            
-        elif tower["type"] == "Camouflaged (Tree)":
-            # Tree-shaped tower
-            # Trunk
-            fig_tower.add_trace(go.Scatter3d(
-                x=[0, 0], y=[0, 0], z=[0, tower_height],
-                mode='lines',
-                line=dict(color='#8B4513', width=15),
-                name='Trunk',
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-            # Branches at different levels
-            for z in range(10, tower_height, 8):
-                branch_len = 3 - (z / tower_height) * 2
-                for angle in np.linspace(0, 2*np.pi, 6, endpoint=False):
-                    bx = branch_len * np.cos(angle)
-                    by = branch_len * np.sin(angle)
                     fig_tower.add_trace(go.Scatter3d(
-                        x=[0, bx], y=[0, by], z=[z, z+1],
+                        x=x_points, y=y_points, z=z_points,
                         mode='lines',
-                        line=dict(color='#228B22', width=6),
+                        line=dict(color=tower_color, width=8),
+                        name='Tower Structure',
                         showlegend=False,
                         hoverinfo='skip'
                     ))
-        
-        # === ANTENNA PLATFORMS & PANELS (from tower config) ===
-        for tenant in tower["tenants"]:
-            ph = tenant["height"]
             
-            # Platform
-            platform_size = 2.5 if tower["type"] != "Monopole" else 1.5
-            fig_tower.add_trace(go.Mesh3d(
-                x=[-platform_size, platform_size, platform_size, -platform_size],
-                y=[-platform_size, -platform_size, platform_size, platform_size],
-                z=[ph, ph, ph, ph],
-                color=tenant["color"],
-                opacity=0.6,
-                name=f'{tenant["name"]} Platform',
-                hoverinfo='skip'
-            ))
-            
-            # Antenna panels
-            antenna_count = tenant.get("count", 3)
-            angles = np.linspace(0, 2*np.pi, antenna_count, endpoint=False)
-            for i, angle in enumerate(angles):
-                ax = 3 * np.cos(angle)
-                ay = 3 * np.sin(angle)
-                panel_h = 2
+                # Cross bracing
+                brace_interval = 10 if tower_height < 80 else 15
+                for z in range(5, tower_height, brace_interval):
+                    taper = 1 - (z / tower_height) * 0.6
+                    offset = leg_offset * taper
+                    ring_x = [-offset, offset, offset, -offset, -offset]
+                    ring_y = [-offset, -offset, offset, offset, -offset]
+                    ring_z = [z] * 5
+                    fig_tower.add_trace(go.Scatter3d(
+                        x=ring_x, y=ring_y, z=ring_z,
+                        mode='lines',
+                        line=dict(color='#7f8c8d', width=4),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
                 
-                # Only add legend for first panel of each tenant
-                show_legend = (i == 0)
-                
+            elif tower["type"] == "Monopole":
+                # Single pole structure
+                z_points = list(range(0, tower_height + 1, 2))
+                x_points = [0] * len(z_points)
+                y_points = [0] * len(z_points)
                 fig_tower.add_trace(go.Scatter3d(
-                    x=[ax, ax, ax, ax, ax],
-                    y=[ay, ay, ay, ay, ay],
-                    z=[ph, ph+panel_h, ph+panel_h, ph, ph],
+                    x=x_points, y=y_points, z=z_points,
                     mode='lines',
-                    line=dict(color=tenant["color"], width=12),
-                    name=f'{tenant["name"]} {tenant["tech"]}',
-                    showlegend=show_legend,
-                    hovertemplate=f'<b>{tenant["name"]}</b><br>{tenant["tech"]}<br>Height: {ph}m<extra></extra>'
+                    line=dict(color=tower_color, width=20),
+                    name='Monopole',
+                    showlegend=False,
+                    hoverinfo='skip'
                 ))
+            
+            elif tower["type"] == "Rooftop":
+                # Building base + small mast
+                # Building representation
+                building_size = 8
+                fig_tower.add_trace(go.Mesh3d(
+                    x=[-building_size, building_size, building_size, -building_size, -building_size, building_size, building_size, -building_size],
+                    y=[-building_size, -building_size, building_size, building_size, -building_size, -building_size, building_size, building_size],
+                    z=[0, 0, 0, 0, -15, -15, -15, -15],
+                    color='#bdc3c7',
+                    opacity=0.5,
+                    name='Building',
+                    hoverinfo='name'
+                ))
+                # Small mast on top
+                fig_tower.add_trace(go.Scatter3d(
+                    x=[0, 0], y=[0, 0], z=[0, tower_height],
+                    mode='lines',
+                    line=dict(color=tower_color, width=15),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+            
+            elif tower["type"] == "Camouflaged (Tree)":
+                # Tree-shaped tower
+                # Trunk
+                fig_tower.add_trace(go.Scatter3d(
+                    x=[0, 0], y=[0, 0], z=[0, tower_height],
+                    mode='lines',
+                    line=dict(color='#8B4513', width=15),
+                    name='Trunk',
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+                # Branches at different levels
+                for z in range(10, tower_height, 8):
+                    branch_len = 3 - (z / tower_height) * 2
+                    for angle in np.linspace(0, 2*np.pi, 6, endpoint=False):
+                        bx = branch_len * np.cos(angle)
+                        by = branch_len * np.sin(angle)
+                        fig_tower.add_trace(go.Scatter3d(
+                            x=[0, bx], y=[0, by], z=[z, z+1],
+                            mode='lines',
+                            line=dict(color='#228B22', width=6),
+                            showlegend=False,
+                            hoverinfo='skip'
+                        ))
         
-        # === GROUND BASE ===
-        base_size = 4
-        fig_tower.add_trace(go.Mesh3d(
-            x=[-base_size, base_size, base_size, -base_size],
-            y=[-base_size, -base_size, base_size, base_size],
-            z=[0, 0, 0, 0],
-            color='#7f8c8d',
-            opacity=0.8,
-            name='Base',
-            hoverinfo='name'
-        ))
+            # === ANTENNA PLATFORMS & PANELS (from tower config) ===
+            for tenant in tower["tenants"]:
+                ph = tenant["height"]
+            
+                # Platform
+                platform_size = 2.5 if tower["type"] != "Monopole" else 1.5
+                fig_tower.add_trace(go.Mesh3d(
+                    x=[-platform_size, platform_size, platform_size, -platform_size],
+                    y=[-platform_size, -platform_size, platform_size, platform_size],
+                    z=[ph, ph, ph, ph],
+                    color=tenant["color"],
+                    opacity=0.6,
+                    name=f'{tenant["name"]} Platform',
+                    hoverinfo='skip'
+                ))
+            
+                # Antenna panels
+                antenna_count = tenant.get("count", 3)
+                angles = np.linspace(0, 2*np.pi, antenna_count, endpoint=False)
+                for i, angle in enumerate(angles):
+                    ax = 3 * np.cos(angle)
+                    ay = 3 * np.sin(angle)
+                    panel_h = 2
+                
+                    # Only add legend for first panel of each tenant
+                    show_legend = (i == 0)
+                
+                    fig_tower.add_trace(go.Scatter3d(
+                        x=[ax, ax, ax, ax, ax],
+                        y=[ay, ay, ay, ay, ay],
+                        z=[ph, ph+panel_h, ph+panel_h, ph, ph],
+                        mode='lines',
+                        line=dict(color=tenant["color"], width=12),
+                        name=f'{tenant["name"]} {tenant["tech"]}',
+                        showlegend=show_legend,
+                        hovertemplate=f'<b>{tenant["name"]}</b><br>{tenant["tech"]}<br>Height: {ph}m<extra></extra>'
+                    ))
         
-        # === TOP BEACON ===
-        fig_tower.add_trace(go.Scatter3d(
-            x=[0], y=[0], z=[tower_height + 2],
-            mode='markers',
-            marker=dict(size=10, color='red', symbol='diamond'),
-            name='Aviation Light',
-            hovertemplate='<b>Aviation Warning Light</b><br>Height: 67m<extra></extra>'
-        ))
+            # === GROUND BASE ===
+            base_size = 4
+            fig_tower.add_trace(go.Mesh3d(
+                x=[-base_size, base_size, base_size, -base_size],
+                y=[-base_size, -base_size, base_size, base_size],
+                z=[0, 0, 0, 0],
+                color='#7f8c8d',
+                opacity=0.8,
+                name='Base',
+                hoverinfo='name'
+            ))
         
-        fig_tower.update_layout(
-            height=500,
-            margin=dict(l=0, r=0, t=30, b=0),
-            scene=dict(
-                xaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
-                yaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
-                zaxis=dict(title='Height (m)', range=[-20 if tower["type"] == "Rooftop" else -5, tower_height + 10], showgrid=True, gridcolor='#eee'),
-                camera=dict(eye=dict(x=1.8, y=1.8, z=0.8)),
-                bgcolor='rgba(248,249,250,1)',
-                aspectratio=dict(x=1, y=1, z=2 if tower_height < 50 else 2.5 if tower_height < 100 else 3)
-            ),
-            paper_bgcolor='rgba(0,0,0,0)',
-            showlegend=True,
-            legend=dict(x=0, y=1, bgcolor='rgba(255,255,255,0.8)')
-        )
+            # === TOP BEACON ===
+            fig_tower.add_trace(go.Scatter3d(
+                x=[0], y=[0], z=[tower_height + 2],
+                mode='markers',
+                marker=dict(size=10, color='red', symbol='diamond'),
+                name='Aviation Light',
+                hovertemplate='<b>Aviation Warning Light</b><br>Height: 67m<extra></extra>'
+            ))
         
-        st.plotly_chart(fig_tower, use_container_width=True)
-        st.caption("🖱️ Drag to rotate • Scroll to zoom • Click legend to toggle layers")
+            fig_tower.update_layout(
+                height=500,
+                margin=dict(l=0, r=0, t=30, b=0),
+                scene=dict(
+                    xaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
+                    yaxis=dict(title='', showticklabels=False, showgrid=False, zeroline=False, visible=False),
+                    zaxis=dict(title='Height (m)', range=[-20 if tower["type"] == "Rooftop" else -5, tower_height + 10], showgrid=True, gridcolor='#eee'),
+                    camera=dict(eye=dict(x=1.8, y=1.8, z=0.8)),
+                    bgcolor='rgba(248,249,250,1)',
+                    aspectratio=dict(x=1, y=1, z=2 if tower_height < 50 else 2.5 if tower_height < 100 else 3)
+                ),
+                paper_bgcolor='rgba(0,0,0,0)',
+                showlegend=True,
+                legend=dict(x=0, y=1, bgcolor='rgba(255,255,255,0.8)')
+            )
+        
+            st.plotly_chart(fig_tower, use_container_width=True)
+            st.caption("🖱️ Drag to rotate • Scroll to zoom • Click legend to toggle layers")
     
-    with viz_col2:
-        st.markdown(f"#### 🗼 Tower: {tower['id']}")
-        st.markdown(f"**Location:** {tower['location']}")
+        with viz_col2:
+            st.markdown(f"#### 🗼 Tower: {tower['id']}")
+            st.markdown(f"**Location:** {tower['location']}")
         
-        # Tower specifications
-        st.markdown("##### Specifications")
-        load_pct = int(tower['current_load'] / tower['max_load'] * 100)
-        load_color = '#27ae60' if load_pct < 70 else '#f39c12' if load_pct < 85 else '#e63946'
+            # Tower specifications
+            st.markdown("##### Specifications")
+            load_pct = int(tower['current_load'] / tower['max_load'] * 100)
+            load_color = '#27ae60' if load_pct < 70 else '#f39c12' if load_pct < 85 else '#e63946'
         
-        spec_data = {
-            "Tower Type": tower['type'],
-            "Total Height": f"{tower['height']}m",
-            "Year Built": str(tower['year']),
-            "Last Inspection": "Oct 2025",
-            "Max Load": f"{tower['max_load']:,} kg",
-            "Current Load": f"<span style='color:{load_color}'>{tower['current_load']:,} kg ({load_pct}%)</span>"
-        }
+            spec_data = {
+                "Tower Type": tower['type'],
+                "Total Height": f"{tower['height']}m",
+                "Year Built": str(tower['year']),
+                "Last Inspection": "Oct 2025",
+                "Max Load": f"{tower['max_load']:,} kg",
+                "Current Load": f"<span style='color:{load_color}'>{tower['current_load']:,} kg ({load_pct}%)</span>"
+            }
         
-        for key, value in spec_data.items():
-            st.markdown(f"**{key}:** {value}", unsafe_allow_html=True)
+            for key, value in spec_data.items():
+                st.markdown(f"**{key}:** {value}", unsafe_allow_html=True)
         
-        st.markdown("---")
-        st.markdown(f"##### 📶 Tenants ({len(tower['tenants'])})")
+            st.markdown("---")
+            st.markdown(f"##### 📶 Tenants ({len(tower['tenants'])})")
         
-        for t in tower['tenants']:
-            st.markdown(f"<span style='color:{t['color']};'>●</span> **{t['name']}** - {t['tech']} @ {t['height']}m", unsafe_allow_html=True)
+            for t in tower['tenants']:
+                st.markdown(f"<span style='color:{t['color']};'>●</span> **{t['name']}** - {t['tech']} @ {t['height']}m", unsafe_allow_html=True)
         
-        st.markdown("---")
+            st.markdown("---")
         
-        # Open 3D Viewer button
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #e63946, #c0392b); border-radius: 10px; padding: 1rem; text-align: center; color: white; cursor: pointer;">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🖥️</div>
-                <div style="font-weight: 600;">Open Full 3D Model</div>
-                <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">High-resolution CAD viewer</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 4c: Live Sensor Dashboard + Alerts
-    # -------------------------------------------------------------------------
-    
-    st.markdown("---")
-    st.markdown(f"### 📡 Live Tower Data: {tower['id']}")
-    
-    sensor_col1, sensor_col2, sensor_col3, sensor_col4 = st.columns(4)
-    
-    # Simulated live sensor data (would come from IoT in production)
-    import random
-    random.seed(hash(tower['id']))  # Consistent per tower
-    
-    with sensor_col1:
-        temp = 22 + random.randint(-5, 15)
-        temp_color = '#27ae60' if temp < 30 else '#f39c12' if temp < 40 else '#e63946'
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {temp_color};">
-                <div style="font-size: 0.8rem; color: #888;">🌡️ Equipment Temp</div>
-                <div style="font-size: 2rem; font-weight: 700; color: {temp_color};">{temp}°C</div>
-                <div style="font-size: 0.7rem; color: #888;">Normal: &lt;35°C</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with sensor_col2:
-        power = 15 + random.randint(0, 25) + (len(tower['tenants']) * 5)
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #3498db;">
-                <div style="font-size: 0.8rem; color: #888;">⚡ Power Draw</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #3498db;">{power} kW</div>
-                <div style="font-size: 0.7rem; color: #888;">Capacity: 80 kW</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with sensor_col3:
-        wind = random.randint(5, 35)
-        wind_color = '#27ae60' if wind < 20 else '#f39c12' if wind < 40 else '#e63946'
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {wind_color};">
-                <div style="font-size: 0.8rem; color: #888;">💨 Wind Speed</div>
-                <div style="font-size: 2rem; font-weight: 700; color: {wind_color};">{wind} km/h</div>
-                <div style="font-size: 0.7rem; color: #888;">Alert: &gt;60 km/h</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with sensor_col4:
-        uptime = 99.0 + random.random() * 0.99
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #27ae60;">
-                <div style="font-size: 0.8rem; color: #888;">📶 Uptime (30d)</div>
-                <div style="font-size: 2rem; font-weight: 700; color: #27ae60;">{uptime:.2f}%</div>
-                <div style="font-size: 0.7rem; color: #888;">SLA: 99.9%</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 4d: Alerts + Revenue
-    # -------------------------------------------------------------------------
-    
-    alert_col, revenue_col = st.columns(2)
-    
-    with alert_col:
-        st.markdown("#### ⚠️ Active Alerts")
-        
-        # Generate alerts based on tower characteristics
-        alerts = []
-        if tower['current_load'] / tower['max_load'] > 0.8:
-            alerts.append({"type": "warning", "msg": "Load capacity at 90% - plan expansion", "time": "2h ago"})
-        if tower['year'] < 2010:
-            alerts.append({"type": "info", "msg": "Structural inspection due in 30 days", "time": "Today"})
-        if wind > 25:
-            alerts.append({"type": "warning", "msg": f"High wind alert: {wind} km/h", "time": "Live"})
-        if len(alerts) == 0:
-            alerts.append({"type": "success", "msg": "All systems operating normally", "time": "Live"})
-        
-        # Add some random alerts for variety
-        random_alerts = [
-            {"type": "info", "msg": "Scheduled maintenance: Dec 15", "time": "5d"},
-            {"type": "warning", "msg": "Backup power test required", "time": "1d ago"},
-            {"type": "success", "msg": "5G upgrade completed successfully", "time": "3d ago"},
-        ]
-        alerts.extend(random.sample(random_alerts, min(2, len(random_alerts))))
-        
-        for alert in alerts[:4]:
-            alert_color = '#e63946' if alert['type'] == 'critical' else '#f39c12' if alert['type'] == 'warning' else '#27ae60' if alert['type'] == 'success' else '#3498db'
-            alert_icon = '🔴' if alert['type'] == 'critical' else '🟡' if alert['type'] == 'warning' else '🟢' if alert['type'] == 'success' else '🔵'
-            st.markdown(f"""
-                <div style="background: {alert_color}10; border-left: 3px solid {alert_color}; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.85rem;">{alert_icon} {alert['msg']}</span>
-                        <span style="font-size: 0.7rem; color: #888;">{alert['time']}</span>
-                    </div>
+            # Open 3D Viewer button
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #e63946, #c0392b); border-radius: 10px; padding: 1rem; text-align: center; color: white; cursor: pointer;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🖥️</div>
+                    <div style="font-weight: 600;">Open Full 3D Model</div>
+                    <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;">High-resolution CAD viewer</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    with revenue_col:
-        st.markdown("#### 💰 Revenue & ROI")
-        
-        # Calculate revenue based on tenants and tower size
-        base_revenue = tower['height'] * 500 + len(tower['tenants']) * 15000
-        monthly_revenue = base_revenue + random.randint(-5000, 10000)
-        annual_revenue = monthly_revenue * 12
-        years_operating = 2025 - tower['year']
-        total_revenue = annual_revenue * years_operating
-        construction_cost = tower['height'] * 8000 + 150000
-        roi = ((total_revenue - construction_cost) / construction_cost) * 100
-        
-        rev_col1, rev_col2 = st.columns(2)
-        with rev_col1:
-            st.metric("Monthly Revenue", f"€{monthly_revenue:,.0f}", f"+{random.randint(2,8)}% YoY")
-            st.metric("Total ROI", f"{roi:.0f}%", f"Since {tower['year']}")
-        with rev_col2:
-            st.metric("Annual Revenue", f"€{annual_revenue:,.0f}")
-            st.metric("Payback Period", f"{construction_cost/annual_revenue:.1f} yrs", "✓ Achieved")
-        
-        # Revenue by tenant pie
-        tenant_revenues = [base_revenue / len(tower['tenants']) + random.randint(-2000, 5000) for _ in tower['tenants']]
-        fig_rev = go.Figure(data=[go.Pie(
-            labels=[t['name'] for t in tower['tenants']],
-            values=tenant_revenues,
-            hole=0.5,
-            marker_colors=[t['color'] for t in tower['tenants']],
-            textinfo='percent',
-            textfont_size=10
-        )])
-        fig_rev.update_layout(
-            height=150,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_rev, use_container_width=True)
-        st.caption("Revenue split by tenant")
+        # -------------------------------------------------------------------------
+        # ROW 4h: 3D Coverage by Region (Stacked Bar)
+        # -------------------------------------------------------------------------
     
-    # -------------------------------------------------------------------------
-    # ROW 4e: Drone Inspection + Tower Timeline
-    # -------------------------------------------------------------------------
+        st.markdown("### 📊 3D Model Status by Region")
     
-    drone_col, timeline_col = st.columns(2)
+        cov_col1, cov_col2 = st.columns([2, 1])
     
-    with drone_col:
-        st.markdown("#### 🚁 Drone Inspection Status")
+        with cov_col1:
+            # Regional 3D status breakdown
+            regions_3d = ['Île-de-France', 'Auvergne-RA', 'Nouvelle-Aquit.', 'Occitanie', 'Hauts-de-Fr.', 
+                          'Grand Est', 'PACA', 'Pays de Loire', 'Bretagne', 'Normandie']
+            complete_3d = [1220, 856, 710, 649, 587, 545, 518, 454, 400, 330]
+            in_progress_3d = [15, 25, 30, 35, 40, 45, 50, 55, 60, 65]
+            pending_3d = [10, 11, 16, 14, 18, 22, 21, 25, 27, 28]
         
-        last_scan_days = random.randint(15, 120)
-        scan_status = "✅ Recent" if last_scan_days < 30 else "🟡 Due Soon" if last_scan_days < 90 else "🔴 Overdue"
-        scan_color = '#27ae60' if last_scan_days < 30 else '#f39c12' if last_scan_days < 90 else '#e63946'
+            fig_stack = go.Figure()
         
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <span style="font-weight: 600; color: #1a2b4a;">Last Inspection</span>
-                    <span style="background: {scan_color}20; color: {scan_color}; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{scan_status}</span>
-                </div>
-                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📅 {last_scan_days} days ago</div>
-                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📸 847 photos captured</div>
-                <div style="font-size: 0.85rem; color: #666;">🤖 AI Analysis: No anomalies detected</div>
-            </div>
-        """, unsafe_allow_html=True)
+            fig_stack.add_trace(go.Bar(
+                name='✅ Complete',
+                y=regions_3d,
+                x=complete_3d,
+                orientation='h',
+                marker_color='#27ae60',
+                text=complete_3d,
+                textposition='inside'
+            ))
         
-        # Inspection findings
-        findings = [
-            {"item": "Structure integrity", "status": "✅ Good"},
-            {"item": "Antenna alignment", "status": "✅ Good"},
-            {"item": "Cable condition", "status": "🟡 Monitor"},
-            {"item": "Rust/corrosion", "status": "✅ None"},
-        ]
+            fig_stack.add_trace(go.Bar(
+                name='🔄 In Progress',
+                y=regions_3d,
+                x=in_progress_3d,
+                orientation='h',
+                marker_color='#f39c12',
+            ))
         
-        for f in findings:
-            st.markdown(f"<span style='font-size: 0.85rem;'>{f['status']} {f['item']}</span>", unsafe_allow_html=True)
+            fig_stack.add_trace(go.Bar(
+                name='⏳ Pending',
+                y=regions_3d,
+                x=pending_3d,
+                orientation='h',
+                marker_color='#e63946',
+            ))
         
-        st.button("🚁 Request New Scan", use_container_width=True)
+            fig_stack.update_layout(
+                barmode='stack',
+                height=350,
+                margin=dict(l=10, r=20, t=30, b=40),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Number of Sites'),
+                yaxis=dict(showgrid=False, categoryorder='total ascending'),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
+            )
+        
+            st.plotly_chart(fig_stack, use_container_width=True)
     
-    with timeline_col:
-        st.markdown("#### 📈 Tower Evolution Timeline")
+        with cov_col2:
+            st.markdown("#### Overall Status")
         
-        # Generate timeline based on tower year
-        events = [
-            {"year": tower['year'], "event": "🏗️ Tower constructed", "color": "#1a2b4a"},
-        ]
+            total_complete = sum(complete_3d)
+            total_progress = sum(in_progress_3d)
+            total_pending = sum(pending_3d)
+            total_all = total_complete + total_progress + total_pending
         
-        # Add tenant events
-        for i, tenant in enumerate(tower['tenants']):
-            event_year = tower['year'] + 2 + i * 2 + random.randint(0, 3)
-            if event_year <= 2025:
-                events.append({"year": event_year, "event": f"📡 {tenant['name']} {tenant['tech']} installed", "color": tenant['color']})
+            st.metric("✅ 3D Complete", f"{total_complete:,}", f"{total_complete/total_all*100:.0f}%")
+            st.metric("🔄 In Progress", f"{total_progress:,}", f"{total_progress/total_all*100:.0f}%")
+            st.metric("⏳ Pending Scan", f"{total_pending:,}", f"{total_pending/total_all*100:.0f}%")
         
-        # Add some upgrade events
-        if tower['year'] < 2015:
-            events.append({"year": 2018, "event": "⚡ Power system upgraded", "color": "#f39c12"})
-        if tower['year'] < 2020:
-            events.append({"year": 2022, "event": "🔒 Security system added", "color": "#9b59b6"})
+            st.markdown("---")
         
-        events.append({"year": 2025, "event": "🔍 Current inspection", "color": "#27ae60"})
+            # Progress donut
+            fig_donut = go.Figure(data=[go.Pie(
+                labels=['Complete', 'In Progress', 'Pending'],
+                values=[total_complete, total_progress, total_pending],
+                hole=0.6,
+                marker_colors=['#27ae60', '#f39c12', '#e63946'],
+                textinfo='percent',
+                textfont_size=12
+            )])
         
-        # Sort by year
-        events = sorted(events, key=lambda x: x['year'])
+            fig_donut.update_layout(
+                height=180,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor='rgba(0,0,0,0)',
+                showlegend=False,
+                annotations=[dict(text=f'{total_complete/total_all*100:.0f}%', x=0.5, y=0.5, font_size=20, showarrow=False)]
+            )
         
-        for event in events[-6:]:  # Show last 6 events
+            st.plotly_chart(fig_donut, use_container_width=True)
+            st.caption("3D Model Coverage Rate")
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+    
+    # =========================================================================
+    # TAB 4: MONITORING
+    # =========================================================================
+    with tab_monitoring:
+        # ROW 4c: Live Sensor Dashboard + Alerts
+        # -------------------------------------------------------------------------
+    
+        st.markdown("---")
+        st.markdown(f"### 📡 Live Tower Data: {tower['id']}")
+    
+        sensor_col1, sensor_col2, sensor_col3, sensor_col4 = st.columns(4)
+    
+        # Simulated live sensor data (would come from IoT in production)
+        import random
+        random.seed(hash(tower['id']))  # Consistent per tower
+    
+        with sensor_col1:
+            temp = 22 + random.randint(-5, 15)
+            temp_color = '#27ae60' if temp < 30 else '#f39c12' if temp < 40 else '#e63946'
             st.markdown(f"""
-                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                    <div style="background: {event['color']}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; min-width: 50px; text-align: center;">{event['year']}</div>
-                    <div style="font-size: 0.85rem; color: #666;">{event['event']}</div>
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {temp_color};">
+                    <div style="font-size: 0.8rem; color: #888;">🌡️ Equipment Temp</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: {temp_color};">{temp}°C</div>
+                    <div style="font-size: 0.7rem; color: #888;">Normal: &lt;35°C</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 4g: Photo-to-Product Reference Reconciliation (KEY PAIN POINT)
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🔍 Photo-to-Product Reference Reconciliation")
-    st.caption("Cross-checking Digital Twin assets with Product Reference Master Data")
-    
-    # KPIs for reconciliation status
-    recon_col1, recon_col2, recon_col3, recon_col4 = st.columns(4)
-    
-    with recon_col1:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #3498db;">
-                <div style="font-size: 0.75rem; color: #888;">📸 Digital Twin Assets</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: #1a2b4a;">247,834</div>
-                <div style="font-size: 0.7rem; color: #3498db;">Photos & 3D scans captured</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with recon_col2:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #27ae60;">
-                <div style="font-size: 0.75rem; color: #888;">✅ Matched to Reference</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: #27ae60;">198,412</div>
-                <div style="font-size: 0.7rem; color: #27ae60;">80.1% reconciled</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with recon_col3:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #f39c12;">
-                <div style="font-size: 0.75rem; color: #888;">⚠️ Pending Review</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: #f39c12;">35,847</div>
-                <div style="font-size: 0.7rem; color: #f39c12;">14.5% needs validation</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with recon_col4:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-left: 4px solid #e63946;">
-                <div style="font-size: 0.75rem; color: #888;">❌ Unmatched Items</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: #e63946;">13,575</div>
-                <div style="font-size: 0.7rem; color: #e63946;">5.4% discrepancies</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Discrepancy Types + Reconciliation Queue
-    disc_col, queue_col = st.columns(2)
-    
-    with disc_col:
-        st.markdown("#### 📊 Discrepancy Breakdown")
-        
-        discrepancy_types = {
-            "Photo exists, no reference": 5234,
-            "Reference exists, no photo": 4891,
-            "Serial number mismatch": 1823,
-            "Model/type mismatch": 987,
-            "Location mismatch": 640
-        }
-        
-        fig_disc = go.Figure(data=[go.Bar(
-            y=list(discrepancy_types.keys()),
-            x=list(discrepancy_types.values()),
-            orientation='h',
-            marker_color=['#e63946', '#c0392b', '#f39c12', '#e67e22', '#d35400'],
-            text=list(discrepancy_types.values()),
-            textposition='outside'
-        )])
-        fig_disc.update_layout(
-            height=250,
-            margin=dict(l=10, r=60, t=10, b=10),
-            xaxis_title="Count",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_disc, use_container_width=True)
-        
-        st.markdown("""
-            <div style="background: #fff3cd; border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
-                <span style="font-weight: 600;">💡 Root Cause:</span> Product reference list was last updated in March 2024. 
-                Digital Twin photos captured equipment installed since then.
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with queue_col:
-        st.markdown("#### 🔄 Priority Reconciliation Queue")
-        
-        queue_items = [
-            {"asset": "ANT-RF-4523", "site": "SITE-003421", "issue": "No reference entry", "priority": "High", "age": "45d"},
-            {"asset": "CAB-FO-8912", "site": "SITE-005892", "issue": "Serial mismatch", "priority": "High", "age": "32d"},
-            {"asset": "PWR-UPS-234", "site": "SITE-007234", "issue": "Model differs", "priority": "Med", "age": "28d"},
-            {"asset": "RAD-5G-1098", "site": "SITE-001256", "issue": "No photo found", "priority": "Med", "age": "21d"},
-            {"asset": "TRM-DVB-456", "site": "SITE-002891", "issue": "Location wrong", "priority": "Low", "age": "15d"},
-        ]
-        
-        for item in queue_items:
-            priority_color = '#e63946' if item['priority'] == 'High' else '#f39c12' if item['priority'] == 'Med' else '#27ae60'
+        with sensor_col2:
+            power = 15 + random.randint(0, 25) + (len(tower['tenants']) * 5)
             st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 3px solid {priority_color};">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <span style="font-weight: 600; color: #1a2b4a;">{item['asset']}</span>
-                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">@ {item['site']}</span>
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #3498db;">
+                    <div style="font-size: 0.8rem; color: #888;">⚡ Power Draw</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #3498db;">{power} kW</div>
+                    <div style="font-size: 0.7rem; color: #888;">Capacity: 80 kW</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with sensor_col3:
+            wind = random.randint(5, 35)
+            wind_color = '#27ae60' if wind < 20 else '#f39c12' if wind < 40 else '#e63946'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid {wind_color};">
+                    <div style="font-size: 0.8rem; color: #888;">💨 Wind Speed</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: {wind_color};">{wind} km/h</div>
+                    <div style="font-size: 0.7rem; color: #888;">Alert: &gt;60 km/h</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with sensor_col4:
+            uptime = 99.0 + random.random() * 0.99
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border-top: 4px solid #27ae60;">
+                    <div style="font-size: 0.8rem; color: #888;">📶 Uptime (30d)</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #27ae60;">{uptime:.2f}%</div>
+                    <div style="font-size: 0.7rem; color: #888;">SLA: 99.9%</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+        # ROW 4d: Alerts + Revenue
+        # -------------------------------------------------------------------------
+    
+        alert_col, revenue_col = st.columns(2)
+    
+        with alert_col:
+            st.markdown("#### ⚠️ Active Alerts")
+        
+            # Generate alerts based on tower characteristics
+            alerts = []
+            if tower['current_load'] / tower['max_load'] > 0.8:
+                alerts.append({"type": "warning", "msg": "Load capacity at 90% - plan expansion", "time": "2h ago"})
+            if tower['year'] < 2010:
+                alerts.append({"type": "info", "msg": "Structural inspection due in 30 days", "time": "Today"})
+            if wind > 25:
+                alerts.append({"type": "warning", "msg": f"High wind alert: {wind} km/h", "time": "Live"})
+            if len(alerts) == 0:
+                alerts.append({"type": "success", "msg": "All systems operating normally", "time": "Live"})
+        
+            # Add some random alerts for variety
+            random_alerts = [
+                {"type": "info", "msg": "Scheduled maintenance: Dec 15", "time": "5d"},
+                {"type": "warning", "msg": "Backup power test required", "time": "1d ago"},
+                {"type": "success", "msg": "5G upgrade completed successfully", "time": "3d ago"},
+            ]
+            alerts.extend(random.sample(random_alerts, min(2, len(random_alerts))))
+        
+            for alert in alerts[:4]:
+                alert_color = '#e63946' if alert['type'] == 'critical' else '#f39c12' if alert['type'] == 'warning' else '#27ae60' if alert['type'] == 'success' else '#3498db'
+                alert_icon = '🔴' if alert['type'] == 'critical' else '🟡' if alert['type'] == 'warning' else '🟢' if alert['type'] == 'success' else '🔵'
+                st.markdown(f"""
+                    <div style="background: {alert_color}10; border-left: 3px solid {alert_color}; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 0 6px 6px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.85rem;">{alert_icon} {alert['msg']}</span>
+                            <span style="font-size: 0.7rem; color: #888;">{alert['time']}</span>
                         </div>
-                        <span style="background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600;">{item['priority']}</span>
                     </div>
-                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">⚠️ {item['issue']} · 📅 Open {item['age']}</div>
+                """, unsafe_allow_html=True)
+    
+        with revenue_col:
+            st.markdown("#### 💰 Revenue & ROI")
+        
+            # Calculate revenue based on tenants and tower size
+            base_revenue = tower['height'] * 500 + len(tower['tenants']) * 15000
+            monthly_revenue = base_revenue + random.randint(-5000, 10000)
+            annual_revenue = monthly_revenue * 12
+            years_operating = 2025 - tower['year']
+            total_revenue = annual_revenue * years_operating
+            construction_cost = tower['height'] * 8000 + 150000
+            roi = ((total_revenue - construction_cost) / construction_cost) * 100
+        
+            rev_col1, rev_col2 = st.columns(2)
+            with rev_col1:
+                st.metric("Monthly Revenue", f"€{monthly_revenue:,.0f}", f"+{random.randint(2,8)}% YoY")
+                st.metric("Total ROI", f"{roi:.0f}%", f"Since {tower['year']}")
+            with rev_col2:
+                st.metric("Annual Revenue", f"€{annual_revenue:,.0f}")
+                st.metric("Payback Period", f"{construction_cost/annual_revenue:.1f} yrs", "✓ Achieved")
+        
+            # Revenue by tenant pie
+            tenant_revenues = [base_revenue / len(tower['tenants']) + random.randint(-2000, 5000) for _ in tower['tenants']]
+            fig_rev = go.Figure(data=[go.Pie(
+                labels=[t['name'] for t in tower['tenants']],
+                values=tenant_revenues,
+                hole=0.5,
+                marker_colors=[t['color'] for t in tower['tenants']],
+                textinfo='percent',
+                textfont_size=10
+            )])
+            fig_rev.update_layout(
+                height=150,
+                margin=dict(l=10, r=10, t=10, b=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_rev, use_container_width=True)
+            st.caption("Revenue split by tenant")
+    
+        # -------------------------------------------------------------------------
+        # ROW 4e: Drone Inspection + Tower Timeline
+        # -------------------------------------------------------------------------
+    
+        drone_col, timeline_col = st.columns(2)
+    
+        with drone_col:
+            st.markdown("#### 🚁 Drone Inspection Status")
+        
+            last_scan_days = random.randint(15, 120)
+            scan_status = "✅ Recent" if last_scan_days < 30 else "🟡 Due Soon" if last_scan_days < 90 else "🔴 Overdue"
+            scan_color = '#27ae60' if last_scan_days < 30 else '#f39c12' if last_scan_days < 90 else '#e63946'
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span style="font-weight: 600; color: #1a2b4a;">Last Inspection</span>
+                        <span style="background: {scan_color}20; color: {scan_color}; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{scan_status}</span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📅 {last_scan_days} days ago</div>
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">📸 847 photos captured</div>
+                    <div style="font-size: 0.85rem; color: #666;">🤖 AI Analysis: No anomalies detected</div>
                 </div>
             """, unsafe_allow_html=True)
         
-        btn_col1, btn_col2 = st.columns(2)
-        with btn_col1:
-            st.button("📋 View Full Queue (847)", use_container_width=True)
-        with btn_col2:
-            st.button("📥 Export to Excel", use_container_width=True)
-    
-    # Product Reference Sync Status
-    st.markdown("#### 🔗 Product Reference System Integration")
-    
-    sys_col1, sys_col2, sys_col3 = st.columns(3)
-    
-    with sys_col1:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.8rem; opacity: 0.8;">📷 Digital Twin Platform</div>
-                <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Photos & 3D Models</div>
-                <div style="font-size: 0.75rem; opacity: 0.7;">Last sync: 2 hours ago</div>
-                <div style="background: #27ae60; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">● Connected</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with sys_col2:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1rem; text-align: center; border: 2px dashed #e63946;">
-                <div style="font-size: 2rem;">⚡</div>
-                <div style="font-size: 0.9rem; font-weight: 600; color: #e63946;">Reconciliation Engine</div>
-                <div style="font-size: 0.75rem; color: #888; margin-top: 0.25rem;">AI-powered matching</div>
-                <div style="font-size: 0.7rem; color: #666; margin-top: 0.5rem;">Processing 1,247 items/hour</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with sys_col3:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.8rem; opacity: 0.8;">📚 Product Reference Master</div>
-                <div style="font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0;">Equipment Catalog</div>
-                <div style="font-size: 0.75rem; opacity: 0.7;">45,892 products registered</div>
-                <div style="background: #f39c12; padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; font-size: 0.7rem;">⚠ Needs Update</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Recommendation box
-    st.markdown("""
-        <div style="background: linear-gradient(135deg, #e6394610 0%, #f39c1210 100%); border: 1px solid #e63946; border-radius: 10px; padding: 1rem; margin-top: 1rem;">
-            <div style="font-weight: 700; color: #e63946; margin-bottom: 0.5rem;">🎯 Recommended Actions</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                <div style="font-size: 0.85rem; color: #666;">1️⃣ <b>Sync Product Reference</b> - Update catalog with Q4 2024 installations</div>
-                <div style="font-size: 0.85rem; color: #666;">2️⃣ <b>Bulk Photo Upload</b> - 3,200 photos pending from October surveys</div>
-                <div style="font-size: 0.85rem; color: #666;">3️⃣ <b>Serial Number Audit</b> - 1,823 mismatches flagged for validation</div>
-                <div style="font-size: 0.85rem; color: #666;">4️⃣ <b>Train AI Model</b> - Improve auto-matching accuracy from 78% to 90%+</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 4h: 3D Coverage by Region (Stacked Bar)
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📊 3D Model Status by Region")
-    
-    cov_col1, cov_col2 = st.columns([2, 1])
-    
-    with cov_col1:
-        # Regional 3D status breakdown
-        regions_3d = ['Île-de-France', 'Auvergne-RA', 'Nouvelle-Aquit.', 'Occitanie', 'Hauts-de-Fr.', 
-                      'Grand Est', 'PACA', 'Pays de Loire', 'Bretagne', 'Normandie']
-        complete_3d = [1220, 856, 710, 649, 587, 545, 518, 454, 400, 330]
-        in_progress_3d = [15, 25, 30, 35, 40, 45, 50, 55, 60, 65]
-        pending_3d = [10, 11, 16, 14, 18, 22, 21, 25, 27, 28]
+            # Inspection findings
+            findings = [
+                {"item": "Structure integrity", "status": "✅ Good"},
+                {"item": "Antenna alignment", "status": "✅ Good"},
+                {"item": "Cable condition", "status": "🟡 Monitor"},
+                {"item": "Rust/corrosion", "status": "✅ None"},
+            ]
         
-        fig_stack = go.Figure()
+            for f in findings:
+                st.markdown(f"<span style='font-size: 0.85rem;'>{f['status']} {f['item']}</span>", unsafe_allow_html=True)
         
-        fig_stack.add_trace(go.Bar(
-            name='✅ Complete',
-            y=regions_3d,
-            x=complete_3d,
-            orientation='h',
-            marker_color='#27ae60',
-            text=complete_3d,
-            textposition='inside'
-        ))
+            st.button("🚁 Request New Scan", use_container_width=True)
+    
+        with timeline_col:
+            st.markdown("#### 📈 Tower Evolution Timeline")
         
-        fig_stack.add_trace(go.Bar(
-            name='🔄 In Progress',
-            y=regions_3d,
-            x=in_progress_3d,
-            orientation='h',
-            marker_color='#f39c12',
-        ))
+            # Generate timeline based on tower year
+            events = [
+                {"year": tower['year'], "event": "🏗️ Tower constructed", "color": "#1a2b4a"},
+            ]
         
-        fig_stack.add_trace(go.Bar(
-            name='⏳ Pending',
-            y=regions_3d,
-            x=pending_3d,
-            orientation='h',
-            marker_color='#e63946',
-        ))
+            # Add tenant events
+            for i, tenant in enumerate(tower['tenants']):
+                event_year = tower['year'] + 2 + i * 2 + random.randint(0, 3)
+                if event_year <= 2025:
+                    events.append({"year": event_year, "event": f"📡 {tenant['name']} {tenant['tech']} installed", "color": tenant['color']})
         
-        fig_stack.update_layout(
-            barmode='stack',
-            height=350,
-            margin=dict(l=10, r=20, t=30, b=40),
+            # Add some upgrade events
+            if tower['year'] < 2015:
+                events.append({"year": 2018, "event": "⚡ Power system upgraded", "color": "#f39c12"})
+            if tower['year'] < 2020:
+                events.append({"year": 2022, "event": "🔒 Security system added", "color": "#9b59b6"})
+        
+            events.append({"year": 2025, "event": "🔍 Current inspection", "color": "#27ae60"})
+        
+            # Sort by year
+            events = sorted(events, key=lambda x: x['year'])
+        
+            for event in events[-6:]:  # Show last 6 events
+                st.markdown(f"""
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        <div style="background: {event['color']}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; min-width: 50px; text-align: center;">{event['year']}</div>
+                        <div style="font-size: 0.85rem; color: #666;">{event['event']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+    
+    # =========================================================================
+    # TAB 5: ANALYSIS
+    # =========================================================================
+    with tab_analysis:
+        # ROW 5: What-If Scenario Simulator
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🎮 What-If Scenario Simulator")
+        st.caption("Simulate infrastructure changes and assess impact in real-time")
+    
+        sim_col1, sim_col2 = st.columns([1, 2])
+    
+        with sim_col1:
+            st.markdown("**Configure Scenario:**")
+        
+            scenario_type = st.selectbox(
+                "📋 Scenario Type",
+                options=[
+                    "Site Decommissioning",
+                    "Equipment Failure",
+                    "Capacity Planning (New Antennas)",
+                    "Maintenance Window",
+                    "Natural Disaster Impact"
+                ]
+            )
+        
+            # Dynamic inputs based on scenario
+            if scenario_type == "Site Decommissioning":
+                site_options = ["SITE-003421 (Paris)", "SITE-005892 (Lyon)", "SITE-007234 (Marseille)", "SITE-001256 (Bordeaux)"]
+                selected_site = st.selectbox("🗼 Select Site", site_options)
+            
+            elif scenario_type == "Equipment Failure":
+                equipment_options = ["Tower Structure", "Power System", "Cooling System", "Antenna Array", "Fiber Connection"]
+                selected_equipment = st.selectbox("⚡ Equipment Type", equipment_options)
+                failure_duration = st.slider("⏱️ Outage Duration (hours)", 1, 48, 8)
+            
+            elif scenario_type == "Capacity Planning (New Antennas)":
+                client_options = ["Orange", "SFR", "Bouygues Telecom", "Free Mobile", "New Client"]
+                selected_client = st.selectbox("👤 Client", client_options)
+                antenna_count = st.slider("📶 Number of Antennas", 10, 500, 100)
+            
+            elif scenario_type == "Maintenance Window":
+                region_options = ["Île-de-France", "Auvergne-Rhône-Alpes", "Nouvelle-Aquitaine", "All Regions"]
+                selected_region = st.selectbox("🗺️ Region", region_options)
+                maintenance_hours = st.slider("⏱️ Duration (hours)", 2, 24, 8)
+            
+            else:  # Natural Disaster
+                disaster_options = ["Storm/High Winds", "Flooding", "Earthquake", "Extreme Heat", "Ice Storm"]
+                selected_disaster = st.selectbox("🌪️ Disaster Type", disaster_options)
+                severity = st.select_slider("📊 Severity", options=["Low", "Medium", "High", "Extreme"])
+        
+            if st.button("🚀 Run Simulation", type="primary", use_container_width=True):
+                st.success("Simulation complete!")
+    
+        with sim_col2:
+            st.markdown("#### Simulation Results")
+        
+            # Results based on scenario type
+            if scenario_type == "Site Decommissioning":
+                results = {
+                    "coverage_impact": -2.3,
+                    "clients_affected": 4,
+                    "revenue_at_risk": 125000,
+                    "sla_breach_risk": "Medium",
+                    "redundancy": "85% covered by adjacent sites",
+                    "recommendation": "Proceed with migration plan - 3 weeks required"
+                }
+            
+                res_cols = st.columns(3)
+                with res_cols[0]:
+                    st.metric("Coverage Impact", f"{results['coverage_impact']}%", delta=f"{results['coverage_impact']}%", delta_color="inverse")
+                with res_cols[1]:
+                    st.metric("Clients Affected", results['clients_affected'], delta="-4 clients")
+                with res_cols[2]:
+                    st.metric("Revenue at Risk", f"€{results['revenue_at_risk']:,}", delta=f"-€{results['revenue_at_risk']:,}", delta_color="inverse")
+            
+                st.markdown(f"""
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <div style="font-size: 0.75rem; color: #888;">SLA Breach Risk</div>
+                                <div style="font-weight: 600; color: #f39c12;">⚠️ {results['sla_breach_risk']}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.75rem; color: #888;">Redundancy Status</div>
+                                <div style="font-weight: 600; color: #27ae60;">✓ {results['redundancy']}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                            <div style="font-size: 0.75rem; color: #888;">AI Recommendation</div>
+                            <div style="font-weight: 600; color: #1a2b4a;">💡 {results['recommendation']}</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            elif scenario_type == "Equipment Failure":
+                st.markdown("""
+                    <div style="background: #e6394620; border-radius: 8px; padding: 1rem; border-left: 4px solid #e63946;">
+                        <div style="font-weight: 600; color: #e63946; margin-bottom: 0.5rem;">⚠️ IMPACT ASSESSMENT</div>
+                """, unsafe_allow_html=True)
+            
+                res_cols = st.columns(3)
+                with res_cols[0]:
+                    st.metric("Service Impact", "847 users", delta="-847", delta_color="inverse")
+                with res_cols[1]:
+                    st.metric("Est. Downtime", "4.5 hours")
+                with res_cols[2]:
+                    st.metric("SLA Penalty Risk", "€18,500", delta_color="inverse")
+            
+                st.markdown("""
+                    </div>
+                    <div style="background: #27ae6020; border-radius: 8px; padding: 1rem; margin-top: 0.5rem; border-left: 4px solid #27ae60;">
+                        <div style="font-weight: 600; color: #27ae60;">✓ MITIGATION OPTIONS</div>
+                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.85rem; color: #666;">
+                            <li>Failover to SITE-003422 (2.1km) - 92% coverage maintained</li>
+                            <li>Mobile unit deployment - ETA 45 min</li>
+                            <li>Emergency repair team available - ETA 2 hours</li>
+                        </ul>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            elif scenario_type == "Capacity Planning (New Antennas)":
+                res_cols = st.columns(3)
+                with res_cols[0]:
+                    st.metric("Sites with Capacity", "127", delta="+127 available")
+                with res_cols[1]:
+                    st.metric("Additional Revenue", "€2.4M/year", delta="+€2.4M")
+                with res_cols[2]:
+                    st.metric("Infrastructure Cost", "€890K", delta="One-time")
+            
+                st.markdown("""
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+                        <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.5rem;">📊 Capacity Analysis</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+                            <div style="background: #27ae6020; padding: 0.5rem; border-radius: 4px;">
+                                <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">78</div>
+                                <div style="font-size: 0.65rem; color: #888;">Full Capacity</div>
+                            </div>
+                            <div style="background: #3498db20; padding: 0.5rem; border-radius: 4px;">
+                                <div style="font-size: 1.2rem; font-weight: 700; color: #3498db;">49</div>
+                                <div style="font-size: 0.65rem; color: #888;">Minor Upgrade</div>
+                            </div>
+                            <div style="background: #f39c1220; padding: 0.5rem; border-radius: 4px;">
+                                <div style="font-size: 1.2rem; font-weight: 700; color: #f39c12;">23</div>
+                                <div style="font-size: 0.65rem; color: #888;">Major Upgrade</div>
+                            </div>
+                            <div style="background: #e6394620; padding: 0.5rem; border-radius: 4px;">
+                                <div style="font-size: 1.2rem; font-weight: 700; color: #e63946;">15</div>
+                                <div style="font-size: 0.65rem; color: #888;">New Build Req.</div>
+                            </div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Default results display
+                res_cols = st.columns(3)
+                with res_cols[0]:
+                    st.metric("Assets at Risk", "234", delta="-234", delta_color="inverse")
+                with res_cols[1]:
+                    st.metric("Est. Impact Duration", "12-48 hours")
+                with res_cols[2]:
+                    st.metric("Recovery Cost Est.", "€1.2M", delta_color="inverse")
+    
+        # -------------------------------------------------------------------------
+        # ROW 6: Cross-Team Data Usage
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 👥 Cross-Team Data Usage")
+        st.caption("Operations, Technology & CAPEX teams rely on the same infrastructure inventory")
+    
+        team_cols = st.columns(3)
+    
+        with team_cols[0]:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #3498db; height: 200px;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🔧 Operations Team</div>
+                    <div style="font-weight: 600; color: #1a2b4a;">Maintenance & Support</div>
+                    <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                        <li>Work order management</li>
+                        <li>Preventive maintenance</li>
+                        <li>Incident response</li>
+                        <li>SLA monitoring</li>
+                    </ul>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #3498db; font-weight: 600;">2,847 queries/day</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with team_cols[1]:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #9b59b6; height: 200px;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🏗️ Technology Team</div>
+                    <div style="font-weight: 600; color: #1a2b4a;">Digital Twin & Planning</div>
+                    <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                        <li>3D model updates</li>
+                        <li>Capacity simulations</li>
+                        <li>Network planning</li>
+                        <li>Site surveys</li>
+                    </ul>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #9b59b6; font-weight: 600;">1,234 queries/day</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with team_cols[2]:
+            st.markdown("""
+                <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #27ae60; height: 200px;">
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">💰 CAPEX Team</div>
+                    <div style="font-weight: 600; color: #1a2b4a;">Investment & Lifecycle</div>
+                    <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
+                        <li>Equipment lifecycle</li>
+                        <li>Renewal planning</li>
+                        <li>Budget allocation</li>
+                        <li>ROI analysis</li>
+                    </ul>
+                    <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #27ae60; font-weight: 600;">567 queries/day</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("")
+        st.markdown("---")
+        st.markdown("")
+    
+        # -------------------------------------------------------------------------
+        # ROW 7: Data Quality Trends
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📈 Data Quality Trends")
+    
+        # Create trend chart
+        months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        completeness_trend = [89.2, 90.5, 91.8, 92.7, 93.5, 94.2]
+        accuracy_trend = [95.1, 95.8, 96.2, 96.9, 97.4, 97.8]
+        discrepancy_trend = [125, 98, 82, 68, 55, 47]
+    
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+        fig.add_trace(go.Scatter(
+            x=months, y=completeness_trend,
+            mode='lines+markers',
+            name='Completeness %',
+            line=dict(color='#27ae60', width=3),
+            marker=dict(size=8)
+        ), secondary_y=False)
+    
+        fig.add_trace(go.Scatter(
+            x=months, y=accuracy_trend,
+            mode='lines+markers',
+            name='Accuracy %',
+            line=dict(color='#3498db', width=3),
+            marker=dict(size=8)
+        ), secondary_y=False)
+    
+        fig.add_trace(go.Bar(
+            x=months, y=discrepancy_trend,
+            name='Open Discrepancies',
+            marker=dict(color='rgba(230, 57, 70, 0.25)'),
+            yaxis='y2'
+        ), secondary_y=True)
+    
+        fig.update_layout(
+            height=300,
+            margin=dict(l=20, r=20, t=30, b=40),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Number of Sites'),
-            yaxis=dict(showgrid=False, categoryorder='total ascending'),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5)
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Quality %', range=[85, 100]),
+            yaxis2=dict(showgrid=False, title='Discrepancies', range=[0, 150], overlaying='y', side='right'),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+            hovermode='x unified'
         )
-        
-        st.plotly_chart(fig_stack, use_container_width=True)
     
-    with cov_col2:
-        st.markdown("#### Overall Status")
-        
-        total_complete = sum(complete_3d)
-        total_progress = sum(in_progress_3d)
-        total_pending = sum(pending_3d)
-        total_all = total_complete + total_progress + total_pending
-        
-        st.metric("✅ 3D Complete", f"{total_complete:,}", f"{total_complete/total_all*100:.0f}%")
-        st.metric("🔄 In Progress", f"{total_progress:,}", f"{total_progress/total_all*100:.0f}%")
-        st.metric("⏳ Pending Scan", f"{total_pending:,}", f"{total_pending/total_all*100:.0f}%")
-        
-        st.markdown("---")
-        
-        # Progress donut
-        fig_donut = go.Figure(data=[go.Pie(
-            labels=['Complete', 'In Progress', 'Pending'],
-            values=[total_complete, total_progress, total_pending],
-            hole=0.6,
-            marker_colors=['#27ae60', '#f39c12', '#e63946'],
-            textinfo='percent',
-            textfont_size=12
-        )])
-        
-        fig_donut.update_layout(
-            height=180,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor='rgba(0,0,0,0)',
-            showlegend=False,
-            annotations=[dict(text=f'{total_complete/total_all*100:.0f}%', x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
-        
-        st.plotly_chart(fig_donut, use_container_width=True)
-        st.caption("3D Model Coverage Rate")
+        st.plotly_chart(fig, use_container_width=True)
     
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 5: What-If Scenario Simulator
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🎮 What-If Scenario Simulator")
-    st.caption("Simulate infrastructure changes and assess impact in real-time")
-    
-    sim_col1, sim_col2 = st.columns([1, 2])
-    
-    with sim_col1:
-        st.markdown("**Configure Scenario:**")
-        
-        scenario_type = st.selectbox(
-            "📋 Scenario Type",
-            options=[
-                "Site Decommissioning",
-                "Equipment Failure",
-                "Capacity Planning (New Antennas)",
-                "Maintenance Window",
-                "Natural Disaster Impact"
-            ]
-        )
-        
-        # Dynamic inputs based on scenario
-        if scenario_type == "Site Decommissioning":
-            site_options = ["SITE-003421 (Paris)", "SITE-005892 (Lyon)", "SITE-007234 (Marseille)", "SITE-001256 (Bordeaux)"]
-            selected_site = st.selectbox("🗼 Select Site", site_options)
-            
-        elif scenario_type == "Equipment Failure":
-            equipment_options = ["Tower Structure", "Power System", "Cooling System", "Antenna Array", "Fiber Connection"]
-            selected_equipment = st.selectbox("⚡ Equipment Type", equipment_options)
-            failure_duration = st.slider("⏱️ Outage Duration (hours)", 1, 48, 8)
-            
-        elif scenario_type == "Capacity Planning (New Antennas)":
-            client_options = ["Orange", "SFR", "Bouygues Telecom", "Free Mobile", "New Client"]
-            selected_client = st.selectbox("👤 Client", client_options)
-            antenna_count = st.slider("📶 Number of Antennas", 10, 500, 100)
-            
-        elif scenario_type == "Maintenance Window":
-            region_options = ["Île-de-France", "Auvergne-Rhône-Alpes", "Nouvelle-Aquitaine", "All Regions"]
-            selected_region = st.selectbox("🗺️ Region", region_options)
-            maintenance_hours = st.slider("⏱️ Duration (hours)", 2, 24, 8)
-            
-        else:  # Natural Disaster
-            disaster_options = ["Storm/High Winds", "Flooding", "Earthquake", "Extreme Heat", "Ice Storm"]
-            selected_disaster = st.selectbox("🌪️ Disaster Type", disaster_options)
-            severity = st.select_slider("📊 Severity", options=["Low", "Medium", "High", "Extreme"])
-        
-        if st.button("🚀 Run Simulation", type="primary", use_container_width=True):
-            st.success("Simulation complete!")
-    
-    with sim_col2:
-        st.markdown("#### Simulation Results")
-        
-        # Results based on scenario type
-        if scenario_type == "Site Decommissioning":
-            results = {
-                "coverage_impact": -2.3,
-                "clients_affected": 4,
-                "revenue_at_risk": 125000,
-                "sla_breach_risk": "Medium",
-                "redundancy": "85% covered by adjacent sites",
-                "recommendation": "Proceed with migration plan - 3 weeks required"
-            }
-            
-            res_cols = st.columns(3)
-            with res_cols[0]:
-                st.metric("Coverage Impact", f"{results['coverage_impact']}%", delta=f"{results['coverage_impact']}%", delta_color="inverse")
-            with res_cols[1]:
-                st.metric("Clients Affected", results['clients_affected'], delta="-4 clients")
-            with res_cols[2]:
-                st.metric("Revenue at Risk", f"€{results['revenue_at_risk']:,}", delta=f"-€{results['revenue_at_risk']:,}", delta_color="inverse")
-            
-            st.markdown(f"""
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <div style="font-size: 0.75rem; color: #888;">SLA Breach Risk</div>
-                            <div style="font-weight: 600; color: #f39c12;">⚠️ {results['sla_breach_risk']}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.75rem; color: #888;">Redundancy Status</div>
-                            <div style="font-weight: 600; color: #27ae60;">✓ {results['redundancy']}</div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
-                        <div style="font-size: 0.75rem; color: #888;">AI Recommendation</div>
-                        <div style="font-weight: 600; color: #1a2b4a;">💡 {results['recommendation']}</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        elif scenario_type == "Equipment Failure":
-            st.markdown("""
-                <div style="background: #e6394620; border-radius: 8px; padding: 1rem; border-left: 4px solid #e63946;">
-                    <div style="font-weight: 600; color: #e63946; margin-bottom: 0.5rem;">⚠️ IMPACT ASSESSMENT</div>
-            """, unsafe_allow_html=True)
-            
-            res_cols = st.columns(3)
-            with res_cols[0]:
-                st.metric("Service Impact", "847 users", delta="-847", delta_color="inverse")
-            with res_cols[1]:
-                st.metric("Est. Downtime", "4.5 hours")
-            with res_cols[2]:
-                st.metric("SLA Penalty Risk", "€18,500", delta_color="inverse")
-            
-            st.markdown("""
-                </div>
-                <div style="background: #27ae6020; border-radius: 8px; padding: 1rem; margin-top: 0.5rem; border-left: 4px solid #27ae60;">
-                    <div style="font-weight: 600; color: #27ae60;">✓ MITIGATION OPTIONS</div>
-                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.85rem; color: #666;">
-                        <li>Failover to SITE-003422 (2.1km) - 92% coverage maintained</li>
-                        <li>Mobile unit deployment - ETA 45 min</li>
-                        <li>Emergency repair team available - ETA 2 hours</li>
-                    </ul>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        elif scenario_type == "Capacity Planning (New Antennas)":
-            res_cols = st.columns(3)
-            with res_cols[0]:
-                st.metric("Sites with Capacity", "127", delta="+127 available")
-            with res_cols[1]:
-                st.metric("Additional Revenue", "€2.4M/year", delta="+€2.4M")
-            with res_cols[2]:
-                st.metric("Infrastructure Cost", "€890K", delta="One-time")
-            
-            st.markdown("""
-                <div style="background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
-                    <div style="font-weight: 600; color: #1a2b4a; margin-bottom: 0.5rem;">📊 Capacity Analysis</div>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
-                        <div style="background: #27ae6020; padding: 0.5rem; border-radius: 4px;">
-                            <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">78</div>
-                            <div style="font-size: 0.65rem; color: #888;">Full Capacity</div>
-                        </div>
-                        <div style="background: #3498db20; padding: 0.5rem; border-radius: 4px;">
-                            <div style="font-size: 1.2rem; font-weight: 700; color: #3498db;">49</div>
-                            <div style="font-size: 0.65rem; color: #888;">Minor Upgrade</div>
-                        </div>
-                        <div style="background: #f39c1220; padding: 0.5rem; border-radius: 4px;">
-                            <div style="font-size: 1.2rem; font-weight: 700; color: #f39c12;">23</div>
-                            <div style="font-size: 0.65rem; color: #888;">Major Upgrade</div>
-                        </div>
-                        <div style="background: #e6394620; padding: 0.5rem; border-radius: 4px;">
-                            <div style="font-size: 1.2rem; font-weight: 700; color: #e63946;">15</div>
-                            <div style="font-size: 0.65rem; color: #888;">New Build Req.</div>
-                        </div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Default results display
-            res_cols = st.columns(3)
-            with res_cols[0]:
-                st.metric("Assets at Risk", "234", delta="-234", delta_color="inverse")
-            with res_cols[1]:
-                st.metric("Est. Impact Duration", "12-48 hours")
-            with res_cols[2]:
-                st.metric("Recovery Cost Est.", "€1.2M", delta_color="inverse")
-    
-    # -------------------------------------------------------------------------
-    # ROW 6: Cross-Team Data Usage
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 👥 Cross-Team Data Usage")
-    st.caption("Operations, Technology & CAPEX teams rely on the same infrastructure inventory")
-    
-    team_cols = st.columns(3)
-    
-    with team_cols[0]:
+        # Summary
         st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #3498db; height: 200px;">
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🔧 Operations Team</div>
-                <div style="font-weight: 600; color: #1a2b4a;">Maintenance & Support</div>
-                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
-                    <li>Work order management</li>
-                    <li>Preventive maintenance</li>
-                    <li>Incident response</li>
-                    <li>SLA monitoring</li>
-                </ul>
-                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #3498db; font-weight: 600;">2,847 queries/day</div>
+            <div style="background: #27ae6015; border-radius: 8px; padding: 1rem; text-align: center;">
+                <span style="color: #27ae60; font-weight: 600;">📈 Data quality improved by 5% over 6 months • Discrepancies reduced by 62%</span>
             </div>
         """, unsafe_allow_html=True)
-    
-    with team_cols[1]:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #9b59b6; height: 200px;">
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">🏗️ Technology Team</div>
-                <div style="font-weight: 600; color: #1a2b4a;">Digital Twin & Planning</div>
-                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
-                    <li>3D model updates</li>
-                    <li>Capacity simulations</li>
-                    <li>Network planning</li>
-                    <li>Site surveys</li>
-                </ul>
-                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #9b59b6; font-weight: 600;">1,234 queries/day</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with team_cols[2]:
-        st.markdown("""
-            <div style="background: white; border-radius: 10px; padding: 1.5rem; border-top: 4px solid #27ae60; height: 200px;">
-                <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">💰 CAPEX Team</div>
-                <div style="font-weight: 600; color: #1a2b4a;">Investment & Lifecycle</div>
-                <ul style="font-size: 0.8rem; color: #666; padding-left: 1.2rem; margin-top: 0.75rem;">
-                    <li>Equipment lifecycle</li>
-                    <li>Renewal planning</li>
-                    <li>Budget allocation</li>
-                    <li>ROI analysis</li>
-                </ul>
-                <div style="margin-top: 0.75rem; font-size: 0.75rem; color: #27ae60; font-weight: 600;">567 queries/day</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("")
-    st.markdown("---")
-    st.markdown("")
-    
-    # -------------------------------------------------------------------------
-    # ROW 7: Data Quality Trends
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📈 Data Quality Trends")
-    
-    # Create trend chart
-    months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    completeness_trend = [89.2, 90.5, 91.8, 92.7, 93.5, 94.2]
-    accuracy_trend = [95.1, 95.8, 96.2, 96.9, 97.4, 97.8]
-    discrepancy_trend = [125, 98, 82, 68, 55, 47]
-    
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    
-    fig.add_trace(go.Scatter(
-        x=months, y=completeness_trend,
-        mode='lines+markers',
-        name='Completeness %',
-        line=dict(color='#27ae60', width=3),
-        marker=dict(size=8)
-    ), secondary_y=False)
-    
-    fig.add_trace(go.Scatter(
-        x=months, y=accuracy_trend,
-        mode='lines+markers',
-        name='Accuracy %',
-        line=dict(color='#3498db', width=3),
-        marker=dict(size=8)
-    ), secondary_y=False)
-    
-    fig.add_trace(go.Bar(
-        x=months, y=discrepancy_trend,
-        name='Open Discrepancies',
-        marker=dict(color='rgba(230, 57, 70, 0.25)'),
-        yaxis='y2'
-    ), secondary_y=True)
-    
-    fig.update_layout(
-        height=300,
-        margin=dict(l=20, r=20, t=30, b=40),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title='Quality %', range=[85, 100]),
-        yaxis2=dict(showgrid=False, title='Discrepancies', range=[0, 150], overlaying='y', side='right'),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-        hovermode='x unified'
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Summary
-    st.markdown("""
-        <div style="background: #27ae6015; border-radius: 8px; padding: 1rem; text-align: center;">
-            <span style="color: #27ae60; font-weight: 600;">📈 Data quality improved by 5% over 6 months • Discrepancies reduced by 62%</span>
-        </div>
-    """, unsafe_allow_html=True)
 
-# ==============================================================================
-# PAGE: CAPEX & LIFECYCLE
-# ==============================================================================
+    # ==============================================================================
+    # PAGE: CAPEX & LIFECYCLE
+    # ==============================================================================
 
 def page_capex_lifecycle():
     render_header(
