@@ -656,30 +656,25 @@ with st.sidebar:
     
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     
-    # Info - Fetch live data for sidebar
+    # Info - Fetch live data
     st.markdown("### Data Platform")
     
-    # Query sidebar metrics
     sidebar_sites = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'")
     sidebar_towers = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE' AND SITE_TYPE = 'TOWER'")
     sidebar_employees = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE'")
-    sidebar_revenue = run_query("""
-        SELECT SUM(REVENUE_EUR) / 7 * 12 / 1000000 as ANNUAL_REV 
-        FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
-        WHERE FISCAL_YEAR = 2025
-    """)
+    sidebar_revenue = run_query("SELECT SUM(REVENUE_EUR) / 7 * 12 / 1000000 as REV FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS WHERE FISCAL_YEAR = 2025")
     
-    sites_count = int(sidebar_sites['CNT'].iloc[0]) if not sidebar_sites.empty else 8785
-    towers_count = int(sidebar_towers['CNT'].iloc[0]) if not sidebar_towers.empty else 7877
-    emp_count = int(sidebar_employees['CNT'].iloc[0]) if not sidebar_employees.empty else 1500
-    rev_amount = sidebar_revenue['ANNUAL_REV'].iloc[0] if not sidebar_revenue.empty and sidebar_revenue['ANNUAL_REV'].iloc[0] else 808.2
+    sites_cnt = int(sidebar_sites['CNT'].iloc[0]) if not sidebar_sites.empty else 8785
+    towers_cnt = int(sidebar_towers['CNT'].iloc[0]) if not sidebar_towers.empty else 7877
+    emp_cnt = int(sidebar_employees['CNT'].iloc[0]) if not sidebar_employees.empty else 1500
+    rev_amt = sidebar_revenue['REV'].iloc[0] if not sidebar_revenue.empty and sidebar_revenue['REV'].iloc[0] else 808.2
     
     st.markdown(f"""
         <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
-            <p>📡 {sites_count:,} Active Sites</p>
-            <p>🗼 {towers_count:,} Towers</p>
-            <p>👥 {emp_count:,} Employees</p>
-            <p>💶 EUR {rev_amount:.1f}M Revenue</p>
+            <p>📡 {sites_cnt:,} Active Sites</p>
+            <p>🗼 {towers_cnt:,} Towers</p>
+            <p>👥 {emp_cnt:,} Employees</p>
+            <p>💶 EUR {rev_amt:.1f}M Revenue</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -893,12 +888,12 @@ def page_executive_dashboard():
                         <div style="background: {border_color}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{item['value']}</div>
                     </div>
                 """, unsafe_allow_html=True)
-        
+    
+    # -------------------------------------------------------------------------
+        # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
         # -------------------------------------------------------------------------
-            # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
-            # -------------------------------------------------------------------------
-        
-            col_map, col_clients = st.columns([3, 2])
+    
+        col_map, col_clients = st.columns([3, 2])
     
         with col_map:
             st.markdown("### 🗺️ France Infrastructure Map")
@@ -928,7 +923,7 @@ def page_executive_dashboard():
                     GROUP BY d.REGION_ID
                 ) site_data ON r.REGION_ID = site_data.REGION_ID
                 ORDER BY SITE_COUNT DESC
-        """)
+            """)
         
             if not regional_df.empty:
                 # Prepare data for PyDeck
@@ -999,7 +994,7 @@ def page_executive_dashboard():
                                 👥 <b style="color: white;">{population:.1f}M</b> Population
                             </div>
                         </div>
-                """,
+                    """,
                     "style": {"backgroundColor": "transparent", "color": "white"}
                 }
             
@@ -1054,7 +1049,7 @@ def page_executive_dashboard():
                 WHERE o.ANNUAL_REVENUE_EUR > 0
                 ORDER BY o.ANNUAL_REVENUE_EUR DESC
                 LIMIT 6
-        """)
+            """)
         
             if not client_health_df.empty:
                 for _, client in client_health_df.iterrows():
@@ -1089,7 +1084,7 @@ def page_executive_dashboard():
                                 <div class="client-status {status_class}">{status_text}</div>
                             </div>
                         </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
             
                 # Revenue at risk summary
                 at_risk = client_health_df[client_health_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
@@ -1121,7 +1116,7 @@ def page_executive_dashboard():
             FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
             WHERE FISCAL_YEAR = 2025
             ORDER BY PERIOD_DATE
-    """)
+        """)
     
         if not monthly_finance_df.empty:
             fig = go.Figure()
@@ -1218,20 +1213,20 @@ def page_executive_dashboard():
                 AVG(COLOCATION_RATE) as AVG_COLOCATION
             FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
             WHERE STATUS = 'ACTIVE'
-    """)
+        """)
     
         renewable_df = run_query("""
             SELECT AVG(RENEWABLE_PCT) as RENEWABLE_PCT 
             FROM TDF_DATA_PLATFORM.ENERGY.RENEWABLE_ENERGY 
             WHERE YEAR(YEAR_MONTH) = 2025
-    """)
+        """)
     
         sla_df = run_query("""
             SELECT 
                 COUNT(CASE WHEN SLA_MET = TRUE THEN 1 END) * 100.0 / COUNT(*) as SLA_PCT
             FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
             WHERE STATUS = 'COMPLETED'
-    """)
+        """)
     
         colocation_rate = sites_df['AVG_COLOCATION'].iloc[0] * 100 if not sites_df.empty and sites_df['AVG_COLOCATION'].iloc[0] else 60
         renewable_pct = renewable_df['RENEWABLE_PCT'].iloc[0] if not renewable_df.empty and renewable_df['RENEWABLE_PCT'].iloc[0] else 47
@@ -1363,7 +1358,7 @@ def page_executive_dashboard():
                 WHERE FISCAL_YEAR = 2025
                 GROUP BY SEGMENT_LEVEL1
                 ORDER BY REVENUE_M DESC
-        """)
+            """)
         
             if not revenue_df.empty:
                 # Create horizontal bar chart
@@ -1420,7 +1415,7 @@ def page_executive_dashboard():
                 WHERE rc.FISCAL_YEAR = 2025
                 GROUP BY o.OPERATOR_NAME
                 ORDER BY REVENUE_M DESC
-        """)
+            """)
         
             if not client_df.empty:
                 colors = ['#1a2b4a', '#e63946', '#2d3436', '#636e72']
@@ -1476,13 +1471,13 @@ def page_executive_dashboard():
                     SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS
                 FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
                 WHERE STATUS = 'ACTIVE'
-        """)
+            """)
         
             pos_df = run_query("""
                 SELECT COUNT(*) as POS_COUNT 
                 FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.POINTS_OF_SERVICE 
                 WHERE STATUS = 'ACTIVE'
-        """)
+            """)
         
             sites_count = infra_df['SITES'].iloc[0] if not infra_df.empty else 8785
             towers_count = infra_df['TOWERS'].iloc[0] if not infra_df.empty else 7877
@@ -1504,7 +1499,7 @@ def page_executive_dashboard():
                         <span class="pillar-metric-value">{pos_count:,}</span>
                     </div>
                 </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
         # Operations Pillar
         with col2:
@@ -1513,13 +1508,13 @@ def page_executive_dashboard():
                     COUNT(*) as OPEN_WO,
                     AVG(FAILURE_RISK_SCORE) as AVG_RISK
                 FROM TDF_DATA_PLATFORM.OPERATIONS.EQUIPMENT_STATUS
-        """)
+            """)
         
             wo_df = run_query("""
                 SELECT COUNT(*) as OPEN_WO
                 FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
                 WHERE STATUS = 'OPEN'
-        """)
+            """)
         
             open_wo = wo_df['OPEN_WO'].iloc[0] if not wo_df.empty else 50
             avg_risk = ops_df['AVG_RISK'].iloc[0] if not ops_df.empty else 42
@@ -1544,7 +1539,7 @@ def page_executive_dashboard():
                         </span>
                     </div>
                 </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
         # ESG Pillar
         with col3:
@@ -1556,7 +1551,7 @@ def page_executive_dashboard():
                     CARBON_VARIANCE_PCT
                 FROM TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD 
                 ORDER BY REPORTING_DATE DESC LIMIT 1
-        """)
+            """)
         
             carbon = esg_detail['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_detail.empty else 48000
             equality = esg_detail['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_detail.empty else 88
@@ -1585,7 +1580,7 @@ def page_executive_dashboard():
                         </span>
                     </div>
                 </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
         # =========================================================================
     # TAB 2: FINANCIAL PERFORMANCE
