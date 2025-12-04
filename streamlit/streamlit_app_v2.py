@@ -5702,7 +5702,9 @@ def page_capex_lifecycle():
         "Predictive Renewal Model • Equipment Lifecycle Intelligence • CAPEX Forecasting"
     )
     
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # DATA QUERIES (shared across all tabs)
+    # =========================================================================
     # ROW 1: Executive KPIs
     # -------------------------------------------------------------------------
     
@@ -5752,2095 +5754,2131 @@ def page_capex_lifecycle():
     capex_budget = 45.0  # €45M budget
     budget_gap = capex_forecast - capex_budget
     
-    kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
     
-    with kpi_col1:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">📦 Total Equipment</div>
-                <div style="font-size: 2.2rem; font-weight: 700;">{total_equipment:,}</div>
-                <div style="font-size: 0.7rem; opacity: 0.7;">Tracked assets</div>
-            </div>
-        """, unsafe_allow_html=True)
+    # =========================================================================
+    # TABS STRUCTURE
+    # =========================================================================
+    tab_overview, tab_forecast, tab_scenarios, tab_vendors, tab_regional = st.tabs([
+        "📊 Overview",
+        "🔮 Renewal Forecast",
+        "🎮 Scenarios",
+        "🏢 Vendors & Tech",
+        "🗺️ Regional"
+    ])
     
-    with kpi_col2:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">💰 Asset Value</div>
-                <div style="font-size: 2.2rem; font-weight: 700;">€{total_value:.0f}M</div>
-                <div style="font-size: 0.7rem; opacity: 0.7;">Book value</div>
-            </div>
-        """, unsafe_allow_html=True)
+    # =========================================================================
+    # TAB 1: OVERVIEW
+    # =========================================================================
+    with tab_overview:
+        kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
     
-    with kpi_col3:
-        age_color = '#27ae60' if avg_age < 5 else '#f39c12' if avg_age < 8 else '#e63946'
-        st.markdown(f"""
-            <div style="background: white; border-radius: 12px; padding: 1.25rem; text-align: center; border: 2px solid {age_color};">
-                <div style="font-size: 0.75rem; color: #888;">⏱️ Avg Equipment Age</div>
-                <div style="font-size: 2.2rem; font-weight: 700; color: {age_color};">{avg_age:.1f} yrs</div>
-                <div style="font-size: 0.7rem; color: #888;">Target: &lt;5 years</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_col4:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">🔄 Due for Renewal</div>
-                <div style="font-size: 2.2rem; font-weight: 700;">{renewal_12m:,}</div>
-                <div style="font-size: 0.7rem; opacity: 0.7;">Next 12 months</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with kpi_col5:
-        gap_color = '#e63946' if budget_gap > 0 else '#27ae60'
-        gap_text = f"+€{budget_gap:.1f}M over" if budget_gap > 0 else f"€{abs(budget_gap):.1f}M under"
-        st.markdown(f"""
-            <div style="background: white; border-radius: 12px; padding: 1.25rem; text-align: center; border: 2px solid {gap_color};">
-                <div style="font-size: 0.75rem; color: #888;">💼 CAPEX Gap</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: {gap_color};">{gap_text}</div>
-                <div style="font-size: 0.7rem; color: #888;">Budget: €{capex_budget:.0f}M</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
-    
-    # -------------------------------------------------------------------------
-    # ROW 2: Lifecycle Status Gauge + Equipment by Category
-    # -------------------------------------------------------------------------
-    
-    lifecycle_col, category_col = st.columns([1, 2])
-    
-    with lifecycle_col:
-        st.markdown("### 🎯 Lifecycle Status")
-        
-        # Animated donut chart for lifecycle status
-        fig_lifecycle = go.Figure()
-        
-        labels = ['Active', 'Aging', 'End of Life']
-        values = [active_count, aging_count, eol_count]
-        colors = ['#27ae60', '#f39c12', '#e63946']
-        
-        fig_lifecycle.add_trace(go.Pie(
-            labels=labels,
-            values=values,
-            hole=0.7,
-            marker=dict(colors=colors),
-            textinfo='percent',
-            textfont_size=14,
-            hovertemplate='<b>%{label}</b><br>%{value:,} units<br>%{percent}<extra></extra>'
-        ))
-        
-        # Center annotation
-        fig_lifecycle.add_annotation(
-            text=f"<b>{total_equipment:,}</b><br><span style='font-size:12px'>Total</span>",
-            x=0.5, y=0.5,
-            font_size=20,
-            showarrow=False
-        )
-        
-        fig_lifecycle.update_layout(
-            height=300,
-            margin=dict(l=20, r=20, t=20, b=20),
-            showlegend=True,
-            legend=dict(orientation='h', yanchor='bottom', y=-0.15, xanchor='center', x=0.5),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_lifecycle, use_container_width=True)
-        
-        # Status cards below
-        st.markdown(f"""
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
-                <div style="background: #27ae6015; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #27ae60;">{active_count:,}</div>
-                    <div style="font-size: 0.7rem; color: #666;">Active</div>
-                </div>
-                <div style="background: #f39c1215; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #f39c12;">{aging_count:,}</div>
-                    <div style="font-size: 0.7rem; color: #666;">Aging</div>
-                </div>
-                <div style="background: #e6394615; border-radius: 8px; padding: 0.5rem; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #e63946;">{eol_count:,}</div>
-                    <div style="font-size: 0.7rem; color: #666;">End of Life</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with category_col:
-        st.markdown("### 📊 Equipment by Category & Age")
-        
-        # Equipment categories with age distribution
-        categories = [
-            {"name": "Antennas", "count": 25234, "avg_age": 4.2, "eol": 1892, "value": 245},
-            {"name": "Transmitters", "count": 8756, "avg_age": 7.8, "eol": 1245, "value": 312},
-            {"name": "Power Systems", "count": 6892, "avg_age": 5.5, "eol": 456, "value": 156},
-            {"name": "Cooling/HVAC", "count": 5234, "avg_age": 6.1, "eol": 321, "value": 78},
-            {"name": "Network Equipment", "count": 4567, "avg_age": 3.8, "eol": 234, "value": 67},
-            {"name": "Cables & Fibre", "count": 3421, "avg_age": 8.9, "eol": 189, "value": 23},
-            {"name": "Structures", "count": 1788, "avg_age": 12.3, "eol": 84, "value": 11},
-        ]
-        
-        # Horizontal stacked bar showing age brackets
-        fig_cat = go.Figure()
-        
-        cat_names = [c['name'] for c in categories]
-        
-        # Age brackets
-        young = [int(c['count'] * 0.3) for c in categories]  # 0-3 years
-        mid = [int(c['count'] * 0.4) for c in categories]     # 3-7 years
-        old = [int(c['count'] * 0.2) for c in categories]     # 7-10 years
-        very_old = [c['count'] - young[i] - mid[i] - old[i] for i, c in enumerate(categories)]  # 10+ years
-        
-        fig_cat.add_trace(go.Bar(
-            y=cat_names, x=young, name='0-3 years',
-            orientation='h', marker_color='#27ae60',
-            hovertemplate='%{y}: %{x:,} units (0-3 yrs)<extra></extra>'
-        ))
-        fig_cat.add_trace(go.Bar(
-            y=cat_names, x=mid, name='3-7 years',
-            orientation='h', marker_color='#3498db',
-            hovertemplate='%{y}: %{x:,} units (3-7 yrs)<extra></extra>'
-        ))
-        fig_cat.add_trace(go.Bar(
-            y=cat_names, x=old, name='7-10 years',
-            orientation='h', marker_color='#f39c12',
-            hovertemplate='%{y}: %{x:,} units (7-10 yrs)<extra></extra>'
-        ))
-        fig_cat.add_trace(go.Bar(
-            y=cat_names, x=very_old, name='10+ years',
-            orientation='h', marker_color='#e63946',
-            hovertemplate='%{y}: %{x:,} units (10+ yrs)<extra></extra>'
-        ))
-        
-        fig_cat.update_layout(
-            barmode='stack',
-            height=320,
-            margin=dict(l=10, r=10, t=10, b=10),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-            xaxis_title="Equipment Count",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_cat, use_container_width=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 3: 7-Year Predictive Renewal Model (Interactive Timeline)
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🔮 7-Year Predictive Renewal Model")
-    st.caption("Equipment renewal waves and CAPEX forecast based on lifecycle analysis")
-    
-    # Generate 7-year forecast data
-    import random
-    random.seed(42)
-    
-    years = list(range(2025, 2032))
-    
-    renewal_forecast = {
-        "Antennas": [892, 1456, 2100, 1800, 2300, 1900, 2100],
-        "Transmitters": [1245, 1890, 1200, 2500, 1800, 2200, 1600],
-        "Power Systems": [456, 678, 890, 1200, 980, 1100, 850],
-        "Cooling/HVAC": [321, 456, 567, 789, 654, 723, 612],
-        "Network Equipment": [234, 345, 456, 567, 678, 543, 489],
-        "Others": [273, 389, 456, 523, 412, 378, 334],
-    }
-    
-    capex_by_year = []
-    for i in range(7):
-        yearly_capex = sum(renewal_forecast[cat][i] * (25 if cat == "Transmitters" else 15 if cat == "Antennas" else 12 if cat == "Power Systems" else 8) for cat in renewal_forecast) / 1000
-        capex_by_year.append(yearly_capex)
-    
-    # Create interactive area chart
-    fig_forecast = go.Figure()
-    
-    colors = ['#e63946', '#f39c12', '#3498db', '#9b59b6', '#27ae60', '#1a2b4a']
-    
-    for idx, (category, values) in enumerate(renewal_forecast.items()):
-        fig_forecast.add_trace(go.Scatter(
-            x=years, y=values, name=category,
-            mode='lines',
-            line=dict(width=0.5, color=colors[idx]),
-            stackgroup='one',
-            fillcolor=colors[idx],
-            hovertemplate=f'<b>{category}</b><br>Year: %{{x}}<br>Units: %{{y:,}}<extra></extra>'
-        ))
-    
-    # Add CAPEX line on secondary axis
-    fig_forecast.add_trace(go.Scatter(
-        x=years, y=capex_by_year, name='CAPEX Forecast (€M)',
-        mode='lines+markers',
-        line=dict(color='#1a2b4a', width=4, dash='dot'),
-        marker=dict(size=12, color='#1a2b4a', symbol='diamond'),
-        yaxis='y2',
-        hovertemplate='<b>CAPEX</b><br>Year: %{x}<br>€%{y:.1f}M<extra></extra>'
-    ))
-    
-    # Add budget line
-    fig_forecast.add_hline(y=45, line_dash="dash", line_color="#27ae60", 
-                           annotation_text="Budget: €45M", yref='y2',
-                           annotation_position="right")
-    
-    fig_forecast.update_layout(
-        height=400,
-        margin=dict(l=10, r=60, t=40, b=10),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
-        xaxis=dict(title='Year', tickmode='array', tickvals=years),
-        yaxis=dict(title='Equipment Units to Renew'),
-        yaxis2=dict(title='CAPEX (€M)', overlaying='y', side='right', showgrid=False),
-        hovermode='x unified',
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    fig_forecast.update_xaxes(showgrid=True, gridcolor='#eee')
-    fig_forecast.update_yaxes(showgrid=True, gridcolor='#eee')
-    
-    st.plotly_chart(fig_forecast, use_container_width=True)
-    
-    # Year summary cards
-    year_cols = st.columns(7)
-    for i, year in enumerate(years):
-        total_units = sum(renewal_forecast[cat][i] for cat in renewal_forecast)
-        with year_cols[i]:
-            urgency = '🔴' if capex_by_year[i] > 55 else '🟡' if capex_by_year[i] > 45 else '🟢'
+        with kpi_col1:
             st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.5rem; text-align: center; border-top: 3px solid {'#e63946' if capex_by_year[i] > 55 else '#f39c12' if capex_by_year[i] > 45 else '#27ae60'};">
-                    <div style="font-weight: 700; color: #1a2b4a;">{year}</div>
-                    <div style="font-size: 0.85rem; color: #666;">{total_units:,} units</div>
-                    <div style="font-size: 1rem; font-weight: 600; color: #1a2b4a;">€{capex_by_year[i]:.0f}M</div>
-                    <div style="font-size: 0.8rem;">{urgency}</div>
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">📦 Total Equipment</div>
+                    <div style="font-size: 2.2rem; font-weight: 700;">{total_equipment:,}</div>
+                    <div style="font-size: 0.7rem; opacity: 0.7;">Tracked assets</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    st.markdown("---")
+        with kpi_col2:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">💰 Asset Value</div>
+                    <div style="font-size: 2.2rem; font-weight: 700;">€{total_value:.0f}M</div>
+                    <div style="font-size: 0.7rem; opacity: 0.7;">Book value</div>
+                </div>
+            """, unsafe_allow_html=True)
     
-    # -------------------------------------------------------------------------
-    # ROW 4: Equipment Age Histogram + Risk Heatmap
-    # -------------------------------------------------------------------------
+        with kpi_col3:
+            age_color = '#27ae60' if avg_age < 5 else '#f39c12' if avg_age < 8 else '#e63946'
+            st.markdown(f"""
+                <div style="background: white; border-radius: 12px; padding: 1.25rem; text-align: center; border: 2px solid {age_color};">
+                    <div style="font-size: 0.75rem; color: #888;">⏱️ Avg Equipment Age</div>
+                    <div style="font-size: 2.2rem; font-weight: 700; color: {age_color};">{avg_age:.1f} yrs</div>
+                    <div style="font-size: 0.7rem; color: #888;">Target: &lt;5 years</div>
+                </div>
+            """, unsafe_allow_html=True)
     
-    age_col, risk_col = st.columns(2)
+        with kpi_col4:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 12px; padding: 1.25rem; color: white; text-align: center;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">🔄 Due for Renewal</div>
+                    <div style="font-size: 2.2rem; font-weight: 700;">{renewal_12m:,}</div>
+                    <div style="font-size: 0.7rem; opacity: 0.7;">Next 12 months</div>
+                </div>
+            """, unsafe_allow_html=True)
     
-    with age_col:
-        st.markdown("### 📈 Equipment Age Distribution")
+        with kpi_col5:
+            gap_color = '#e63946' if budget_gap > 0 else '#27ae60'
+            gap_text = f"+€{budget_gap:.1f}M over" if budget_gap > 0 else f"€{abs(budget_gap):.1f}M under"
+            st.markdown(f"""
+                <div style="background: white; border-radius: 12px; padding: 1.25rem; text-align: center; border: 2px solid {gap_color};">
+                    <div style="font-size: 0.75rem; color: #888;">💼 CAPEX Gap</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: {gap_color};">{gap_text}</div>
+                    <div style="font-size: 0.7rem; color: #888;">Budget: €{capex_budget:.0f}M</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+        # ROW 2: Lifecycle Status Gauge + Equipment by Category
+        # -------------------------------------------------------------------------
+    
+        lifecycle_col, category_col = st.columns([1, 2])
+    
+        with lifecycle_col:
+            st.markdown("### 🎯 Lifecycle Status")
         
-        # Generate age histogram data
-        age_bins = list(range(0, 16))
-        age_counts = [2100, 3500, 4200, 5100, 6200, 5800, 4900, 4100, 3600, 2800, 2100, 1500, 1200, 800, 400, 200]
+            # Animated donut chart for lifecycle status
+            fig_lifecycle = go.Figure()
         
-        fig_age = go.Figure()
+            labels = ['Active', 'Aging', 'End of Life']
+            values = [active_count, aging_count, eol_count]
+            colors = ['#27ae60', '#f39c12', '#e63946']
         
-        bar_colors = ['#27ae60' if a < 5 else '#3498db' if a < 7 else '#f39c12' if a < 10 else '#e63946' for a in age_bins]
+            fig_lifecycle.add_trace(go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.7,
+                marker=dict(colors=colors),
+                textinfo='percent',
+                textfont_size=14,
+                hovertemplate='<b>%{label}</b><br>%{value:,} units<br>%{percent}<extra></extra>'
+            ))
         
-        fig_age.add_trace(go.Bar(
-            x=age_bins,
-            y=age_counts[:len(age_bins)],
-            marker_color=bar_colors,
-            hovertemplate='Age: %{x} years<br>Count: %{y:,}<extra></extra>'
+            # Center annotation
+            fig_lifecycle.add_annotation(
+                text=f"<b>{total_equipment:,}</b><br><span style='font-size:12px'>Total</span>",
+                x=0.5, y=0.5,
+                font_size=20,
+                showarrow=False
+            )
+        
+            fig_lifecycle.update_layout(
+                height=300,
+                margin=dict(l=20, r=20, t=20, b=20),
+                showlegend=True,
+                legend=dict(orientation='h', yanchor='bottom', y=-0.15, xanchor='center', x=0.5),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_lifecycle, use_container_width=True)
+        
+            # Status cards below
+            st.markdown(f"""
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                    <div style="background: #27ae6015; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #27ae60;">{active_count:,}</div>
+                        <div style="font-size: 0.7rem; color: #666;">Active</div>
+                    </div>
+                    <div style="background: #f39c1215; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #f39c12;">{aging_count:,}</div>
+                        <div style="font-size: 0.7rem; color: #666;">Aging</div>
+                    </div>
+                    <div style="background: #e6394615; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #e63946;">{eol_count:,}</div>
+                        <div style="font-size: 0.7rem; color: #666;">End of Life</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with category_col:
+            st.markdown("### 📊 Equipment by Category & Age")
+        
+            # Equipment categories with age distribution
+            categories = [
+                {"name": "Antennas", "count": 25234, "avg_age": 4.2, "eol": 1892, "value": 245},
+                {"name": "Transmitters", "count": 8756, "avg_age": 7.8, "eol": 1245, "value": 312},
+                {"name": "Power Systems", "count": 6892, "avg_age": 5.5, "eol": 456, "value": 156},
+                {"name": "Cooling/HVAC", "count": 5234, "avg_age": 6.1, "eol": 321, "value": 78},
+                {"name": "Network Equipment", "count": 4567, "avg_age": 3.8, "eol": 234, "value": 67},
+                {"name": "Cables & Fibre", "count": 3421, "avg_age": 8.9, "eol": 189, "value": 23},
+                {"name": "Structures", "count": 1788, "avg_age": 12.3, "eol": 84, "value": 11},
+            ]
+        
+            # Horizontal stacked bar showing age brackets
+            fig_cat = go.Figure()
+        
+            cat_names = [c['name'] for c in categories]
+        
+            # Age brackets
+            young = [int(c['count'] * 0.3) for c in categories]  # 0-3 years
+            mid = [int(c['count'] * 0.4) for c in categories]     # 3-7 years
+            old = [int(c['count'] * 0.2) for c in categories]     # 7-10 years
+            very_old = [c['count'] - young[i] - mid[i] - old[i] for i, c in enumerate(categories)]  # 10+ years
+        
+            fig_cat.add_trace(go.Bar(
+                y=cat_names, x=young, name='0-3 years',
+                orientation='h', marker_color='#27ae60',
+                hovertemplate='%{y}: %{x:,} units (0-3 yrs)<extra></extra>'
+            ))
+            fig_cat.add_trace(go.Bar(
+                y=cat_names, x=mid, name='3-7 years',
+                orientation='h', marker_color='#3498db',
+                hovertemplate='%{y}: %{x:,} units (3-7 yrs)<extra></extra>'
+            ))
+            fig_cat.add_trace(go.Bar(
+                y=cat_names, x=old, name='7-10 years',
+                orientation='h', marker_color='#f39c12',
+                hovertemplate='%{y}: %{x:,} units (7-10 yrs)<extra></extra>'
+            ))
+            fig_cat.add_trace(go.Bar(
+                y=cat_names, x=very_old, name='10+ years',
+                orientation='h', marker_color='#e63946',
+                hovertemplate='%{y}: %{x:,} units (10+ yrs)<extra></extra>'
+            ))
+        
+            fig_cat.update_layout(
+                barmode='stack',
+                height=320,
+                margin=dict(l=10, r=10, t=10, b=10),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+                xaxis_title="Equipment Count",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_cat, use_container_width=True)
+    
+        st.markdown("---")
+    
+    
+    # =========================================================================
+    # TAB 2: RENEWAL FORECAST
+    # =========================================================================
+    with tab_forecast:
+        # -------------------------------------------------------------------------
+        # ROW 3: 7-Year Predictive Renewal Model (Interactive Timeline)
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🔮 7-Year Predictive Renewal Model")
+        st.caption("Equipment renewal waves and CAPEX forecast based on lifecycle analysis")
+    
+        # Generate 7-year forecast data
+        import random
+        random.seed(42)
+    
+        years = list(range(2025, 2032))
+    
+        renewal_forecast = {
+            "Antennas": [892, 1456, 2100, 1800, 2300, 1900, 2100],
+            "Transmitters": [1245, 1890, 1200, 2500, 1800, 2200, 1600],
+            "Power Systems": [456, 678, 890, 1200, 980, 1100, 850],
+            "Cooling/HVAC": [321, 456, 567, 789, 654, 723, 612],
+            "Network Equipment": [234, 345, 456, 567, 678, 543, 489],
+            "Others": [273, 389, 456, 523, 412, 378, 334],
+        }
+    
+        capex_by_year = []
+        for i in range(7):
+            yearly_capex = sum(renewal_forecast[cat][i] * (25 if cat == "Transmitters" else 15 if cat == "Antennas" else 12 if cat == "Power Systems" else 8) for cat in renewal_forecast) / 1000
+            capex_by_year.append(yearly_capex)
+    
+        # Create interactive area chart
+        fig_forecast = go.Figure()
+    
+        colors = ['#e63946', '#f39c12', '#3498db', '#9b59b6', '#27ae60', '#1a2b4a']
+    
+        for idx, (category, values) in enumerate(renewal_forecast.items()):
+            fig_forecast.add_trace(go.Scatter(
+                x=years, y=values, name=category,
+                mode='lines',
+                line=dict(width=0.5, color=colors[idx]),
+                stackgroup='one',
+                fillcolor=colors[idx],
+                hovertemplate=f'<b>{category}</b><br>Year: %{{x}}<br>Units: %{{y:,}}<extra></extra>'
+            ))
+    
+        # Add CAPEX line on secondary axis
+        fig_forecast.add_trace(go.Scatter(
+            x=years, y=capex_by_year, name='CAPEX Forecast (€M)',
+            mode='lines+markers',
+            line=dict(color='#1a2b4a', width=4, dash='dot'),
+            marker=dict(size=12, color='#1a2b4a', symbol='diamond'),
+            yaxis='y2',
+            hovertemplate='<b>CAPEX</b><br>Year: %{x}<br>€%{y:.1f}M<extra></extra>'
         ))
-        
-        # Add threshold lines
-        fig_age.add_vline(x=7, line_dash="dash", line_color="#f39c12", annotation_text="Watch Zone", annotation_position="top")
-        fig_age.add_vline(x=10, line_dash="dash", line_color="#e63946", annotation_text="Critical", annotation_position="top")
-        
-        fig_age.update_layout(
-            height=300,
-            margin=dict(l=10, r=10, t=30, b=10),
-            xaxis_title="Equipment Age (Years)",
-            yaxis_title="Count",
+    
+        # Add budget line
+        fig_forecast.add_hline(y=45, line_dash="dash", line_color="#27ae60", 
+                               annotation_text="Budget: €45M", yref='y2',
+                               annotation_position="right")
+    
+        fig_forecast.update_layout(
+            height=400,
+            margin=dict(l=10, r=60, t=40, b=10),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+            xaxis=dict(title='Year', tickmode='array', tickvals=years),
+            yaxis=dict(title='Equipment Units to Renew'),
+            yaxis2=dict(title='CAPEX (€M)', overlaying='y', side='right', showgrid=False),
+            hovermode='x unified',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(fig_age, use_container_width=True)
+        fig_forecast.update_xaxes(showgrid=True, gridcolor='#eee')
+        fig_forecast.update_yaxes(showgrid=True, gridcolor='#eee')
     
-    with risk_col:
-        st.markdown("### ⚠️ Failure Risk Matrix")
-        
-        # Risk heatmap by category and age
-        risk_categories = ['Antennas', 'Transmitters', 'Power', 'Cooling', 'Network']
-        risk_ages = ['0-3y', '3-5y', '5-7y', '7-10y', '10y+']
-        
-        # Risk scores (0-100)
-        risk_matrix = [
-            [5, 8, 15, 35, 65],   # Antennas
-            [8, 12, 25, 55, 85],  # Transmitters
-            [10, 15, 30, 50, 75], # Power
-            [12, 20, 35, 55, 80], # Cooling
-            [3, 5, 10, 25, 45],   # Network
-        ]
-        
-        fig_risk = go.Figure(data=go.Heatmap(
-            z=risk_matrix,
-            x=risk_ages,
-            y=risk_categories,
-            colorscale=[[0, '#27ae60'], [0.3, '#f39c12'], [0.6, '#e67e22'], [1, '#e63946']],
-            hovertemplate='<b>%{y}</b><br>Age: %{x}<br>Risk Score: %{z}%<extra></extra>',
-            text=[[f"{v}%" for v in row] for row in risk_matrix],
-            texttemplate="%{text}",
-            textfont={"size": 11}
-        ))
-        
-        fig_risk.update_layout(
-            height=300,
-            margin=dict(l=10, r=10, t=10, b=10),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_risk, use_container_width=True)
+        st.plotly_chart(fig_forecast, use_container_width=True)
     
-    st.markdown("---")
+        # Year summary cards
+        year_cols = st.columns(7)
+        for i, year in enumerate(years):
+            total_units = sum(renewal_forecast[cat][i] for cat in renewal_forecast)
+            with year_cols[i]:
+                urgency = '🔴' if capex_by_year[i] > 55 else '🟡' if capex_by_year[i] > 45 else '🟢'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.5rem; text-align: center; border-top: 3px solid {'#e63946' if capex_by_year[i] > 55 else '#f39c12' if capex_by_year[i] > 45 else '#27ae60'};">
+                        <div style="font-weight: 700; color: #1a2b4a;">{year}</div>
+                        <div style="font-size: 0.85rem; color: #666;">{total_units:,} units</div>
+                        <div style="font-size: 1rem; font-weight: 600; color: #1a2b4a;">€{capex_by_year[i]:.0f}M</div>
+                        <div style="font-size: 0.8rem;">{urgency}</div>
+                    </div>
+                """, unsafe_allow_html=True)
     
-    # -------------------------------------------------------------------------
-    # ROW 5: Cross-Team Alignment View
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 👥 Cross-Team Alignment Dashboard")
-    st.caption("Finance, Operations, and Technology perspectives on equipment lifecycle")
-    
-    team_col1, team_col2, team_col3 = st.columns(3)
-    
-    with team_col1:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 12px; padding: 1rem; color: white;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 1.5rem;">💰</span>
-                    <span style="font-size: 1.1rem; font-weight: 600;">Finance View</span>
-                </div>
-        """, unsafe_allow_html=True)
-        
-        st.metric("CAPEX Budget 2025", "€45.0M", "Approved")
-        st.metric("Forecast Spend", "€52.3M", "+€7.3M over", delta_color="inverse")
-        st.metric("Depreciation Impact", "€28.4M", "Annual")
-        
-        st.markdown("""
-            <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">📋 Budget Actions Required:</div>
-                <div style="font-size: 0.8rem; margin-top: 0.25rem;">• Request €8M supplemental</div>
-                <div style="font-size: 0.8rem;">• Defer €3M to 2026</div>
-            </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with team_col2:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); border-radius: 12px; padding: 1rem; color: white;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 1.5rem;">🔧</span>
-                    <span style="font-size: 1.1rem; font-weight: 600;">Operations View</span>
-                </div>
-        """, unsafe_allow_html=True)
-        
-        st.metric("Maintenance Backlog", "847 tickets", "+12% MoM", delta_color="inverse")
-        st.metric("Emergency Repairs", "34 active", "Critical")
-        st.metric("Downtime Risk Score", "7.2/10", "High")
-        
-        st.markdown("""
-            <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">🚨 Priority Actions:</div>
-                <div style="font-size: 0.8rem; margin-top: 0.25rem;">• 156 transmitters critical</div>
-                <div style="font-size: 0.8rem;">• Q1 maintenance window</div>
-            </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with team_col3:
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 12px; padding: 1rem; color: white;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <span style="font-size: 1.5rem;">💻</span>
-                    <span style="font-size: 1.1rem; font-weight: 600;">Technology View</span>
-                </div>
-        """, unsafe_allow_html=True)
-        
-        st.metric("Tech Refresh Required", "2,341 units", "5G upgrade")
-        st.metric("Obsolete Systems", "892 units", "No vendor support")
-        st.metric("Compatibility Score", "78%", "-3% vs target")
-        
-        st.markdown("""
-            <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">🔄 Tech Priorities:</div>
-                <div style="font-size: 0.8rem; margin-top: 0.25rem;">• DAB+ transmitter upgrade</div>
-                <div style="font-size: 0.8rem;">• 5G antenna rollout</div>
-            </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 6: Interactive CAPEX Scenario Simulator
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🎮 CAPEX Scenario Simulator")
-    st.caption("Model different investment strategies and see the impact")
-    
-    sim_control, sim_result = st.columns([1, 2])
-    
-    with sim_control:
-        st.markdown("#### Scenario Parameters")
-        
-        scenario_type = st.selectbox(
-            "📋 Select Scenario",
-            ["Baseline (Current Plan)", "Defer Renewals 2 Years", "Accelerate Critical Only", 
-             "Budget Constrained (€40M cap)", "Full Modernization", "Custom"]
-        )
-        
-        if scenario_type == "Custom":
-            defer_pct = st.slider("Defer non-critical renewals by (%)", 0, 50, 20)
-            accelerate_critical = st.checkbox("Accelerate critical equipment", value=True)
-            budget_cap = st.number_input("Annual CAPEX cap (€M)", value=45.0, step=5.0)
-        else:
-            if scenario_type == "Baseline (Current Plan)":
-                defer_pct, accelerate_critical, budget_cap = 0, False, 60.0
-            elif scenario_type == "Defer Renewals 2 Years":
-                defer_pct, accelerate_critical, budget_cap = 40, False, 35.0
-            elif scenario_type == "Accelerate Critical Only":
-                defer_pct, accelerate_critical, budget_cap = 0, True, 55.0
-            elif scenario_type == "Budget Constrained (€40M cap)":
-                defer_pct, accelerate_critical, budget_cap = 25, False, 40.0
-            else:  # Full Modernization
-                defer_pct, accelerate_critical, budget_cap = 0, True, 75.0
-        
         st.markdown("---")
-        st.markdown("#### 📊 Quick Stats")
-        
-        # Calculate scenario impacts
-        base_capex = sum(capex_by_year[:3]) / 3  # 3-year avg
-        adjusted_capex = base_capex * (1 - defer_pct/100) * (1.15 if accelerate_critical else 1.0)
-        adjusted_capex = min(adjusted_capex, budget_cap)
-        
-        risk_increase = defer_pct * 0.8  # Risk increases with deferral
-        savings = base_capex - adjusted_capex
-        
-        st.metric("3-Year CAPEX", f"€{adjusted_capex * 3:.0f}M", f"€{savings * 3:.0f}M savings" if savings > 0 else f"€{abs(savings) * 3:.0f}M increase")
-        st.metric("Risk Level", f"{12 + risk_increase:.0f}%", f"+{risk_increase:.0f}%" if risk_increase > 0 else "Baseline", delta_color="inverse" if risk_increase > 0 else "normal")
     
-    with sim_result:
-        st.markdown("#### Scenario Impact Visualization")
+        # -------------------------------------------------------------------------
+        # ROW 4: Equipment Age Histogram + Risk Heatmap
+        # -------------------------------------------------------------------------
+    
+        age_col, risk_col = st.columns(2)
+    
+        with age_col:
+            st.markdown("### 📈 Equipment Age Distribution")
         
-        # Generate scenario comparison
-        scenarios = ['Baseline', 'This Scenario']
+            # Generate age histogram data
+            age_bins = list(range(0, 16))
+            age_counts = [2100, 3500, 4200, 5100, 6200, 5800, 4900, 4100, 3600, 2800, 2100, 1500, 1200, 800, 400, 200]
         
-        if scenario_type != "Baseline (Current Plan)":
-            # Show comparison chart
-            fig_scenario = go.Figure()
+            fig_age = go.Figure()
+        
+            bar_colors = ['#27ae60' if a < 5 else '#3498db' if a < 7 else '#f39c12' if a < 10 else '#e63946' for a in age_bins]
+        
+            fig_age.add_trace(go.Bar(
+                x=age_bins,
+                y=age_counts[:len(age_bins)],
+                marker_color=bar_colors,
+                hovertemplate='Age: %{x} years<br>Count: %{y:,}<extra></extra>'
+            ))
+        
+            # Add threshold lines
+            fig_age.add_vline(x=7, line_dash="dash", line_color="#f39c12", annotation_text="Watch Zone", annotation_position="top")
+            fig_age.add_vline(x=10, line_dash="dash", line_color="#e63946", annotation_text="Critical", annotation_position="top")
+        
+            fig_age.update_layout(
+                height=300,
+                margin=dict(l=10, r=10, t=30, b=10),
+                xaxis_title="Equipment Age (Years)",
+                yaxis_title="Count",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_age, use_container_width=True)
+    
+        with risk_col:
+            st.markdown("### ⚠️ Failure Risk Matrix")
+        
+            # Risk heatmap by category and age
+            risk_categories = ['Antennas', 'Transmitters', 'Power', 'Cooling', 'Network']
+            risk_ages = ['0-3y', '3-5y', '5-7y', '7-10y', '10y+']
+        
+            # Risk scores (0-100)
+            risk_matrix = [
+                [5, 8, 15, 35, 65],   # Antennas
+                [8, 12, 25, 55, 85],  # Transmitters
+                [10, 15, 30, 50, 75], # Power
+                [12, 20, 35, 55, 80], # Cooling
+                [3, 5, 10, 25, 45],   # Network
+            ]
+        
+            fig_risk = go.Figure(data=go.Heatmap(
+                z=risk_matrix,
+                x=risk_ages,
+                y=risk_categories,
+                colorscale=[[0, '#27ae60'], [0.3, '#f39c12'], [0.6, '#e67e22'], [1, '#e63946']],
+                hovertemplate='<b>%{y}</b><br>Age: %{x}<br>Risk Score: %{z}%<extra></extra>',
+                text=[[f"{v}%" for v in row] for row in risk_matrix],
+                texttemplate="%{text}",
+                textfont={"size": 11}
+            ))
+        
+            fig_risk.update_layout(
+                height=300,
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_risk, use_container_width=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 7: Critical Equipment Watch List
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🚨 Critical Equipment Watch List")
+        st.caption("Equipment requiring immediate attention - highest risk of failure")
+    
+        # Critical equipment table
+        critical_equipment = [
+            {"id": "TRM-DVB-001234", "type": "DVB-T2 Transmitter", "site": "Paris - Tour Eiffel", "age": "12.3 yrs", "risk": 92, "impact": "€2.1M", "action": "Replace Q1"},
+            {"id": "TRM-DVB-002891", "type": "DVB-T2 Transmitter", "site": "Lyon - Fourvière", "age": "11.8 yrs", "risk": 88, "impact": "€1.8M", "action": "Replace Q1"},
+            {"id": "PWR-UPS-004521", "type": "UPS System", "site": "Marseille - L'Estaque", "age": "10.2 yrs", "risk": 85, "impact": "€890K", "action": "Replace Q2"},
+            {"id": "ANT-5G-007823", "type": "5G Antenna Array", "site": "Toulouse - Labège", "age": "8.5 yrs", "risk": 78, "impact": "€456K", "action": "Upgrade Q2"},
+            {"id": "CLG-HVAC-003421", "type": "Cooling System", "site": "Bordeaux - DC1", "age": "9.1 yrs", "risk": 75, "impact": "€320K", "action": "Refurbish Q2"},
+            {"id": "TRM-FM-008912", "type": "FM Transmitter", "site": "Lille - Mont Noir", "age": "14.2 yrs", "risk": 71, "impact": "€1.2M", "action": "Replace Q3"},
+        ]
+    
+        crit_cols = st.columns([0.5, 2, 2, 1.5, 1, 1.2, 1.2, 1])
+    
+        with crit_cols[0]:
+            st.markdown("**#**")
+        with crit_cols[1]:
+            st.markdown("**Equipment ID**")
+        with crit_cols[2]:
+            st.markdown("**Location**")
+        with crit_cols[3]:
+            st.markdown("**Type**")
+        with crit_cols[4]:
+            st.markdown("**Age**")
+        with crit_cols[5]:
+            st.markdown("**Risk**")
+        with crit_cols[6]:
+            st.markdown("**Impact**")
+        with crit_cols[7]:
+            st.markdown("**Action**")
+    
+        for idx, equip in enumerate(critical_equipment):
+            cols = st.columns([0.5, 2, 2, 1.5, 1, 1.2, 1.2, 1])
+        
+            risk_color = '#e63946' if equip['risk'] >= 80 else '#f39c12' if equip['risk'] >= 60 else '#27ae60'
+        
+            with cols[0]:
+                st.markdown(f"**{idx + 1}**")
+            with cols[1]:
+                st.markdown(f"`{equip['id']}`")
+            with cols[2]:
+                st.markdown(equip['site'])
+            with cols[3]:
+                st.markdown(equip['type'][:20])
+            with cols[4]:
+                st.markdown(equip['age'])
+            with cols[5]:
+                st.markdown(f"<span style='background: {risk_color}; color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem;'>{equip['risk']}%</span>", unsafe_allow_html=True)
+            with cols[6]:
+                st.markdown(f"**{equip['impact']}**")
+            with cols[7]:
+                st.markdown(f"<span style='color: #e63946; font-weight: 600;'>{equip['action']}</span>", unsafe_allow_html=True)
+    
+        # Export buttons
+        btn_col1, btn_col2, btn_col3, _ = st.columns([1, 1, 1, 3])
+        with btn_col1:
+            st.button("📥 Export Full List", use_container_width=True)
+        with btn_col2:
+            st.button("📧 Send to Teams", use_container_width=True)
+        with btn_col3:
+            st.button("📅 Schedule Reviews", use_container_width=True)
+    
+        st.markdown("---")
+    
+    
+    # =========================================================================
+    # TAB 3: SCENARIOS
+    # =========================================================================
+    with tab_scenarios:
+        # -------------------------------------------------------------------------
+        # ROW 6: Interactive CAPEX Scenario Simulator
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🎮 CAPEX Scenario Simulator")
+        st.caption("Model different investment strategies and see the impact")
+    
+        sim_control, sim_result = st.columns([1, 2])
+    
+        with sim_control:
+            st.markdown("#### Scenario Parameters")
+        
+            scenario_type = st.selectbox(
+                "📋 Select Scenario",
+                ["Baseline (Current Plan)", "Defer Renewals 2 Years", "Accelerate Critical Only", 
+                 "Budget Constrained (€40M cap)", "Full Modernization", "Custom"]
+            )
+        
+            if scenario_type == "Custom":
+                defer_pct = st.slider("Defer non-critical renewals by (%)", 0, 50, 20)
+                accelerate_critical = st.checkbox("Accelerate critical equipment", value=True)
+                budget_cap = st.number_input("Annual CAPEX cap (€M)", value=45.0, step=5.0)
+            else:
+                if scenario_type == "Baseline (Current Plan)":
+                    defer_pct, accelerate_critical, budget_cap = 0, False, 60.0
+                elif scenario_type == "Defer Renewals 2 Years":
+                    defer_pct, accelerate_critical, budget_cap = 40, False, 35.0
+                elif scenario_type == "Accelerate Critical Only":
+                    defer_pct, accelerate_critical, budget_cap = 0, True, 55.0
+                elif scenario_type == "Budget Constrained (€40M cap)":
+                    defer_pct, accelerate_critical, budget_cap = 25, False, 40.0
+                else:  # Full Modernization
+                    defer_pct, accelerate_critical, budget_cap = 0, True, 75.0
+        
+            st.markdown("---")
+            st.markdown("#### 📊 Quick Stats")
+        
+            # Calculate scenario impacts
+            base_capex = sum(capex_by_year[:3]) / 3  # 3-year avg
+            adjusted_capex = base_capex * (1 - defer_pct/100) * (1.15 if accelerate_critical else 1.0)
+            adjusted_capex = min(adjusted_capex, budget_cap)
+        
+            risk_increase = defer_pct * 0.8  # Risk increases with deferral
+            savings = base_capex - adjusted_capex
+        
+            st.metric("3-Year CAPEX", f"€{adjusted_capex * 3:.0f}M", f"€{savings * 3:.0f}M savings" if savings > 0 else f"€{abs(savings) * 3:.0f}M increase")
+            st.metric("Risk Level", f"{12 + risk_increase:.0f}%", f"+{risk_increase:.0f}%" if risk_increase > 0 else "Baseline", delta_color="inverse" if risk_increase > 0 else "normal")
+    
+        with sim_result:
+            st.markdown("#### Scenario Impact Visualization")
+        
+            # Generate scenario comparison
+            scenarios = ['Baseline', 'This Scenario']
+        
+            if scenario_type != "Baseline (Current Plan)":
+                # Show comparison chart
+                fig_scenario = go.Figure()
             
-            # Baseline bars
-            fig_scenario.add_trace(go.Bar(
-                name='Baseline',
-                x=years[:5],
-                y=capex_by_year[:5],
+                # Baseline bars
+                fig_scenario.add_trace(go.Bar(
+                    name='Baseline',
+                    x=years[:5],
+                    y=capex_by_year[:5],
+                    marker_color='#3498db',
+                    opacity=0.6
+                ))
+            
+                # Scenario bars
+                scenario_capex = [min(c * (1 - defer_pct/100), budget_cap) for c in capex_by_year[:5]]
+                fig_scenario.add_trace(go.Bar(
+                    name='This Scenario',
+                    x=years[:5],
+                    y=scenario_capex,
+                    marker_color='#27ae60' if defer_pct > 0 else '#e63946'
+                ))
+            
+                # Add risk line
+                base_risk = [12, 14, 16, 18, 20]
+                scenario_risk = [r + defer_pct * 0.5 for r in base_risk]
+            
+                fig_scenario.add_trace(go.Scatter(
+                    name='Failure Risk %',
+                    x=years[:5],
+                    y=scenario_risk,
+                    mode='lines+markers',
+                    line=dict(color='#e63946', width=3, dash='dot'),
+                    marker=dict(size=10),
+                    yaxis='y2'
+                ))
+            
+                fig_scenario.update_layout(
+                    barmode='group',
+                    height=350,
+                    margin=dict(l=10, r=50, t=10, b=10),
+                    legend=dict(orientation='h', yanchor='bottom', y=1.02),
+                    xaxis_title='Year',
+                    yaxis_title='CAPEX (€M)',
+                    yaxis2=dict(title='Risk %', overlaying='y', side='right', range=[0, 50]),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_scenario, use_container_width=True)
+            
+                # Impact summary
+                impact_cols = st.columns(4)
+            
+                total_savings = sum(capex_by_year[:5]) - sum(scenario_capex)
+                with impact_cols[0]:
+                    st.markdown(f"""
+                        <div style="background: {'#27ae6015' if total_savings > 0 else '#e6394615'}; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #666;">💰 5-Year Savings</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: {'#27ae60' if total_savings > 0 else '#e63946'};">€{total_savings:.0f}M</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+                with impact_cols[1]:
+                    deferred_units = int(renewal_12m * defer_pct / 100)
+                    st.markdown(f"""
+                        <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #666;">⏳ Deferred Units</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #f39c12;">{deferred_units:,}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+                with impact_cols[2]:
+                    st.markdown(f"""
+                        <div style="background: #e6394615; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #666;">⚠️ Added Risk</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #e63946;">+{risk_increase:.0f}%</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            
+                with impact_cols[3]:
+                    downtime_hours = int(risk_increase * 12)
+                    st.markdown(f"""
+                        <div style="background: #9b59b615; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: #666;">📉 Est. Downtime</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #9b59b6;">+{downtime_hours}h/yr</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("📊 Select a different scenario to see comparison with baseline")
+            
+                # Show baseline forecast
+                fig_baseline = go.Figure()
+                fig_baseline.add_trace(go.Bar(
+                    x=years[:5],
+                    y=capex_by_year[:5],
+                    marker_color='#3498db',
+                    text=[f'€{v:.0f}M' for v in capex_by_year[:5]],
+                    textposition='outside'
+                ))
+                fig_baseline.update_layout(
+                    height=300,
+                    margin=dict(l=10, r=10, t=30, b=10),
+                    xaxis_title='Year',
+                    yaxis_title='CAPEX (€M)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_baseline, use_container_width=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 12: Total Cost of Ownership Calculator
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 💵 Total Cost of Ownership (TCO) Calculator")
+        st.caption("Full lifecycle cost analysis for equipment investment decisions")
+    
+        tco_input_col, tco_result_col = st.columns([1, 2])
+    
+        with tco_input_col:
+            st.markdown("#### ⚙️ Equipment Parameters")
+        
+            tco_equipment = st.selectbox(
+                "Equipment Type",
+                ["5G Antenna Array", "DVB-T2 Transmitter", "UPS Power System", "Cooling System", "Network Router"]
+            )
+        
+            tco_purchase = st.number_input("Purchase Cost (€)", value=45000, step=5000)
+            tco_lifespan = st.slider("Expected Lifespan (years)", 5, 15, 10)
+            tco_maintenance = st.number_input("Annual Maintenance (€)", value=2500, step=500)
+            tco_energy = st.number_input("Annual Energy Cost (€)", value=1800, step=200)
+            tco_quantity = st.number_input("Quantity", value=1, min_value=1, max_value=100)
+        
+            # Calculate TCO
+            total_purchase = tco_purchase * tco_quantity
+            total_maintenance = tco_maintenance * tco_lifespan * tco_quantity
+            total_energy = tco_energy * tco_lifespan * tco_quantity
+            disposal_cost = tco_purchase * 0.05 * tco_quantity  # 5% disposal
+            installation_cost = tco_purchase * 0.1 * tco_quantity  # 10% installation
+            total_tco = total_purchase + total_maintenance + total_energy + disposal_cost + installation_cost
+            annual_tco = total_tco / tco_lifespan
+    
+        with tco_result_col:
+            st.markdown("#### 📊 TCO Breakdown")
+        
+            # TCO donut chart
+            tco_components = [
+                {"name": "Purchase", "value": total_purchase, "color": "#1a2b4a"},
+                {"name": "Installation", "value": installation_cost, "color": "#3498db"},
+                {"name": "Maintenance", "value": total_maintenance, "color": "#f39c12"},
+                {"name": "Energy", "value": total_energy, "color": "#e67e22"},
+                {"name": "Disposal", "value": disposal_cost, "color": "#9b59b6"},
+            ]
+        
+            fig_tco = go.Figure(data=[go.Pie(
+                labels=[c['name'] for c in tco_components],
+                values=[c['value'] for c in tco_components],
+                hole=0.6,
+                marker_colors=[c['color'] for c in tco_components],
+                textinfo='label+percent',
+                textfont_size=11,
+                hovertemplate='<b>%{label}</b><br>€%{value:,.0f}<br>%{percent}<extra></extra>'
+            )])
+        
+            fig_tco.add_annotation(
+                text=f"<b>€{total_tco:,.0f}</b><br><span style='font-size:11px'>Total TCO</span>",
+                x=0.5, y=0.5, font_size=16, showarrow=False
+            )
+        
+            fig_tco.update_layout(
+                height=280,
+                margin=dict(l=10, r=10, t=10, b=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_tco, use_container_width=True)
+        
+            # Key metrics
+            tco_metrics = st.columns(4)
+            with tco_metrics[0]:
+                st.markdown(f"""
+                    <div style="background: #1a2b4a15; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666;">Total TCO</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: #1a2b4a;">€{total_tco:,.0f}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with tco_metrics[1]:
+                st.markdown(f"""
+                    <div style="background: #3498db15; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666;">Annual TCO</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: #3498db;">€{annual_tco:,.0f}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with tco_metrics[2]:
+                cost_per_day = annual_tco / 365
+                st.markdown(f"""
+                    <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666;">Cost per Day</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: #27ae60;">€{cost_per_day:.0f}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with tco_metrics[3]:
+                ownership_multiplier = total_tco / total_purchase
+                st.markdown(f"""
+                    <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666;">TCO Multiplier</div>
+                        <div style="font-size: 1.3rem; font-weight: 700; color: #f39c12;">{ownership_multiplier:.1f}x</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 13: Investment ROI Tracker + Lease vs Buy
+        # -------------------------------------------------------------------------
+    
+        roi_col, lease_col = st.columns(2)
+    
+        with roi_col:
+            st.markdown("### 📈 Investment ROI Tracker")
+            st.caption("Return on past CAPEX investments")
+        
+            # Past investments with ROI
+            investments = [
+                {"project": "5G Network Paris", "year": 2023, "invested": 12.5, "roi": 28, "status": "Exceeding"},
+                {"project": "DVB-T2 Migration", "year": 2022, "invested": 8.2, "roi": 15, "status": "On Track"},
+                {"project": "Data Center Lyon", "year": 2023, "invested": 6.8, "roi": 22, "status": "Exceeding"},
+                {"project": "FM Transmitter Upgrade", "year": 2021, "invested": 4.5, "roi": 8, "status": "Below Target"},
+                {"project": "Tower Strengthening", "year": 2022, "invested": 3.2, "roi": 12, "status": "On Track"},
+            ]
+        
+            # ROI bar chart
+            fig_roi = go.Figure()
+        
+            colors = ['#27ae60' if i['status'] == 'Exceeding' else '#3498db' if i['status'] == 'On Track' else '#e63946' for i in investments]
+        
+            fig_roi.add_trace(go.Bar(
+                y=[i['project'] for i in investments],
+                x=[i['roi'] for i in investments],
+                orientation='h',
+                marker_color=colors,
+                text=[f"{i['roi']}% ROI" for i in investments],
+                textposition='outside',
+                hovertemplate='<b>%{y}</b><br>ROI: %{x}%<br>Invested: €%{customdata}M<extra></extra>',
+                customdata=[i['invested'] for i in investments]
+            ))
+        
+            # Target line
+            fig_roi.add_vline(x=15, line_dash="dash", line_color="#1a2b4a", annotation_text="Target: 15%")
+        
+            fig_roi.update_layout(
+                height=280,
+                margin=dict(l=10, r=60, t=10, b=10),
+                xaxis_title="ROI %",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_roi, use_container_width=True)
+        
+            # Summary stats
+            avg_roi = sum(i['roi'] for i in investments) / len(investments)
+            total_invested = sum(i['invested'] for i in investments)
+            st.markdown(f"""
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                    <div style="background: #27ae6015; padding: 0.5rem; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #27ae60;">{avg_roi:.0f}%</div>
+                        <div style="font-size: 0.7rem; color: #666;">Avg ROI</div>
+                    </div>
+                    <div style="background: #3498db15; padding: 0.5rem; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #3498db;">€{total_invested:.0f}M</div>
+                        <div style="font-size: 0.7rem; color: #666;">Total Invested</div>
+                    </div>
+                    <div style="background: #1a2b4a15; padding: 0.5rem; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #1a2b4a;">3/5</div>
+                        <div style="font-size: 0.7rem; color: #666;">Meeting Target</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with lease_col:
+            st.markdown("### 🔄 Lease vs Buy Analysis")
+            st.caption("Financial comparison for major equipment")
+        
+            # Lease vs Buy comparison
+            lease_buy_data = {
+                "years": [1, 2, 3, 4, 5, 6, 7],
+                "buy_cumulative": [50, 55, 60, 65, 70, 75, 80],  # €K
+                "lease_cumulative": [15, 30, 45, 60, 75, 90, 105],  # €K
+            }
+        
+            fig_lease = go.Figure()
+        
+            fig_lease.add_trace(go.Scatter(
+                x=lease_buy_data['years'],
+                y=lease_buy_data['buy_cumulative'],
+                name='Buy (cumulative)',
+                mode='lines+markers',
+                line=dict(color='#1a2b4a', width=3),
+                fill='tozeroy',
+                fillcolor='rgba(26, 43, 74, 0.1)'
+            ))
+        
+            fig_lease.add_trace(go.Scatter(
+                x=lease_buy_data['years'],
+                y=lease_buy_data['lease_cumulative'],
+                name='Lease (cumulative)',
+                mode='lines+markers',
+                line=dict(color='#e63946', width=3),
+                fill='tozeroy',
+                fillcolor='rgba(230, 57, 70, 0.1)'
+            ))
+        
+            # Break-even point
+            fig_lease.add_vline(x=4, line_dash="dot", line_color="#27ae60", 
+                               annotation_text="Break-even: 4 years", annotation_position="top")
+        
+            fig_lease.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis_title="Years",
+                yaxis_title="Cumulative Cost (€K)",
+                legend=dict(orientation='h', yanchor='bottom', y=1.02),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_lease, use_container_width=True)
+        
+            # Recommendation
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 8px; padding: 0.75rem; color: white;">
+                    <div style="font-weight: 600;">💡 Recommendation</div>
+                    <div style="font-size: 0.85rem; margin-top: 0.25rem;">
+                        <b>BUY</b> if equipment needed for >4 years<br>
+                        <b>LEASE</b> for short-term or rapidly evolving tech (5G, AI)
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 14: CAPEX vs OPEX Trend
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📊 CAPEX vs OPEX Historical Trend")
+        st.caption("5-year spending pattern analysis")
+    
+        trend_col, insight_col = st.columns([2, 1])
+    
+        with trend_col:
+            years = [2020, 2021, 2022, 2023, 2024, 2025]
+            capex_trend = [52, 48, 55, 62, 58, 52]
+            opex_trend = [38, 42, 45, 48, 52, 56]
+        
+            fig_trend = go.Figure()
+        
+            fig_trend.add_trace(go.Bar(
+                x=years,
+                y=capex_trend,
+                name='CAPEX',
+                marker_color='#1a2b4a',
+                text=[f'€{v}M' for v in capex_trend],
+                textposition='outside'
+            ))
+        
+            fig_trend.add_trace(go.Bar(
+                x=years,
+                y=opex_trend,
+                name='OPEX',
                 marker_color='#3498db',
-                opacity=0.6
+                text=[f'€{v}M' for v in opex_trend],
+                textposition='outside'
             ))
-            
-            # Scenario bars
-            scenario_capex = [min(c * (1 - defer_pct/100), budget_cap) for c in capex_by_year[:5]]
-            fig_scenario.add_trace(go.Bar(
-                name='This Scenario',
-                x=years[:5],
-                y=scenario_capex,
-                marker_color='#27ae60' if defer_pct > 0 else '#e63946'
-            ))
-            
-            # Add risk line
-            base_risk = [12, 14, 16, 18, 20]
-            scenario_risk = [r + defer_pct * 0.5 for r in base_risk]
-            
-            fig_scenario.add_trace(go.Scatter(
-                name='Failure Risk %',
-                x=years[:5],
-                y=scenario_risk,
+        
+            # Add ratio line
+            ratio = [c/(c+o)*100 for c, o in zip(capex_trend, opex_trend)]
+            fig_trend.add_trace(go.Scatter(
+                x=years,
+                y=ratio,
+                name='CAPEX Ratio %',
                 mode='lines+markers',
                 line=dict(color='#e63946', width=3, dash='dot'),
                 marker=dict(size=10),
                 yaxis='y2'
             ))
-            
-            fig_scenario.update_layout(
+        
+            fig_trend.update_layout(
                 barmode='group',
                 height=350,
-                margin=dict(l=10, r=50, t=10, b=10),
+                margin=dict(l=10, r=50, t=30, b=10),
                 legend=dict(orientation='h', yanchor='bottom', y=1.02),
                 xaxis_title='Year',
-                yaxis_title='CAPEX (€M)',
-                yaxis2=dict(title='Risk %', overlaying='y', side='right', range=[0, 50]),
+                yaxis_title='Spending (€M)',
+                yaxis2=dict(title='CAPEX Ratio %', overlaying='y', side='right', range=[40, 70]),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
-            st.plotly_chart(fig_scenario, use_container_width=True)
-            
-            # Impact summary
-            impact_cols = st.columns(4)
-            
-            total_savings = sum(capex_by_year[:5]) - sum(scenario_capex)
-            with impact_cols[0]:
+            st.plotly_chart(fig_trend, use_container_width=True)
+    
+        with insight_col:
+            st.markdown("#### 📈 Key Insights")
+        
+            capex_change = ((capex_trend[-1] - capex_trend[0]) / capex_trend[0]) * 100
+            opex_change = ((opex_trend[-1] - opex_trend[0]) / opex_trend[0]) * 100
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #1a2b4a;">
+                    <div style="font-size: 0.75rem; color: #888;">CAPEX Trend (5Y)</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: {'#27ae60' if capex_change < 0 else '#e63946'};">{capex_change:+.0f}%</div>
+                    <div style="font-size: 0.7rem; color: #888;">€{capex_trend[0]}M → €{capex_trend[-1]}M</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #3498db;">
+                    <div style="font-size: 0.75rem; color: #888;">OPEX Trend (5Y)</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; color: #e63946;">{opex_change:+.0f}%</div>
+                    <div style="font-size: 0.7rem; color: #888;">€{opex_trend[0]}M → €{opex_trend[-1]}M</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown("""
+                <div style="background: #f39c1215; border-radius: 10px; padding: 1rem; border-left: 4px solid #f39c12;">
+                    <div style="font-size: 0.8rem; color: #f39c12; font-weight: 600;">⚠️ Trend Alert</div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                        OPEX growing faster than CAPEX. Review cloud/SaaS costs and maintenance contracts.
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown("""
+                <div style="background: #27ae6015; border-radius: 10px; padding: 0.75rem; margin-top: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">💡 Optimization Potential</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">€8.5M</div>
+                    <div style="font-size: 0.7rem; color: #666;">via contract renegotiation</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+    
+    # =========================================================================
+    # TAB 4: VENDORS & TECH
+    # =========================================================================
+    with tab_vendors:
+        # -------------------------------------------------------------------------
+        # ROW 5: Cross-Team Alignment View
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 👥 Cross-Team Alignment Dashboard")
+        st.caption("Finance, Operations, and Technology perspectives on equipment lifecycle")
+    
+        team_col1, team_col2, team_col3 = st.columns(3)
+    
+        with team_col1:
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 12px; padding: 1rem; color: white;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💰</span>
+                        <span style="font-size: 1.1rem; font-weight: 600;">Finance View</span>
+                    </div>
+            """, unsafe_allow_html=True)
+        
+            st.metric("CAPEX Budget 2025", "€45.0M", "Approved")
+            st.metric("Forecast Spend", "€52.3M", "+€7.3M over", delta_color="inverse")
+            st.metric("Depreciation Impact", "€28.4M", "Annual")
+        
+            st.markdown("""
+                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">📋 Budget Actions Required:</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.25rem;">• Request €8M supplemental</div>
+                    <div style="font-size: 0.8rem;">• Defer €3M to 2026</div>
+                </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with team_col2:
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); border-radius: 12px; padding: 1rem; color: white;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🔧</span>
+                        <span style="font-size: 1.1rem; font-weight: 600;">Operations View</span>
+                    </div>
+            """, unsafe_allow_html=True)
+        
+            st.metric("Maintenance Backlog", "847 tickets", "+12% MoM", delta_color="inverse")
+            st.metric("Emergency Repairs", "34 active", "Critical")
+            st.metric("Downtime Risk Score", "7.2/10", "High")
+        
+            st.markdown("""
+                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">🚨 Priority Actions:</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.25rem;">• 156 transmitters critical</div>
+                    <div style="font-size: 0.8rem;">• Q1 maintenance window</div>
+                </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with team_col3:
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 12px; padding: 1rem; color: white;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💻</span>
+                        <span style="font-size: 1.1rem; font-weight: 600;">Technology View</span>
+                    </div>
+            """, unsafe_allow_html=True)
+        
+            st.metric("Tech Refresh Required", "2,341 units", "5G upgrade")
+            st.metric("Obsolete Systems", "892 units", "No vendor support")
+            st.metric("Compatibility Score", "78%", "-3% vs target")
+        
+            st.markdown("""
+                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem; margin-top: 0.5rem;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">🔄 Tech Priorities:</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.25rem;">• DAB+ transmitter upgrade</div>
+                    <div style="font-size: 0.8rem;">• 5G antenna rollout</div>
+                </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 8: Vendor Concentration + Technology Obsolescence
+        # -------------------------------------------------------------------------
+    
+        vendor_col, obsol_col = st.columns(2)
+    
+        with vendor_col:
+            st.markdown("### 🏢 Vendor Concentration & Risk")
+        
+            # Vendor data
+            vendors = [
+                {"name": "Ericsson", "share": 28, "equipment": 12850, "risk": "Low", "rating": 4.5},
+                {"name": "Nokia", "share": 24, "equipment": 11014, "risk": "Low", "rating": 4.3},
+                {"name": "Huawei", "share": 18, "equipment": 8261, "risk": "High", "rating": 4.1},
+                {"name": "Rohde & Schwarz", "share": 12, "equipment": 5507, "risk": "Low", "rating": 4.6},
+                {"name": "Kathrein", "share": 8, "equipment": 3671, "risk": "Medium", "rating": 3.9},
+                {"name": "Others", "share": 10, "equipment": 4589, "risk": "Mixed", "rating": 3.5},
+            ]
+        
+            # Pie chart
+            fig_vendor = go.Figure(data=[go.Pie(
+                labels=[v['name'] for v in vendors],
+                values=[v['share'] for v in vendors],
+                hole=0.5,
+                marker_colors=['#1a2b4a', '#3498db', '#e63946', '#27ae60', '#f39c12', '#9b59b6'],
+                textinfo='label+percent',
+                textfont_size=11,
+                hovertemplate='<b>%{label}</b><br>Share: %{percent}<br>Equipment: %{value:,}<extra></extra>'
+            )])
+        
+            fig_vendor.add_annotation(
+                text="<b>Top 3</b><br>70%",
+                x=0.5, y=0.5, font_size=14, showarrow=False
+            )
+        
+            fig_vendor.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_vendor, use_container_width=True)
+        
+            # Risk indicators
+            st.markdown("#### ⚠️ Supply Chain Risks")
+            for v in vendors[:4]:
+                risk_color = '#e63946' if v['risk'] == 'High' else '#f39c12' if v['risk'] == 'Medium' else '#27ae60'
                 st.markdown(f"""
-                    <div style="background: {'#27ae6015' if total_savings > 0 else '#e6394615'}; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                        <div style="font-size: 0.75rem; color: #666;">💰 5-Year Savings</div>
-                        <div style="font-size: 1.3rem; font-weight: 700; color: {'#27ae60' if total_savings > 0 else '#e63946'};">€{total_savings:.0f}M</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #eee;">
+                        <span style="font-weight: 500;">{v['name']}</span>
+                        <div>
+                            <span style="background: {risk_color}20; color: {risk_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-right: 0.5rem;">{v['risk']} Risk</span>
+                            <span style="color: #f39c12;">{'⭐' * int(v['rating'])}</span>
+                        </div>
                     </div>
                 """, unsafe_allow_html=True)
-            
-            with impact_cols[1]:
-                deferred_units = int(renewal_12m * defer_pct / 100)
+        
+            st.markdown("""
+                <div style="background: #e6394615; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem;">
+                    <span style="font-weight: 600; color: #e63946;">⚠️ Alert:</span> Huawei dependency at 18% - regulatory risk in some regions
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with obsol_col:
+            st.markdown("### 📡 Technology Obsolescence Radar")
+        
+            # Obsolescence tracking
+            tech_status = [
+                {"tech": "2G/GSM", "status": "Sunset 2026", "equipment": 1245, "value": 8.2, "risk": 95},
+                {"tech": "3G/UMTS", "status": "Sunset 2028", "equipment": 3421, "value": 24.5, "risk": 75},
+                {"tech": "DVB-T (SD)", "status": "Migrating", "equipment": 892, "value": 12.3, "risk": 60},
+                {"tech": "Analog FM", "status": "Legacy", "equipment": 456, "value": 3.1, "risk": 40},
+                {"tech": "4G/LTE", "status": "Active", "equipment": 15234, "value": 156.0, "risk": 10},
+                {"tech": "5G NR", "status": "Expanding", "equipment": 8921, "value": 245.0, "risk": 5},
+            ]
+        
+            # Horizontal bar showing obsolescence risk
+            fig_obsol = go.Figure()
+        
+            fig_obsol.add_trace(go.Bar(
+                y=[t['tech'] for t in tech_status],
+                x=[t['risk'] for t in tech_status],
+                orientation='h',
+                marker_color=['#c0392b', '#e63946', '#f39c12', '#f1c40f', '#27ae60', '#2ecc71'],
+                text=[f"{t['risk']}%" for t in tech_status],
+                textposition='outside',
+                hovertemplate='<b>%{y}</b><br>Risk: %{x}%<br>Equipment: %{customdata[0]:,}<br>Value: €%{customdata[1]}M<extra></extra>',
+                customdata=[[t['equipment'], t['value']] for t in tech_status]
+            ))
+        
+            fig_obsol.update_layout(
+                height=250,
+                margin=dict(l=10, r=50, t=10, b=10),
+                xaxis_title="Obsolescence Risk %",
+                xaxis=dict(range=[0, 110]),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_obsol, use_container_width=True)
+        
+            # Stranded asset value
+            stranded_value = sum(t['value'] for t in tech_status if t['risk'] > 50)
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.8;">💀 Stranded Asset Risk (3-Year)</div>
+                    <div style="font-size: 2rem; font-weight: 700;">€{stranded_value:.1f}M</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">Equipment value at high obsolescence risk</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            # Migration timeline
+            st.markdown("#### 📅 Technology Migration Timeline")
+            migrations = [
+                {"from": "2G → Decommission", "date": "Q4 2026", "status": "Planned"},
+                {"from": "3G → 4G/5G", "date": "Q2 2028", "status": "Planning"},
+                {"from": "DVB-T → DVB-T2", "date": "Q1 2026", "status": "In Progress"},
+            ]
+            for m in migrations:
+                status_color = '#27ae60' if m['status'] == 'In Progress' else '#3498db' if m['status'] == 'Planned' else '#f39c12'
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0;">
+                        <span>{m['from']}</span>
+                        <div>
+                            <span style="color: #666; font-size: 0.85rem; margin-right: 0.5rem;">{m['date']}</span>
+                            <span style="background: {status_color}20; color: {status_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{m['status']}</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 9: Warranty Tracker + Maintain vs Replace
+        # -------------------------------------------------------------------------
+    
+        warranty_col, decision_col = st.columns(2)
+    
+        with warranty_col:
+            st.markdown("### 📅 Warranty Expiration Tracker")
+        
+            # Warranty cliff visualization
+            warranty_data = [
+                {"period": "Expired", "count": 12456, "value": 89.2},
+                {"period": "0-6 months", "count": 3421, "value": 34.5},
+                {"period": "6-12 months", "count": 2891, "value": 28.9},
+                {"period": "12-24 months", "count": 5234, "value": 67.8},
+                {"period": "24+ months", "count": 21890, "value": 312.4},
+            ]
+        
+            fig_warranty = go.Figure()
+        
+            colors = ['#e63946', '#f39c12', '#f1c40f', '#3498db', '#27ae60']
+        
+            fig_warranty.add_trace(go.Bar(
+                x=[w['period'] for w in warranty_data],
+                y=[w['count'] for w in warranty_data],
+                marker_color=colors,
+                text=[f"{w['count']:,}" for w in warranty_data],
+                textposition='outside',
+                hovertemplate='<b>%{x}</b><br>Equipment: %{y:,}<br>Value: €%{customdata}M<extra></extra>',
+                customdata=[w['value'] for w in warranty_data]
+            ))
+        
+            fig_warranty.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis_title="Warranty Status",
+                yaxis_title="Equipment Count",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_warranty, use_container_width=True)
+        
+            # Warranty cliff alert
+            expiring_soon = warranty_data[1]['count'] + warranty_data[2]['count']
+            expiring_value = warranty_data[1]['value'] + warranty_data[2]['value']
+        
+            w_col1, w_col2 = st.columns(2)
+            with w_col1:
                 st.markdown(f"""
                     <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                        <div style="font-size: 0.75rem; color: #666;">⏳ Deferred Units</div>
-                        <div style="font-size: 1.3rem; font-weight: 700; color: #f39c12;">{deferred_units:,}</div>
+                        <div style="font-size: 0.75rem; color: #666;">⏰ Expiring in 12 months</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #f39c12;">{expiring_soon:,}</div>
+                        <div style="font-size: 0.7rem; color: #888;">€{expiring_value:.1f}M value</div>
                     </div>
                 """, unsafe_allow_html=True)
-            
-            with impact_cols[2]:
+            with w_col2:
+                ext_warranty_cost = expiring_value * 0.08  # 8% of value for extended warranty
                 st.markdown(f"""
-                    <div style="background: #e6394615; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                        <div style="font-size: 0.75rem; color: #666;">⚠️ Added Risk</div>
-                        <div style="font-size: 1.3rem; font-weight: 700; color: #e63946;">+{risk_increase:.0f}%</div>
+                    <div style="background: #3498db15; border-radius: 8px; padding: 0.75rem; text-align: center;">
+                        <div style="font-size: 0.75rem; color: #666;">💰 Extended Warranty Cost</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #3498db;">€{ext_warranty_cost:.1f}M</div>
+                        <div style="font-size: 0.7rem; color: #888;">~8% of asset value</div>
                     </div>
                 """, unsafe_allow_html=True)
-            
-            with impact_cols[3]:
-                downtime_hours = int(risk_increase * 12)
-                st.markdown(f"""
-                    <div style="background: #9b59b615; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                        <div style="font-size: 0.75rem; color: #666;">📉 Est. Downtime</div>
-                        <div style="font-size: 1.3rem; font-weight: 700; color: #9b59b6;">+{downtime_hours}h/yr</div>
-                    </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("📊 Select a different scenario to see comparison with baseline")
-            
-            # Show baseline forecast
-            fig_baseline = go.Figure()
-            fig_baseline.add_trace(go.Bar(
-                x=years[:5],
-                y=capex_by_year[:5],
+        
+            st.button("📋 View Warranty Details", use_container_width=True)
+    
+        with decision_col:
+            st.markdown("### 🔧 Maintain vs Replace Decision Matrix")
+        
+            # Decision matrix
+            decision_data = [
+                {"category": "Antennas", "maint_cost": 2500, "replace_cost": 15000, "breakeven": 6, "recommendation": "Maintain"},
+                {"category": "Transmitters", "maint_cost": 8500, "replace_cost": 45000, "breakeven": 5.3, "recommendation": "Case-by-case"},
+                {"category": "Power Systems", "maint_cost": 4200, "replace_cost": 18000, "breakeven": 4.3, "recommendation": "Replace if >7y"},
+                {"category": "Cooling/HVAC", "maint_cost": 3800, "replace_cost": 12000, "breakeven": 3.2, "recommendation": "Replace if >5y"},
+                {"category": "Network Equip", "maint_cost": 1500, "replace_cost": 8000, "breakeven": 5.3, "recommendation": "Maintain"},
+            ]
+        
+            # Visual comparison
+            fig_decision = go.Figure()
+        
+            categories = [d['category'] for d in decision_data]
+        
+            fig_decision.add_trace(go.Bar(
+                name='Annual Maintenance',
+                x=categories,
+                y=[d['maint_cost'] for d in decision_data],
                 marker_color='#3498db',
-                text=[f'€{v:.0f}M' for v in capex_by_year[:5]],
+                text=[f"€{d['maint_cost']:,}" for d in decision_data],
                 textposition='outside'
             ))
-            fig_baseline.update_layout(
-                height=300,
-                margin=dict(l=10, r=10, t=30, b=10),
-                xaxis_title='Year',
-                yaxis_title='CAPEX (€M)',
+        
+            fig_decision.add_trace(go.Bar(
+                name='Replacement Cost',
+                x=categories,
+                y=[d['replace_cost'] for d in decision_data],
+                marker_color='#e63946',
+                text=[f"€{d['replace_cost']:,}" for d in decision_data],
+                textposition='outside'
+            ))
+        
+            fig_decision.update_layout(
+                barmode='group',
+                height=220,
+                margin=dict(l=10, r=10, t=10, b=10),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02),
+                yaxis_title="Cost (EUR)",
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
-            st.plotly_chart(fig_baseline, use_container_width=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 7: Critical Equipment Watch List
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🚨 Critical Equipment Watch List")
-    st.caption("Equipment requiring immediate attention - highest risk of failure")
-    
-    # Critical equipment table
-    critical_equipment = [
-        {"id": "TRM-DVB-001234", "type": "DVB-T2 Transmitter", "site": "Paris - Tour Eiffel", "age": "12.3 yrs", "risk": 92, "impact": "€2.1M", "action": "Replace Q1"},
-        {"id": "TRM-DVB-002891", "type": "DVB-T2 Transmitter", "site": "Lyon - Fourvière", "age": "11.8 yrs", "risk": 88, "impact": "€1.8M", "action": "Replace Q1"},
-        {"id": "PWR-UPS-004521", "type": "UPS System", "site": "Marseille - L'Estaque", "age": "10.2 yrs", "risk": 85, "impact": "€890K", "action": "Replace Q2"},
-        {"id": "ANT-5G-007823", "type": "5G Antenna Array", "site": "Toulouse - Labège", "age": "8.5 yrs", "risk": 78, "impact": "€456K", "action": "Upgrade Q2"},
-        {"id": "CLG-HVAC-003421", "type": "Cooling System", "site": "Bordeaux - DC1", "age": "9.1 yrs", "risk": 75, "impact": "€320K", "action": "Refurbish Q2"},
-        {"id": "TRM-FM-008912", "type": "FM Transmitter", "site": "Lille - Mont Noir", "age": "14.2 yrs", "risk": 71, "impact": "€1.2M", "action": "Replace Q3"},
-    ]
-    
-    crit_cols = st.columns([0.5, 2, 2, 1.5, 1, 1.2, 1.2, 1])
-    
-    with crit_cols[0]:
-        st.markdown("**#**")
-    with crit_cols[1]:
-        st.markdown("**Equipment ID**")
-    with crit_cols[2]:
-        st.markdown("**Location**")
-    with crit_cols[3]:
-        st.markdown("**Type**")
-    with crit_cols[4]:
-        st.markdown("**Age**")
-    with crit_cols[5]:
-        st.markdown("**Risk**")
-    with crit_cols[6]:
-        st.markdown("**Impact**")
-    with crit_cols[7]:
-        st.markdown("**Action**")
-    
-    for idx, equip in enumerate(critical_equipment):
-        cols = st.columns([0.5, 2, 2, 1.5, 1, 1.2, 1.2, 1])
+            st.plotly_chart(fig_decision, use_container_width=True)
         
-        risk_color = '#e63946' if equip['risk'] >= 80 else '#f39c12' if equip['risk'] >= 60 else '#27ae60'
-        
-        with cols[0]:
-            st.markdown(f"**{idx + 1}**")
-        with cols[1]:
-            st.markdown(f"`{equip['id']}`")
-        with cols[2]:
-            st.markdown(equip['site'])
-        with cols[3]:
-            st.markdown(equip['type'][:20])
-        with cols[4]:
-            st.markdown(equip['age'])
-        with cols[5]:
-            st.markdown(f"<span style='background: {risk_color}; color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem;'>{equip['risk']}%</span>", unsafe_allow_html=True)
-        with cols[6]:
-            st.markdown(f"**{equip['impact']}**")
-        with cols[7]:
-            st.markdown(f"<span style='color: #e63946; font-weight: 600;'>{equip['action']}</span>", unsafe_allow_html=True)
-    
-    # Export buttons
-    btn_col1, btn_col2, btn_col3, _ = st.columns([1, 1, 1, 3])
-    with btn_col1:
-        st.button("📥 Export Full List", use_container_width=True)
-    with btn_col2:
-        st.button("📧 Send to Teams", use_container_width=True)
-    with btn_col3:
-        st.button("📅 Schedule Reviews", use_container_width=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 8: Vendor Concentration + Technology Obsolescence
-    # -------------------------------------------------------------------------
-    
-    vendor_col, obsol_col = st.columns(2)
-    
-    with vendor_col:
-        st.markdown("### 🏢 Vendor Concentration & Risk")
-        
-        # Vendor data
-        vendors = [
-            {"name": "Ericsson", "share": 28, "equipment": 12850, "risk": "Low", "rating": 4.5},
-            {"name": "Nokia", "share": 24, "equipment": 11014, "risk": "Low", "rating": 4.3},
-            {"name": "Huawei", "share": 18, "equipment": 8261, "risk": "High", "rating": 4.1},
-            {"name": "Rohde & Schwarz", "share": 12, "equipment": 5507, "risk": "Low", "rating": 4.6},
-            {"name": "Kathrein", "share": 8, "equipment": 3671, "risk": "Medium", "rating": 3.9},
-            {"name": "Others", "share": 10, "equipment": 4589, "risk": "Mixed", "rating": 3.5},
-        ]
-        
-        # Pie chart
-        fig_vendor = go.Figure(data=[go.Pie(
-            labels=[v['name'] for v in vendors],
-            values=[v['share'] for v in vendors],
-            hole=0.5,
-            marker_colors=['#1a2b4a', '#3498db', '#e63946', '#27ae60', '#f39c12', '#9b59b6'],
-            textinfo='label+percent',
-            textfont_size=11,
-            hovertemplate='<b>%{label}</b><br>Share: %{percent}<br>Equipment: %{value:,}<extra></extra>'
-        )])
-        
-        fig_vendor.add_annotation(
-            text="<b>Top 3</b><br>70%",
-            x=0.5, y=0.5, font_size=14, showarrow=False
-        )
-        
-        fig_vendor.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_vendor, use_container_width=True)
-        
-        # Risk indicators
-        st.markdown("#### ⚠️ Supply Chain Risks")
-        for v in vendors[:4]:
-            risk_color = '#e63946' if v['risk'] == 'High' else '#f39c12' if v['risk'] == 'Medium' else '#27ae60'
-            st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #eee;">
-                    <span style="font-weight: 500;">{v['name']}</span>
-                    <div>
-                        <span style="background: {risk_color}20; color: {risk_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-right: 0.5rem;">{v['risk']} Risk</span>
-                        <span style="color: #f39c12;">{'⭐' * int(v['rating'])}</span>
+            # Recommendations table
+            st.markdown("#### 💡 AI Recommendations")
+            for d in decision_data:
+                rec_color = '#27ae60' if 'Maintain' in d['recommendation'] else '#f39c12' if 'Case' in d['recommendation'] else '#e63946'
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid #eee;">
+                        <span>{d['category']}</span>
+                        <div>
+                            <span style="font-size: 0.75rem; color: #666; margin-right: 0.5rem;">Break-even: {d['breakeven']}y</span>
+                            <span style="background: {rec_color}20; color: {rec_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{d['recommendation']}</span>
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("""
-            <div style="background: #e6394615; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem;">
-                <span style="font-weight: 600; color: #e63946;">⚠️ Alert:</span> Huawei dependency at 18% - regulatory risk in some regions
-            </div>
-        """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
     
-    with obsol_col:
-        st.markdown("### 📡 Technology Obsolescence Radar")
-        
-        # Obsolescence tracking
-        tech_status = [
-            {"tech": "2G/GSM", "status": "Sunset 2026", "equipment": 1245, "value": 8.2, "risk": 95},
-            {"tech": "3G/UMTS", "status": "Sunset 2028", "equipment": 3421, "value": 24.5, "risk": 75},
-            {"tech": "DVB-T (SD)", "status": "Migrating", "equipment": 892, "value": 12.3, "risk": 60},
-            {"tech": "Analog FM", "status": "Legacy", "equipment": 456, "value": 3.1, "risk": 40},
-            {"tech": "4G/LTE", "status": "Active", "equipment": 15234, "value": 156.0, "risk": 10},
-            {"tech": "5G NR", "status": "Expanding", "equipment": 8921, "value": 245.0, "risk": 5},
+        st.markdown("---")
+    
+    
+    # =========================================================================
+    # TAB 5: REGIONAL
+    # =========================================================================
+    with tab_regional:
+        # -------------------------------------------------------------------------
+        # ROW 10: Regional CAPEX Heatmap
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🗺️ Regional CAPEX Investment Distribution")
+        st.caption("Investment equity across France regions")
+    
+        # Regional CAPEX data
+        regional_capex = [
+            {"region": "Île-de-France", "budget": 12.5, "spent": 11.2, "equipment": 8956, "per_site": 45.2},
+            {"region": "Auvergne-Rhône-Alpes", "budget": 6.8, "spent": 5.9, "equipment": 5234, "per_site": 38.5},
+            {"region": "Provence-Alpes-Côte d'Azur", "budget": 5.2, "spent": 4.8, "equipment": 4123, "per_site": 41.2},
+            {"region": "Occitanie", "budget": 4.8, "spent": 4.2, "equipment": 3891, "per_site": 36.8},
+            {"region": "Nouvelle-Aquitaine", "budget": 4.5, "spent": 3.9, "equipment": 3567, "per_site": 35.2},
+            {"region": "Hauts-de-France", "budget": 3.8, "spent": 3.5, "equipment": 2891, "per_site": 33.5},
+            {"region": "Grand Est", "budget": 3.2, "spent": 2.8, "equipment": 2456, "per_site": 32.1},
+            {"region": "Pays de la Loire", "budget": 2.5, "spent": 2.2, "equipment": 1987, "per_site": 34.8},
+            {"region": "Bretagne", "budget": 2.2, "spent": 2.0, "equipment": 1756, "per_site": 33.2},
+            {"region": "Normandie", "budget": 1.8, "spent": 1.5, "equipment": 1423, "per_site": 31.5},
         ]
-        
-        # Horizontal bar showing obsolescence risk
-        fig_obsol = go.Figure()
-        
-        fig_obsol.add_trace(go.Bar(
-            y=[t['tech'] for t in tech_status],
-            x=[t['risk'] for t in tech_status],
-            orientation='h',
-            marker_color=['#c0392b', '#e63946', '#f39c12', '#f1c40f', '#27ae60', '#2ecc71'],
-            text=[f"{t['risk']}%" for t in tech_status],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Risk: %{x}%<br>Equipment: %{customdata[0]:,}<br>Value: €%{customdata[1]}M<extra></extra>',
-            customdata=[[t['equipment'], t['value']] for t in tech_status]
-        ))
-        
-        fig_obsol.update_layout(
-            height=250,
-            margin=dict(l=10, r=50, t=10, b=10),
-            xaxis_title="Obsolescence Risk %",
-            xaxis=dict(range=[0, 110]),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_obsol, use_container_width=True)
-        
-        # Stranded asset value
-        stranded_value = sum(t['value'] for t in tech_status if t['risk'] > 50)
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #e63946 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.8;">💀 Stranded Asset Risk (3-Year)</div>
-                <div style="font-size: 2rem; font-weight: 700;">€{stranded_value:.1f}M</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">Equipment value at high obsolescence risk</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Migration timeline
-        st.markdown("#### 📅 Technology Migration Timeline")
-        migrations = [
-            {"from": "2G → Decommission", "date": "Q4 2026", "status": "Planned"},
-            {"from": "3G → 4G/5G", "date": "Q2 2028", "status": "Planning"},
-            {"from": "DVB-T → DVB-T2", "date": "Q1 2026", "status": "In Progress"},
-        ]
-        for m in migrations:
-            status_color = '#27ae60' if m['status'] == 'In Progress' else '#3498db' if m['status'] == 'Planned' else '#f39c12'
-            st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0;">
-                    <span>{m['from']}</span>
-                    <div>
-                        <span style="color: #666; font-size: 0.85rem; margin-right: 0.5rem;">{m['date']}</span>
-                        <span style="background: {status_color}20; color: {status_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{m['status']}</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
     
-    st.markdown("---")
+        map_col, detail_col = st.columns([2, 1])
     
-    # -------------------------------------------------------------------------
-    # ROW 9: Warranty Tracker + Maintain vs Replace
-    # -------------------------------------------------------------------------
-    
-    warranty_col, decision_col = st.columns(2)
-    
-    with warranty_col:
-        st.markdown("### 📅 Warranty Expiration Tracker")
-        
-        # Warranty cliff visualization
-        warranty_data = [
-            {"period": "Expired", "count": 12456, "value": 89.2},
-            {"period": "0-6 months", "count": 3421, "value": 34.5},
-            {"period": "6-12 months", "count": 2891, "value": 28.9},
-            {"period": "12-24 months", "count": 5234, "value": 67.8},
-            {"period": "24+ months", "count": 21890, "value": 312.4},
-        ]
-        
-        fig_warranty = go.Figure()
-        
-        colors = ['#e63946', '#f39c12', '#f1c40f', '#3498db', '#27ae60']
-        
-        fig_warranty.add_trace(go.Bar(
-            x=[w['period'] for w in warranty_data],
-            y=[w['count'] for w in warranty_data],
-            marker_color=colors,
-            text=[f"{w['count']:,}" for w in warranty_data],
-            textposition='outside',
-            hovertemplate='<b>%{x}</b><br>Equipment: %{y:,}<br>Value: €%{customdata}M<extra></extra>',
-            customdata=[w['value'] for w in warranty_data]
-        ))
-        
-        fig_warranty.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis_title="Warranty Status",
-            yaxis_title="Equipment Count",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_warranty, use_container_width=True)
-        
-        # Warranty cliff alert
-        expiring_soon = warranty_data[1]['count'] + warranty_data[2]['count']
-        expiring_value = warranty_data[1]['value'] + warranty_data[2]['value']
-        
-        w_col1, w_col2 = st.columns(2)
-        with w_col1:
-            st.markdown(f"""
-                <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.75rem; color: #666;">⏰ Expiring in 12 months</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #f39c12;">{expiring_soon:,}</div>
-                    <div style="font-size: 0.7rem; color: #888;">€{expiring_value:.1f}M value</div>
-                </div>
-            """, unsafe_allow_html=True)
-        with w_col2:
-            ext_warranty_cost = expiring_value * 0.08  # 8% of value for extended warranty
-            st.markdown(f"""
-                <div style="background: #3498db15; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.75rem; color: #666;">💰 Extended Warranty Cost</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #3498db;">€{ext_warranty_cost:.1f}M</div>
-                    <div style="font-size: 0.7rem; color: #888;">~8% of asset value</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.button("📋 View Warranty Details", use_container_width=True)
-    
-    with decision_col:
-        st.markdown("### 🔧 Maintain vs Replace Decision Matrix")
-        
-        # Decision matrix
-        decision_data = [
-            {"category": "Antennas", "maint_cost": 2500, "replace_cost": 15000, "breakeven": 6, "recommendation": "Maintain"},
-            {"category": "Transmitters", "maint_cost": 8500, "replace_cost": 45000, "breakeven": 5.3, "recommendation": "Case-by-case"},
-            {"category": "Power Systems", "maint_cost": 4200, "replace_cost": 18000, "breakeven": 4.3, "recommendation": "Replace if >7y"},
-            {"category": "Cooling/HVAC", "maint_cost": 3800, "replace_cost": 12000, "breakeven": 3.2, "recommendation": "Replace if >5y"},
-            {"category": "Network Equip", "maint_cost": 1500, "replace_cost": 8000, "breakeven": 5.3, "recommendation": "Maintain"},
-        ]
-        
-        # Visual comparison
-        fig_decision = go.Figure()
-        
-        categories = [d['category'] for d in decision_data]
-        
-        fig_decision.add_trace(go.Bar(
-            name='Annual Maintenance',
-            x=categories,
-            y=[d['maint_cost'] for d in decision_data],
-            marker_color='#3498db',
-            text=[f"€{d['maint_cost']:,}" for d in decision_data],
-            textposition='outside'
-        ))
-        
-        fig_decision.add_trace(go.Bar(
-            name='Replacement Cost',
-            x=categories,
-            y=[d['replace_cost'] for d in decision_data],
-            marker_color='#e63946',
-            text=[f"€{d['replace_cost']:,}" for d in decision_data],
-            textposition='outside'
-        ))
-        
-        fig_decision.update_layout(
-            barmode='group',
-            height=220,
-            margin=dict(l=10, r=10, t=10, b=10),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02),
-            yaxis_title="Cost (EUR)",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_decision, use_container_width=True)
-        
-        # Recommendations table
-        st.markdown("#### 💡 AI Recommendations")
-        for d in decision_data:
-            rec_color = '#27ae60' if 'Maintain' in d['recommendation'] else '#f39c12' if 'Case' in d['recommendation'] else '#e63946'
-            st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid #eee;">
-                    <span>{d['category']}</span>
-                    <div>
-                        <span style="font-size: 0.75rem; color: #666; margin-right: 0.5rem;">Break-even: {d['breakeven']}y</span>
-                        <span style="background: {rec_color}20; color: {rec_color}; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem;">{d['recommendation']}</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 10: Regional CAPEX Heatmap
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🗺️ Regional CAPEX Investment Distribution")
-    st.caption("Investment equity across France regions")
-    
-    # Regional CAPEX data
-    regional_capex = [
-        {"region": "Île-de-France", "budget": 12.5, "spent": 11.2, "equipment": 8956, "per_site": 45.2},
-        {"region": "Auvergne-Rhône-Alpes", "budget": 6.8, "spent": 5.9, "equipment": 5234, "per_site": 38.5},
-        {"region": "Provence-Alpes-Côte d'Azur", "budget": 5.2, "spent": 4.8, "equipment": 4123, "per_site": 41.2},
-        {"region": "Occitanie", "budget": 4.8, "spent": 4.2, "equipment": 3891, "per_site": 36.8},
-        {"region": "Nouvelle-Aquitaine", "budget": 4.5, "spent": 3.9, "equipment": 3567, "per_site": 35.2},
-        {"region": "Hauts-de-France", "budget": 3.8, "spent": 3.5, "equipment": 2891, "per_site": 33.5},
-        {"region": "Grand Est", "budget": 3.2, "spent": 2.8, "equipment": 2456, "per_site": 32.1},
-        {"region": "Pays de la Loire", "budget": 2.5, "spent": 2.2, "equipment": 1987, "per_site": 34.8},
-        {"region": "Bretagne", "budget": 2.2, "spent": 2.0, "equipment": 1756, "per_site": 33.2},
-        {"region": "Normandie", "budget": 1.8, "spent": 1.5, "equipment": 1423, "per_site": 31.5},
-    ]
-    
-    map_col, detail_col = st.columns([2, 1])
-    
-    with map_col:
-        # Bubble chart as proxy for map
-        fig_regional = go.Figure()
-        
-        # Create scatter with size based on budget
-        fig_regional.add_trace(go.Bar(
-            x=[r['region'] for r in regional_capex],
-            y=[r['budget'] for r in regional_capex],
-            name='Budget',
-            marker_color='#3498db',
-            opacity=0.4
-        ))
-        
-        fig_regional.add_trace(go.Bar(
-            x=[r['region'] for r in regional_capex],
-            y=[r['spent'] for r in regional_capex],
-            name='Spent',
-            marker_color='#1a2b4a'
-        ))
-        
-        # Add equity line (avg per site)
-        avg_per_site = sum(r['per_site'] for r in regional_capex) / len(regional_capex)
-        
-        fig_regional.update_layout(
-            barmode='overlay',
-            height=350,
-            margin=dict(l=10, r=10, t=30, b=80),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02),
-            xaxis_tickangle=-45,
-            yaxis_title="CAPEX (€M)",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_regional, use_container_width=True)
-    
-    with detail_col:
-        st.markdown("#### 📊 Investment Equity Score")
-        
-        # Calculate equity metrics
-        total_budget = sum(r['budget'] for r in regional_capex)
-        utilization = sum(r['spent'] for r in regional_capex) / total_budget * 100
-        
-        # Equity gauge
-        fig_equity = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=78,
-            title={'text': "Investment Balance", 'font': {'size': 14}},
-            gauge={
-                'axis': {'range': [0, 100]},
-                'bar': {'color': '#27ae60'},
-                'steps': [
-                    {'range': [0, 50], 'color': 'rgba(230, 57, 70, 0.13)'},
-                    {'range': [50, 75], 'color': 'rgba(243, 156, 18, 0.13)'},
-                    {'range': [75, 100], 'color': 'rgba(39, 174, 96, 0.13)'}
-                ],
-                'threshold': {
-                    'line': {'color': '#1a2b4a', 'width': 2},
-                    'thickness': 0.75,
-                    'value': 85
-                }
-            }
-        ))
-        fig_equity.update_layout(
-            height=180,
-            margin=dict(l=20, r=20, t=40, b=10),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_equity, use_container_width=True)
-        
-        # Key insights
-        st.markdown(f"""
-            <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
-                <div style="font-size: 0.8rem; color: #27ae60; font-weight: 600;">✅ Budget Utilization</div>
-                <div style="font-size: 1.2rem; font-weight: 700;">{utilization:.1f}%</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Under-invested regions
-        under_invested = [r for r in regional_capex if r['per_site'] < avg_per_site * 0.9]
-        if under_invested:
-            st.markdown(f"""
-                <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem;">
-                    <div style="font-size: 0.8rem; color: #f39c12; font-weight: 600;">⚠️ Under-invested Regions</div>
-                    <div style="font-size: 0.85rem; margin-top: 0.25rem;">{', '.join([r['region'][:10] for r in under_invested[:3]])}</div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 11: CAPEX Approval Pipeline
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📋 CAPEX Approval Pipeline")
-    st.caption("Track capital expenditure requests through approval workflow")
-    
-    pipeline_col, requests_col = st.columns([2, 1])
-    
-    with pipeline_col:
-        # Pipeline funnel
-        stages = [
-            {"stage": "Submitted", "count": 47, "value": 28.5, "color": "#3498db"},
-            {"stage": "Technical Review", "count": 32, "value": 19.2, "color": "#9b59b6"},
-            {"stage": "Finance Review", "count": 24, "value": 14.8, "color": "#f39c12"},
-            {"stage": "Director Approval", "count": 18, "value": 11.2, "color": "#e67e22"},
-            {"stage": "CFO Approval", "count": 8, "value": 6.5, "color": "#27ae60"},
-            {"stage": "Approved", "count": 156, "value": 38.2, "color": "#1a2b4a"},
-        ]
-        
-        fig_pipeline = go.Figure()
-        
-        # Funnel chart
-        fig_pipeline.add_trace(go.Funnel(
-            y=[s['stage'] for s in stages],
-            x=[s['count'] for s in stages],
-            textinfo="value+percent initial",
-            marker=dict(color=[s['color'] for s in stages]),
-            hovertemplate='<b>%{y}</b><br>Requests: %{x}<br>Value: €%{customdata}M<extra></extra>',
-            customdata=[s['value'] for s in stages]
-        ))
-        
-        fig_pipeline.update_layout(
-            height=350,
-            margin=dict(l=10, r=10, t=20, b=10),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_pipeline, use_container_width=True)
-    
-    with requests_col:
-        st.markdown("#### ⏱️ Pipeline Metrics")
-        
-        avg_time = 12.5  # days
-        bottleneck = "Finance Review"
-        fast_track = 5
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #3498db;">
-                <div style="font-size: 0.75rem; color: #888;">Avg. Approval Time</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{avg_time} days</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #e63946;">
-                <div style="font-size: 0.75rem; color: #888;">🚧 Bottleneck Stage</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #e63946;">{bottleneck}</div>
-                <div style="font-size: 0.75rem; color: #888;">Avg. 4.2 days stuck</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #27ae60;">
-                <div style="font-size: 0.75rem; color: #888;">⚡ Fast-Track Requests</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">{fast_track}</div>
-                <div style="font-size: 0.75rem; color: #888;">Critical priority</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Pending value
-        pending_value = sum(s['value'] for s in stages[:-1])
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.8;">💰 Pending Approval Value</div>
-                <div style="font-size: 1.8rem; font-weight: 700;">€{pending_value:.1f}M</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Recent high-value requests
-    st.markdown("#### 📝 High-Value Pending Requests (>€1M)")
-    
-    high_value_requests = [
-        {"id": "CAPEX-2025-0892", "desc": "5G Antenna Array - Paris Region", "value": 4.2, "stage": "CFO Approval", "days": 3, "priority": "High"},
-        {"id": "CAPEX-2025-0856", "desc": "DVB-T2 Transmitter Upgrade - Lyon", "value": 2.8, "stage": "Director Approval", "days": 5, "priority": "High"},
-        {"id": "CAPEX-2025-0834", "desc": "Data Center Cooling System", "value": 1.9, "stage": "Finance Review", "days": 8, "priority": "Medium"},
-        {"id": "CAPEX-2025-0821", "desc": "Emergency Power Replacement", "value": 1.5, "stage": "Technical Review", "days": 2, "priority": "Critical"},
-        {"id": "CAPEX-2025-0798", "desc": "FM Transmitter Modernization", "value": 1.2, "stage": "Finance Review", "days": 12, "priority": "Low"},
-    ]
-    
-    req_cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
-    with req_cols[0]:
-        st.markdown("**Request ID**")
-    with req_cols[1]:
-        st.markdown("**Description**")
-    with req_cols[2]:
-        st.markdown("**Value**")
-    with req_cols[3]:
-        st.markdown("**Stage**")
-    with req_cols[4]:
-        st.markdown("**Days**")
-    with req_cols[5]:
-        st.markdown("**Priority**")
-    
-    for req in high_value_requests:
-        cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
-        priority_color = '#e63946' if req['priority'] == 'Critical' else '#f39c12' if req['priority'] == 'High' else '#3498db' if req['priority'] == 'Medium' else '#27ae60'
-        
-        with cols[0]:
-            st.markdown(f"`{req['id']}`")
-        with cols[1]:
-            st.markdown(req['desc'][:35] + "..." if len(req['desc']) > 35 else req['desc'])
-        with cols[2]:
-            st.markdown(f"**€{req['value']}M**")
-        with cols[3]:
-            st.markdown(req['stage'][:15])
-        with cols[4]:
-            day_color = '#e63946' if req['days'] > 7 else '#f39c12' if req['days'] > 3 else '#27ae60'
-            st.markdown(f"<span style='color: {day_color};'>{req['days']}d</span>", unsafe_allow_html=True)
-        with cols[5]:
-            st.markdown(f"<span style='background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.75rem;'>{req['priority']}</span>", unsafe_allow_html=True)
-    
-    # Action buttons
-    act_col1, act_col2, act_col3, act_col4 = st.columns(4)
-    with act_col1:
-        st.button("📊 Full Pipeline Report", use_container_width=True)
-    with act_col2:
-        st.button("⚡ Fast-Track Request", use_container_width=True)
-    with act_col3:
-        st.button("📧 Notify Approvers", use_container_width=True)
-    with act_col4:
-        st.button("📈 Analytics Dashboard", use_container_width=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 12: Total Cost of Ownership Calculator
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 💵 Total Cost of Ownership (TCO) Calculator")
-    st.caption("Full lifecycle cost analysis for equipment investment decisions")
-    
-    tco_input_col, tco_result_col = st.columns([1, 2])
-    
-    with tco_input_col:
-        st.markdown("#### ⚙️ Equipment Parameters")
-        
-        tco_equipment = st.selectbox(
-            "Equipment Type",
-            ["5G Antenna Array", "DVB-T2 Transmitter", "UPS Power System", "Cooling System", "Network Router"]
-        )
-        
-        tco_purchase = st.number_input("Purchase Cost (€)", value=45000, step=5000)
-        tco_lifespan = st.slider("Expected Lifespan (years)", 5, 15, 10)
-        tco_maintenance = st.number_input("Annual Maintenance (€)", value=2500, step=500)
-        tco_energy = st.number_input("Annual Energy Cost (€)", value=1800, step=200)
-        tco_quantity = st.number_input("Quantity", value=1, min_value=1, max_value=100)
-        
-        # Calculate TCO
-        total_purchase = tco_purchase * tco_quantity
-        total_maintenance = tco_maintenance * tco_lifespan * tco_quantity
-        total_energy = tco_energy * tco_lifespan * tco_quantity
-        disposal_cost = tco_purchase * 0.05 * tco_quantity  # 5% disposal
-        installation_cost = tco_purchase * 0.1 * tco_quantity  # 10% installation
-        total_tco = total_purchase + total_maintenance + total_energy + disposal_cost + installation_cost
-        annual_tco = total_tco / tco_lifespan
-    
-    with tco_result_col:
-        st.markdown("#### 📊 TCO Breakdown")
-        
-        # TCO donut chart
-        tco_components = [
-            {"name": "Purchase", "value": total_purchase, "color": "#1a2b4a"},
-            {"name": "Installation", "value": installation_cost, "color": "#3498db"},
-            {"name": "Maintenance", "value": total_maintenance, "color": "#f39c12"},
-            {"name": "Energy", "value": total_energy, "color": "#e67e22"},
-            {"name": "Disposal", "value": disposal_cost, "color": "#9b59b6"},
-        ]
-        
-        fig_tco = go.Figure(data=[go.Pie(
-            labels=[c['name'] for c in tco_components],
-            values=[c['value'] for c in tco_components],
-            hole=0.6,
-            marker_colors=[c['color'] for c in tco_components],
-            textinfo='label+percent',
-            textfont_size=11,
-            hovertemplate='<b>%{label}</b><br>€%{value:,.0f}<br>%{percent}<extra></extra>'
-        )])
-        
-        fig_tco.add_annotation(
-            text=f"<b>€{total_tco:,.0f}</b><br><span style='font-size:11px'>Total TCO</span>",
-            x=0.5, y=0.5, font_size=16, showarrow=False
-        )
-        
-        fig_tco.update_layout(
-            height=280,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_tco, use_container_width=True)
-        
-        # Key metrics
-        tco_metrics = st.columns(4)
-        with tco_metrics[0]:
-            st.markdown(f"""
-                <div style="background: #1a2b4a15; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.7rem; color: #666;">Total TCO</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #1a2b4a;">€{total_tco:,.0f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        with tco_metrics[1]:
-            st.markdown(f"""
-                <div style="background: #3498db15; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.7rem; color: #666;">Annual TCO</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #3498db;">€{annual_tco:,.0f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        with tco_metrics[2]:
-            cost_per_day = annual_tco / 365
-            st.markdown(f"""
-                <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.7rem; color: #666;">Cost per Day</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #27ae60;">€{cost_per_day:.0f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        with tco_metrics[3]:
-            ownership_multiplier = total_tco / total_purchase
-            st.markdown(f"""
-                <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.7rem; color: #666;">TCO Multiplier</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #f39c12;">{ownership_multiplier:.1f}x</div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 13: Investment ROI Tracker + Lease vs Buy
-    # -------------------------------------------------------------------------
-    
-    roi_col, lease_col = st.columns(2)
-    
-    with roi_col:
-        st.markdown("### 📈 Investment ROI Tracker")
-        st.caption("Return on past CAPEX investments")
-        
-        # Past investments with ROI
-        investments = [
-            {"project": "5G Network Paris", "year": 2023, "invested": 12.5, "roi": 28, "status": "Exceeding"},
-            {"project": "DVB-T2 Migration", "year": 2022, "invested": 8.2, "roi": 15, "status": "On Track"},
-            {"project": "Data Center Lyon", "year": 2023, "invested": 6.8, "roi": 22, "status": "Exceeding"},
-            {"project": "FM Transmitter Upgrade", "year": 2021, "invested": 4.5, "roi": 8, "status": "Below Target"},
-            {"project": "Tower Strengthening", "year": 2022, "invested": 3.2, "roi": 12, "status": "On Track"},
-        ]
-        
-        # ROI bar chart
-        fig_roi = go.Figure()
-        
-        colors = ['#27ae60' if i['status'] == 'Exceeding' else '#3498db' if i['status'] == 'On Track' else '#e63946' for i in investments]
-        
-        fig_roi.add_trace(go.Bar(
-            y=[i['project'] for i in investments],
-            x=[i['roi'] for i in investments],
-            orientation='h',
-            marker_color=colors,
-            text=[f"{i['roi']}% ROI" for i in investments],
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>ROI: %{x}%<br>Invested: €%{customdata}M<extra></extra>',
-            customdata=[i['invested'] for i in investments]
-        ))
-        
-        # Target line
-        fig_roi.add_vline(x=15, line_dash="dash", line_color="#1a2b4a", annotation_text="Target: 15%")
-        
-        fig_roi.update_layout(
-            height=280,
-            margin=dict(l=10, r=60, t=10, b=10),
-            xaxis_title="ROI %",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_roi, use_container_width=True)
-        
-        # Summary stats
-        avg_roi = sum(i['roi'] for i in investments) / len(investments)
-        total_invested = sum(i['invested'] for i in investments)
-        st.markdown(f"""
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
-                <div style="background: #27ae6015; padding: 0.5rem; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #27ae60;">{avg_roi:.0f}%</div>
-                    <div style="font-size: 0.7rem; color: #666;">Avg ROI</div>
-                </div>
-                <div style="background: #3498db15; padding: 0.5rem; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #3498db;">€{total_invested:.0f}M</div>
-                    <div style="font-size: 0.7rem; color: #666;">Total Invested</div>
-                </div>
-                <div style="background: #1a2b4a15; padding: 0.5rem; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #1a2b4a;">3/5</div>
-                    <div style="font-size: 0.7rem; color: #666;">Meeting Target</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with lease_col:
-        st.markdown("### 🔄 Lease vs Buy Analysis")
-        st.caption("Financial comparison for major equipment")
-        
-        # Lease vs Buy comparison
-        lease_buy_data = {
-            "years": [1, 2, 3, 4, 5, 6, 7],
-            "buy_cumulative": [50, 55, 60, 65, 70, 75, 80],  # €K
-            "lease_cumulative": [15, 30, 45, 60, 75, 90, 105],  # €K
-        }
-        
-        fig_lease = go.Figure()
-        
-        fig_lease.add_trace(go.Scatter(
-            x=lease_buy_data['years'],
-            y=lease_buy_data['buy_cumulative'],
-            name='Buy (cumulative)',
-            mode='lines+markers',
-            line=dict(color='#1a2b4a', width=3),
-            fill='tozeroy',
-            fillcolor='rgba(26, 43, 74, 0.1)'
-        ))
-        
-        fig_lease.add_trace(go.Scatter(
-            x=lease_buy_data['years'],
-            y=lease_buy_data['lease_cumulative'],
-            name='Lease (cumulative)',
-            mode='lines+markers',
-            line=dict(color='#e63946', width=3),
-            fill='tozeroy',
-            fillcolor='rgba(230, 57, 70, 0.1)'
-        ))
-        
-        # Break-even point
-        fig_lease.add_vline(x=4, line_dash="dot", line_color="#27ae60", 
-                           annotation_text="Break-even: 4 years", annotation_position="top")
-        
-        fig_lease.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis_title="Years",
-            yaxis_title="Cumulative Cost (€K)",
-            legend=dict(orientation='h', yanchor='bottom', y=1.02),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_lease, use_container_width=True)
-        
-        # Recommendation
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 8px; padding: 0.75rem; color: white;">
-                <div style="font-weight: 600;">💡 Recommendation</div>
-                <div style="font-size: 0.85rem; margin-top: 0.25rem;">
-                    <b>BUY</b> if equipment needed for >4 years<br>
-                    <b>LEASE</b> for short-term or rapidly evolving tech (5G, AI)
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 14: CAPEX vs OPEX Trend
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📊 CAPEX vs OPEX Historical Trend")
-    st.caption("5-year spending pattern analysis")
-    
-    trend_col, insight_col = st.columns([2, 1])
-    
-    with trend_col:
-        years = [2020, 2021, 2022, 2023, 2024, 2025]
-        capex_trend = [52, 48, 55, 62, 58, 52]
-        opex_trend = [38, 42, 45, 48, 52, 56]
-        
-        fig_trend = go.Figure()
-        
-        fig_trend.add_trace(go.Bar(
-            x=years,
-            y=capex_trend,
-            name='CAPEX',
-            marker_color='#1a2b4a',
-            text=[f'€{v}M' for v in capex_trend],
-            textposition='outside'
-        ))
-        
-        fig_trend.add_trace(go.Bar(
-            x=years,
-            y=opex_trend,
-            name='OPEX',
-            marker_color='#3498db',
-            text=[f'€{v}M' for v in opex_trend],
-            textposition='outside'
-        ))
-        
-        # Add ratio line
-        ratio = [c/(c+o)*100 for c, o in zip(capex_trend, opex_trend)]
-        fig_trend.add_trace(go.Scatter(
-            x=years,
-            y=ratio,
-            name='CAPEX Ratio %',
-            mode='lines+markers',
-            line=dict(color='#e63946', width=3, dash='dot'),
-            marker=dict(size=10),
-            yaxis='y2'
-        ))
-        
-        fig_trend.update_layout(
-            barmode='group',
-            height=350,
-            margin=dict(l=10, r=50, t=30, b=10),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02),
-            xaxis_title='Year',
-            yaxis_title='Spending (€M)',
-            yaxis2=dict(title='CAPEX Ratio %', overlaying='y', side='right', range=[40, 70]),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_trend, use_container_width=True)
-    
-    with insight_col:
-        st.markdown("#### 📈 Key Insights")
-        
-        capex_change = ((capex_trend[-1] - capex_trend[0]) / capex_trend[0]) * 100
-        opex_change = ((opex_trend[-1] - opex_trend[0]) / opex_trend[0]) * 100
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #1a2b4a;">
-                <div style="font-size: 0.75rem; color: #888;">CAPEX Trend (5Y)</div>
-                <div style="font-size: 1.4rem; font-weight: 700; color: {'#27ae60' if capex_change < 0 else '#e63946'};">{capex_change:+.0f}%</div>
-                <div style="font-size: 0.7rem; color: #888;">€{capex_trend[0]}M → €{capex_trend[-1]}M</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #3498db;">
-                <div style="font-size: 0.75rem; color: #888;">OPEX Trend (5Y)</div>
-                <div style="font-size: 1.4rem; font-weight: 700; color: #e63946;">{opex_change:+.0f}%</div>
-                <div style="font-size: 0.7rem; color: #888;">€{opex_trend[0]}M → €{opex_trend[-1]}M</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-            <div style="background: #f39c1215; border-radius: 10px; padding: 1rem; border-left: 4px solid #f39c12;">
-                <div style="font-size: 0.8rem; color: #f39c12; font-weight: 600;">⚠️ Trend Alert</div>
-                <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
-                    OPEX growing faster than CAPEX. Review cloud/SaaS costs and maintenance contracts.
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-            <div style="background: #27ae6015; border-radius: 10px; padding: 0.75rem; margin-top: 0.75rem;">
-                <div style="font-size: 0.75rem; color: #27ae60; font-weight: 600;">💡 Optimization Potential</div>
-                <div style="font-size: 1.2rem; font-weight: 700; color: #27ae60;">€8.5M</div>
-                <div style="font-size: 0.7rem; color: #666;">via contract renegotiation</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 15: Green CAPEX Tracker
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🌱 Green CAPEX & Sustainability Investment")
-    st.caption("ESG-aligned capital investments and environmental impact")
-    
-    green_col1, green_col2, green_col3 = st.columns([1, 1, 1])
-    
-    with green_col1:
-        st.markdown("#### 🎯 Green CAPEX Target")
-        
-        green_target = 25  # 25% of CAPEX should be green
-        green_actual = 22.3
-        green_invested = 11.6  # €M
-        
-        fig_green = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=green_actual,
-            delta={'reference': green_target, 'relative': False, 'valueformat': '.1f'},
-            number={'suffix': '%', 'font': {'size': 40}},
-            gauge={
-                'axis': {'range': [0, 40], 'tickwidth': 1},
-                'bar': {'color': '#27ae60'},
-                'steps': [
-                    {'range': [0, 15], 'color': 'rgba(230, 57, 70, 0.2)'},
-                    {'range': [15, 25], 'color': 'rgba(243, 156, 18, 0.2)'},
-                    {'range': [25, 40], 'color': 'rgba(39, 174, 96, 0.2)'}
-                ],
-                'threshold': {
-                    'line': {'color': '#1a2b4a', 'width': 3},
-                    'thickness': 0.8,
-                    'value': green_target
-                }
-            }
-        ))
-        
-        fig_green.update_layout(
-            height=200,
-            margin=dict(l=20, r=20, t=30, b=10),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_green, use_container_width=True)
-        
-        st.markdown(f"""
-            <div style="text-align: center; padding: 0.5rem;">
-                <div style="font-size: 0.8rem; color: #666;">Green Investment 2025</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">€{green_invested}M</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with green_col2:
-        st.markdown("#### 🌍 Carbon Reduction per €")
-        
-        green_projects = [
-            {"project": "Solar Panel Install", "invested": 3.2, "co2_saved": 890, "roi": 4.2},
-            {"project": "LED Lighting Upgrade", "invested": 1.8, "co2_saved": 234, "roi": 2.8},
-            {"project": "Cooling Optimization", "invested": 2.4, "co2_saved": 567, "roi": 3.5},
-            {"project": "Electric Fleet", "invested": 2.1, "co2_saved": 345, "roi": 5.1},
-            {"project": "Energy Storage", "invested": 2.1, "co2_saved": 421, "roi": 3.8},
-        ]
-        
-        # Bubble chart: x=invested, y=CO2 saved, size=ROI
-        fig_carbon = go.Figure()
-        
-        fig_carbon.add_trace(go.Scatter(
-            x=[p['invested'] for p in green_projects],
-            y=[p['co2_saved'] for p in green_projects],
-            mode='markers+text',
-            marker=dict(
-                size=[p['roi'] * 12 for p in green_projects],
-                color=['#27ae60', '#2ecc71', '#1abc9c', '#16a085', '#3498db'],
-                opacity=0.7
-            ),
-            text=[p['project'][:12] for p in green_projects],
-            textposition='top center',
-            textfont=dict(size=9),
-            hovertemplate='<b>%{text}</b><br>Invested: €%{x}M<br>CO₂ Saved: %{y} tons<extra></extra>'
-        ))
-        
-        fig_carbon.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis_title="Investment (€M)",
-            yaxis_title="CO₂ Saved (tons/year)",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_carbon, use_container_width=True)
-    
-    with green_col3:
-        st.markdown("#### 📊 Sustainability ROI")
-        
-        total_co2_saved = sum(p['co2_saved'] for p in green_projects)
-        total_green_invested = sum(p['invested'] for p in green_projects)
-        co2_per_euro = total_co2_saved / (total_green_invested * 1000000) * 1000  # kg per €1000
-        
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 1rem; color: white; text-align: center; margin-bottom: 0.75rem;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Total CO₂ Avoided</div>
-                <div style="font-size: 2rem; font-weight: 700;">{total_co2_saved:,} tons</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">per year from green investments</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 4px solid #27ae60;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="font-size: 0.85rem;">CO₂/€1K invested</span>
-                    <span style="font-weight: 700; color: #27ae60;">{co2_per_euro:.1f} kg</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 4px solid #3498db;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="font-size: 0.85rem;">Carbon Credit Value</span>
-                    <span style="font-weight: 700; color: #3498db;">€{total_co2_saved * 85 / 1000:.1f}K</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div style="background: white; border-radius: 8px; padding: 0.75rem; border-left: 4px solid #9b59b6;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="font-size: 0.85rem;">Energy Cost Savings</span>
-                    <span style="font-weight: 700; color: #9b59b6;">€1.2M/yr</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 16: Industry Benchmarking
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🏆 Industry Benchmarking")
-    st.caption("TDF vs telecom infrastructure peers")
-    
-    bench_chart_col, bench_detail_col = st.columns([2, 1])
-    
-    with bench_chart_col:
-        # Benchmark data
-        companies = ["TDF", "Cellnex", "American Tower", "Crown Castle", "Vantage Towers"]
-        metrics = {
-            "CAPEX/Revenue": [12.5, 15.2, 11.8, 10.2, 14.1],
-            "Avg Equipment Age": [6.2, 5.8, 7.1, 6.5, 5.2],
-            "Maintenance Ratio": [4.8, 5.2, 4.5, 5.1, 4.9],
-        }
-        
-        # Radar chart
-        fig_bench = go.Figure()
-        
-        # Normalize values for radar
-        categories = list(metrics.keys())
-        
-        for i, company in enumerate(companies):
-            values = [metrics[cat][i] for cat in categories]
-            values.append(values[0])  # Close the polygon
-            
-            colors = ['#e63946', '#3498db', '#27ae60', '#f39c12', '#9b59b6']
-            
-            fig_bench.add_trace(go.Scatterpolar(
-                r=values,
-                theta=categories + [categories[0]],
-                name=company,
-                line_color=colors[i],
-                fill='toself' if i == 0 else None,
-                fillcolor='rgba(230, 57, 70, 0.1)' if i == 0 else None,
-                opacity=1 if i == 0 else 0.6
+        with map_col:
+            # Bubble chart as proxy for map
+            fig_regional = go.Figure()
+        
+            # Create scatter with size based on budget
+            fig_regional.add_trace(go.Bar(
+                x=[r['region'] for r in regional_capex],
+                y=[r['budget'] for r in regional_capex],
+                name='Budget',
+                marker_color='#3498db',
+                opacity=0.4
             ))
         
-        fig_bench.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 20])
-            ),
-            height=350,
-            margin=dict(l=60, r=60, t=30, b=30),
-            legend=dict(orientation='h', yanchor='bottom', y=-0.15),
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_bench, use_container_width=True)
-    
-    with bench_detail_col:
-        st.markdown("#### 📊 TDF vs Industry")
+            fig_regional.add_trace(go.Bar(
+                x=[r['region'] for r in regional_capex],
+                y=[r['spent'] for r in regional_capex],
+                name='Spent',
+                marker_color='#1a2b4a'
+            ))
         
-        # Comparison table
-        comparisons = [
-            {"metric": "CAPEX Intensity", "tdf": "12.5%", "avg": "12.8%", "status": "✅ Better"},
-            {"metric": "Equipment Age", "tdf": "6.2y", "avg": "6.1y", "status": "🟡 On Par"},
-            {"metric": "Maintenance Ratio", "tdf": "4.8%", "avg": "4.9%", "status": "✅ Better"},
-            {"metric": "5G Investment", "tdf": "28%", "avg": "32%", "status": "🟡 Catch-up"},
-            {"metric": "Green CAPEX", "tdf": "22%", "avg": "18%", "status": "✅ Leader"},
+            # Add equity line (avg per site)
+            avg_per_site = sum(r['per_site'] for r in regional_capex) / len(regional_capex)
+        
+            fig_regional.update_layout(
+                barmode='overlay',
+                height=350,
+                margin=dict(l=10, r=10, t=30, b=80),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02),
+                xaxis_tickangle=-45,
+                yaxis_title="CAPEX (€M)",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_regional, use_container_width=True)
+    
+        with detail_col:
+            st.markdown("#### 📊 Investment Equity Score")
+        
+            # Calculate equity metrics
+            total_budget = sum(r['budget'] for r in regional_capex)
+            utilization = sum(r['spent'] for r in regional_capex) / total_budget * 100
+        
+            # Equity gauge
+            fig_equity = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=78,
+                title={'text': "Investment Balance", 'font': {'size': 14}},
+                gauge={
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': '#27ae60'},
+                    'steps': [
+                        {'range': [0, 50], 'color': 'rgba(230, 57, 70, 0.13)'},
+                        {'range': [50, 75], 'color': 'rgba(243, 156, 18, 0.13)'},
+                        {'range': [75, 100], 'color': 'rgba(39, 174, 96, 0.13)'}
+                    ],
+                    'threshold': {
+                        'line': {'color': '#1a2b4a', 'width': 2},
+                        'thickness': 0.75,
+                        'value': 85
+                    }
+                }
+            ))
+            fig_equity.update_layout(
+                height=180,
+                margin=dict(l=20, r=20, t=40, b=10),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_equity, use_container_width=True)
+        
+            # Key insights
+            st.markdown(f"""
+                <div style="background: #27ae6015; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.8rem; color: #27ae60; font-weight: 600;">✅ Budget Utilization</div>
+                    <div style="font-size: 1.2rem; font-weight: 700;">{utilization:.1f}%</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            # Under-invested regions
+            under_invested = [r for r in regional_capex if r['per_site'] < avg_per_site * 0.9]
+            if under_invested:
+                st.markdown(f"""
+                    <div style="background: #f39c1215; border-radius: 8px; padding: 0.75rem;">
+                        <div style="font-size: 0.8rem; color: #f39c12; font-weight: 600;">⚠️ Under-invested Regions</div>
+                        <div style="font-size: 0.85rem; margin-top: 0.25rem;">{', '.join([r['region'][:10] for r in under_invested[:3]])}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 11: CAPEX Approval Pipeline
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📋 CAPEX Approval Pipeline")
+        st.caption("Track capital expenditure requests through approval workflow")
+    
+        pipeline_col, requests_col = st.columns([2, 1])
+    
+        with pipeline_col:
+            # Pipeline funnel
+            stages = [
+                {"stage": "Submitted", "count": 47, "value": 28.5, "color": "#3498db"},
+                {"stage": "Technical Review", "count": 32, "value": 19.2, "color": "#9b59b6"},
+                {"stage": "Finance Review", "count": 24, "value": 14.8, "color": "#f39c12"},
+                {"stage": "Director Approval", "count": 18, "value": 11.2, "color": "#e67e22"},
+                {"stage": "CFO Approval", "count": 8, "value": 6.5, "color": "#27ae60"},
+                {"stage": "Approved", "count": 156, "value": 38.2, "color": "#1a2b4a"},
+            ]
+        
+            fig_pipeline = go.Figure()
+        
+            # Funnel chart
+            fig_pipeline.add_trace(go.Funnel(
+                y=[s['stage'] for s in stages],
+                x=[s['count'] for s in stages],
+                textinfo="value+percent initial",
+                marker=dict(color=[s['color'] for s in stages]),
+                hovertemplate='<b>%{y}</b><br>Requests: %{x}<br>Value: €%{customdata}M<extra></extra>',
+                customdata=[s['value'] for s in stages]
+            ))
+        
+            fig_pipeline.update_layout(
+                height=350,
+                margin=dict(l=10, r=10, t=20, b=10),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_pipeline, use_container_width=True)
+    
+        with requests_col:
+            st.markdown("#### ⏱️ Pipeline Metrics")
+        
+            avg_time = 12.5  # days
+            bottleneck = "Finance Review"
+            fast_track = 5
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #3498db;">
+                    <div style="font-size: 0.75rem; color: #888;">Avg. Approval Time</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1a2b4a;">{avg_time} days</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #e63946;">
+                    <div style="font-size: 0.75rem; color: #888;">🚧 Bottleneck Stage</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #e63946;">{bottleneck}</div>
+                    <div style="font-size: 0.75rem; color: #888;">Avg. 4.2 days stuck</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #27ae60;">
+                    <div style="font-size: 0.75rem; color: #888;">⚡ Fast-Track Requests</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">{fast_track}</div>
+                    <div style="font-size: 0.75rem; color: #888;">Critical priority</div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            # Pending value
+            pending_value = sum(s['value'] for s in stages[:-1])
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.8;">💰 Pending Approval Value</div>
+                    <div style="font-size: 1.8rem; font-weight: 700;">€{pending_value:.1f}M</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # Recent high-value requests
+        st.markdown("#### 📝 High-Value Pending Requests (>€1M)")
+    
+        high_value_requests = [
+            {"id": "CAPEX-2025-0892", "desc": "5G Antenna Array - Paris Region", "value": 4.2, "stage": "CFO Approval", "days": 3, "priority": "High"},
+            {"id": "CAPEX-2025-0856", "desc": "DVB-T2 Transmitter Upgrade - Lyon", "value": 2.8, "stage": "Director Approval", "days": 5, "priority": "High"},
+            {"id": "CAPEX-2025-0834", "desc": "Data Center Cooling System", "value": 1.9, "stage": "Finance Review", "days": 8, "priority": "Medium"},
+            {"id": "CAPEX-2025-0821", "desc": "Emergency Power Replacement", "value": 1.5, "stage": "Technical Review", "days": 2, "priority": "Critical"},
+            {"id": "CAPEX-2025-0798", "desc": "FM Transmitter Modernization", "value": 1.2, "stage": "Finance Review", "days": 12, "priority": "Low"},
         ]
+    
+        req_cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
+        with req_cols[0]:
+            st.markdown("**Request ID**")
+        with req_cols[1]:
+            st.markdown("**Description**")
+        with req_cols[2]:
+            st.markdown("**Value**")
+        with req_cols[3]:
+            st.markdown("**Stage**")
+        with req_cols[4]:
+            st.markdown("**Days**")
+        with req_cols[5]:
+            st.markdown("**Priority**")
+    
+        for req in high_value_requests:
+            cols = st.columns([1.5, 3, 1, 1.5, 1, 1])
+            priority_color = '#e63946' if req['priority'] == 'Critical' else '#f39c12' if req['priority'] == 'High' else '#3498db' if req['priority'] == 'Medium' else '#27ae60'
         
-        for comp in comparisons:
-            status_color = '#27ae60' if '✅' in comp['status'] else '#f39c12'
+            with cols[0]:
+                st.markdown(f"`{req['id']}`")
+            with cols[1]:
+                st.markdown(req['desc'][:35] + "..." if len(req['desc']) > 35 else req['desc'])
+            with cols[2]:
+                st.markdown(f"**€{req['value']}M**")
+            with cols[3]:
+                st.markdown(req['stage'][:15])
+            with cols[4]:
+                day_color = '#e63946' if req['days'] > 7 else '#f39c12' if req['days'] > 3 else '#27ae60'
+                st.markdown(f"<span style='color: {day_color};'>{req['days']}d</span>", unsafe_allow_html=True)
+            with cols[5]:
+                st.markdown(f"<span style='background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.4rem; border-radius: 10px; font-size: 0.75rem;'>{req['priority']}</span>", unsafe_allow_html=True)
+    
+        # Action buttons
+        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+        with act_col1:
+            st.button("📊 Full Pipeline Report", use_container_width=True)
+        with act_col2:
+            st.button("⚡ Fast-Track Request", use_container_width=True)
+        with act_col3:
+            st.button("📧 Notify Approvers", use_container_width=True)
+        with act_col4:
+            st.button("📈 Analytics Dashboard", use_container_width=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 15: Green CAPEX Tracker
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🌱 Green CAPEX & Sustainability Investment")
+        st.caption("ESG-aligned capital investments and environmental impact")
+    
+        green_col1, green_col2, green_col3 = st.columns([1, 1, 1])
+    
+        with green_col1:
+            st.markdown("#### 🎯 Green CAPEX Target")
+        
+            green_target = 25  # 25% of CAPEX should be green
+            green_actual = 22.3
+            green_invested = 11.6  # €M
+        
+            fig_green = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=green_actual,
+                delta={'reference': green_target, 'relative': False, 'valueformat': '.1f'},
+                number={'suffix': '%', 'font': {'size': 40}},
+                gauge={
+                    'axis': {'range': [0, 40], 'tickwidth': 1},
+                    'bar': {'color': '#27ae60'},
+                    'steps': [
+                        {'range': [0, 15], 'color': 'rgba(230, 57, 70, 0.2)'},
+                        {'range': [15, 25], 'color': 'rgba(243, 156, 18, 0.2)'},
+                        {'range': [25, 40], 'color': 'rgba(39, 174, 96, 0.2)'}
+                    ],
+                    'threshold': {
+                        'line': {'color': '#1a2b4a', 'width': 3},
+                        'thickness': 0.8,
+                        'value': green_target
+                    }
+                }
+            ))
+        
+            fig_green.update_layout(
+                height=200,
+                margin=dict(l=20, r=20, t=30, b=10),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_green, use_container_width=True)
+        
             st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-                    <div>
-                        <div style="font-size: 0.85rem; font-weight: 500;">{comp['metric']}</div>
-                        <div style="font-size: 0.7rem; color: #888;">TDF: {comp['tdf']} | Avg: {comp['avg']}</div>
-                    </div>
-                    <span style="font-size: 0.8rem;">{comp['status']}</span>
+                <div style="text-align: center; padding: 0.5rem;">
+                    <div style="font-size: 0.8rem; color: #666;">Green Investment 2025</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">€{green_invested}M</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with green_col2:
+            st.markdown("#### 🌍 Carbon Reduction per €")
+        
+            green_projects = [
+                {"project": "Solar Panel Install", "invested": 3.2, "co2_saved": 890, "roi": 4.2},
+                {"project": "LED Lighting Upgrade", "invested": 1.8, "co2_saved": 234, "roi": 2.8},
+                {"project": "Cooling Optimization", "invested": 2.4, "co2_saved": 567, "roi": 3.5},
+                {"project": "Electric Fleet", "invested": 2.1, "co2_saved": 345, "roi": 5.1},
+                {"project": "Energy Storage", "invested": 2.1, "co2_saved": 421, "roi": 3.8},
+            ]
+        
+            # Bubble chart: x=invested, y=CO2 saved, size=ROI
+            fig_carbon = go.Figure()
+        
+            fig_carbon.add_trace(go.Scatter(
+                x=[p['invested'] for p in green_projects],
+                y=[p['co2_saved'] for p in green_projects],
+                mode='markers+text',
+                marker=dict(
+                    size=[p['roi'] * 12 for p in green_projects],
+                    color=['#27ae60', '#2ecc71', '#1abc9c', '#16a085', '#3498db'],
+                    opacity=0.7
+                ),
+                text=[p['project'][:12] for p in green_projects],
+                textposition='top center',
+                textfont=dict(size=9),
+                hovertemplate='<b>%{text}</b><br>Invested: €%{x}M<br>CO₂ Saved: %{y} tons<extra></extra>'
+            ))
+        
+            fig_carbon.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis_title="Investment (€M)",
+                yaxis_title="CO₂ Saved (tons/year)",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_carbon, use_container_width=True)
+    
+        with green_col3:
+            st.markdown("#### 📊 Sustainability ROI")
+        
+            total_co2_saved = sum(p['co2_saved'] for p in green_projects)
+            total_green_invested = sum(p['invested'] for p in green_projects)
+            co2_per_euro = total_co2_saved / (total_green_invested * 1000000) * 1000  # kg per €1000
+        
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 12px; padding: 1rem; color: white; text-align: center; margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Total CO₂ Avoided</div>
+                    <div style="font-size: 2rem; font-weight: 700;">{total_co2_saved:,} tons</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">per year from green investments</div>
                 </div>
             """, unsafe_allow_html=True)
         
-        st.markdown("""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; margin-top: 1rem; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.8;">Overall Ranking</div>
-                <div style="font-size: 2rem; font-weight: 700;">#2 / 5</div>
-                <div style="font-size: 0.75rem; opacity: 0.8;">Among European peers</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # -------------------------------------------------------------------------
-    # ROW 17: Site Economics - Top/Bottom Performers
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 📍 Site Economics & Profitability")
-    st.caption("CAPEX, OPEX, and Revenue analysis at site level")
-    
-    # Generate realistic site data
-    import random
-    random.seed(42)
-    
-    site_economics_data = []
-    regions = ["Île-de-France", "Auvergne-Rhône-Alpes", "PACA", "Occitanie", "Nouvelle-Aquitaine", "Hauts-de-France"]
-    cities = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux", "Lille", "Nantes", "Strasbourg", "Nice", "Rennes"]
-    site_types = ["Urban Tower", "Rural Tower", "Rooftop", "Data Center", "Broadcast Site"]
-    
-    for i in range(50):
-        site_id = f"SITE-{str(i+1).zfill(6)}"
-        city = random.choice(cities)
-        region = random.choice(regions)
-        site_type = random.choice(site_types)
-        
-        # Revenue based on site type and location
-        base_revenue = 800000 if "Paris" in city else 500000 if "Lyon" in city or "Marseille" in city else 300000
-        if site_type == "Data Center":
-            base_revenue *= 3
-        elif site_type == "Broadcast Site":
-            base_revenue *= 2
-        elif site_type == "Rural Tower":
-            base_revenue *= 0.3
-        
-        revenue = base_revenue + random.randint(-100000, 200000)
-        
-        # CAPEX - past 3 years
-        capex_y1 = random.randint(50000, 500000) if random.random() > 0.3 else 0
-        capex_y2 = random.randint(30000, 300000) if random.random() > 0.4 else 0
-        capex_y3 = random.randint(20000, 200000) if random.random() > 0.5 else 0
-        total_capex = capex_y1 + capex_y2 + capex_y3
-        
-        # OPEX - annual
-        opex_maintenance = int(revenue * random.uniform(0.08, 0.15))
-        opex_energy = int(revenue * random.uniform(0.05, 0.12))
-        opex_lease = int(revenue * random.uniform(0.03, 0.08))
-        opex_other = int(revenue * random.uniform(0.02, 0.05))
-        total_opex = opex_maintenance + opex_energy + opex_lease + opex_other
-        
-        # Calculate margin
-        ebitda = revenue - total_opex
-        margin = (ebitda / revenue * 100) if revenue > 0 else 0
-        
-        # Tenants
-        tenants = random.randint(1, 5)
-        
-        site_economics_data.append({
-            "site_id": site_id,
-            "city": city,
-            "region": region,
-            "type": site_type,
-            "revenue": revenue,
-            "capex_y1": capex_y1,
-            "capex_y2": capex_y2,
-            "capex_y3": capex_y3,
-            "total_capex": total_capex,
-            "opex_maintenance": opex_maintenance,
-            "opex_energy": opex_energy,
-            "opex_lease": opex_lease,
-            "opex_other": opex_other,
-            "total_opex": total_opex,
-            "ebitda": ebitda,
-            "margin": margin,
-            "tenants": tenants
-        })
-    
-    # Sort for top/bottom
-    sorted_by_margin = sorted(site_economics_data, key=lambda x: x['margin'], reverse=True)
-    top_sites = sorted_by_margin[:10]
-    bottom_sites = sorted_by_margin[-10:][::-1]  # Reverse to show worst first
-    
-    top_col, bottom_col = st.columns(2)
-    
-    with top_col:
-        st.markdown("#### 🏆 Top 10 Most Profitable Sites")
-        
-        for i, site in enumerate(top_sites[:5]):
-            margin_color = '#27ae60' if site['margin'] > 60 else '#3498db'
             st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color}; cursor: pointer;" 
-                     onclick="document.getElementById('site_selector').value='{site['site_id']}'">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 4px solid #27ae60;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 0.85rem;">CO₂/€1K invested</span>
+                        <span style="font-weight: 700; color: #27ae60;">{co2_per_euro:.1f} kg</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border-left: 4px solid #3498db;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 0.85rem;">Carbon Credit Value</span>
+                        <span style="font-weight: 700; color: #3498db;">€{total_co2_saved * 85 / 1000:.1f}K</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+            st.markdown(f"""
+                <div style="background: white; border-radius: 8px; padding: 0.75rem; border-left: 4px solid #9b59b6;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 0.85rem;">Energy Cost Savings</span>
+                        <span style="font-weight: 700; color: #9b59b6;">€1.2M/yr</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 16: Industry Benchmarking
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🏆 Industry Benchmarking")
+        st.caption("TDF vs telecom infrastructure peers")
+    
+        bench_chart_col, bench_detail_col = st.columns([2, 1])
+    
+        with bench_chart_col:
+            # Benchmark data
+            companies = ["TDF", "Cellnex", "American Tower", "Crown Castle", "Vantage Towers"]
+            metrics = {
+                "CAPEX/Revenue": [12.5, 15.2, 11.8, 10.2, 14.1],
+                "Avg Equipment Age": [6.2, 5.8, 7.1, 6.5, 5.2],
+                "Maintenance Ratio": [4.8, 5.2, 4.5, 5.1, 4.9],
+            }
+        
+            # Radar chart
+            fig_bench = go.Figure()
+        
+            # Normalize values for radar
+            categories = list(metrics.keys())
+        
+            for i, company in enumerate(companies):
+                values = [metrics[cat][i] for cat in categories]
+                values.append(values[0])  # Close the polygon
+            
+                colors = ['#e63946', '#3498db', '#27ae60', '#f39c12', '#9b59b6']
+            
+                fig_bench.add_trace(go.Scatterpolar(
+                    r=values,
+                    theta=categories + [categories[0]],
+                    name=company,
+                    line_color=colors[i],
+                    fill='toself' if i == 0 else None,
+                    fillcolor='rgba(230, 57, 70, 0.1)' if i == 0 else None,
+                    opacity=1 if i == 0 else 0.6
+                ))
+        
+            fig_bench.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 20])
+                ),
+                height=350,
+                margin=dict(l=60, r=60, t=30, b=30),
+                legend=dict(orientation='h', yanchor='bottom', y=-0.15),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_bench, use_container_width=True)
+    
+        with bench_detail_col:
+            st.markdown("#### 📊 TDF vs Industry")
+        
+            # Comparison table
+            comparisons = [
+                {"metric": "CAPEX Intensity", "tdf": "12.5%", "avg": "12.8%", "status": "✅ Better"},
+                {"metric": "Equipment Age", "tdf": "6.2y", "avg": "6.1y", "status": "🟡 On Par"},
+                {"metric": "Maintenance Ratio", "tdf": "4.8%", "avg": "4.9%", "status": "✅ Better"},
+                {"metric": "5G Investment", "tdf": "28%", "avg": "32%", "status": "🟡 Catch-up"},
+                {"metric": "Green CAPEX", "tdf": "22%", "avg": "18%", "status": "✅ Leader"},
+            ]
+        
+            for comp in comparisons:
+                status_color = '#27ae60' if '✅' in comp['status'] else '#f39c12'
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                         <div>
-                            <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
-                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
+                            <div style="font-size: 0.85rem; font-weight: 500;">{comp['metric']}</div>
+                            <div style="font-size: 0.7rem; color: #888;">TDF: {comp['tdf']} | Avg: {comp['avg']}</div>
                         </div>
-                        <div style="text-align: right;">
-                            <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
-                            <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
-                        </div>
+                        <span style="font-size: 0.8rem;">{comp['status']}</span>
                     </div>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
-                        <span>💰 €{site['revenue']/1000:.0f}K rev</span>
-                        <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
-                        <span>👥 {site['tenants']} tenants</span>
-                    </div>
+                """, unsafe_allow_html=True)
+        
+            st.markdown("""
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white; margin-top: 1rem; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Overall Ranking</div>
+                    <div style="font-size: 2rem; font-weight: 700;">#2 / 5</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">Among European peers</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    with bottom_col:
-        st.markdown("#### ⚠️ Bottom 10 - Needs Attention")
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 17: Site Economics - Top/Bottom Performers
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📍 Site Economics & Profitability")
+        st.caption("CAPEX, OPEX, and Revenue analysis at site level")
+    
+        # Generate realistic site data
+        import random
+        random.seed(42)
+    
+        site_economics_data = []
+        regions = ["Île-de-France", "Auvergne-Rhône-Alpes", "PACA", "Occitanie", "Nouvelle-Aquitaine", "Hauts-de-France"]
+        cities = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux", "Lille", "Nantes", "Strasbourg", "Nice", "Rennes"]
+        site_types = ["Urban Tower", "Rural Tower", "Rooftop", "Data Center", "Broadcast Site"]
+    
+        for i in range(50):
+            site_id = f"SITE-{str(i+1).zfill(6)}"
+            city = random.choice(cities)
+            region = random.choice(regions)
+            site_type = random.choice(site_types)
         
-        for i, site in enumerate(bottom_sites[:5]):
-            margin_color = '#e63946' if site['margin'] < 30 else '#f39c12'
+            # Revenue based on site type and location
+            base_revenue = 800000 if "Paris" in city else 500000 if "Lyon" in city or "Marseille" in city else 300000
+            if site_type == "Data Center":
+                base_revenue *= 3
+            elif site_type == "Broadcast Site":
+                base_revenue *= 2
+            elif site_type == "Rural Tower":
+                base_revenue *= 0.3
+        
+            revenue = base_revenue + random.randint(-100000, 200000)
+        
+            # CAPEX - past 3 years
+            capex_y1 = random.randint(50000, 500000) if random.random() > 0.3 else 0
+            capex_y2 = random.randint(30000, 300000) if random.random() > 0.4 else 0
+            capex_y3 = random.randint(20000, 200000) if random.random() > 0.5 else 0
+            total_capex = capex_y1 + capex_y2 + capex_y3
+        
+            # OPEX - annual
+            opex_maintenance = int(revenue * random.uniform(0.08, 0.15))
+            opex_energy = int(revenue * random.uniform(0.05, 0.12))
+            opex_lease = int(revenue * random.uniform(0.03, 0.08))
+            opex_other = int(revenue * random.uniform(0.02, 0.05))
+            total_opex = opex_maintenance + opex_energy + opex_lease + opex_other
+        
+            # Calculate margin
+            ebitda = revenue - total_opex
+            margin = (ebitda / revenue * 100) if revenue > 0 else 0
+        
+            # Tenants
+            tenants = random.randint(1, 5)
+        
+            site_economics_data.append({
+                "site_id": site_id,
+                "city": city,
+                "region": region,
+                "type": site_type,
+                "revenue": revenue,
+                "capex_y1": capex_y1,
+                "capex_y2": capex_y2,
+                "capex_y3": capex_y3,
+                "total_capex": total_capex,
+                "opex_maintenance": opex_maintenance,
+                "opex_energy": opex_energy,
+                "opex_lease": opex_lease,
+                "opex_other": opex_other,
+                "total_opex": total_opex,
+                "ebitda": ebitda,
+                "margin": margin,
+                "tenants": tenants
+            })
+    
+        # Sort for top/bottom
+        sorted_by_margin = sorted(site_economics_data, key=lambda x: x['margin'], reverse=True)
+        top_sites = sorted_by_margin[:10]
+        bottom_sites = sorted_by_margin[-10:][::-1]  # Reverse to show worst first
+    
+        top_col, bottom_col = st.columns(2)
+    
+        with top_col:
+            st.markdown("#### 🏆 Top 10 Most Profitable Sites")
+        
+            for i, site in enumerate(top_sites[:5]):
+                margin_color = '#27ae60' if site['margin'] > 60 else '#3498db'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color}; cursor: pointer;" 
+                         onclick="document.getElementById('site_selector').value='{site['site_id']}'">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
+                                <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
+                                <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
+                            <span>💰 €{site['revenue']/1000:.0f}K rev</span>
+                            <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
+                            <span>👥 {site['tenants']} tenants</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        with bottom_col:
+            st.markdown("#### ⚠️ Bottom 10 - Needs Attention")
+        
+            for i, site in enumerate(bottom_sites[:5]):
+                margin_color = '#e63946' if site['margin'] < 30 else '#f39c12'
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
+                                <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
+                                <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
+                            <span>💰 €{site['revenue']/1000:.0f}K rev</span>
+                            <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
+                            <span>👥 {site['tenants']} tenants</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        st.markdown("---")
+    
+        # -------------------------------------------------------------------------
+        # ROW 18: Site Detail Deep Dive
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🔍 Site Detail Analysis")
+    
+        # Site selector
+        site_options = {f"{s['site_id']} - {s['city']} ({s['type']})": s for s in site_economics_data}
+    
+        selector_col, summary_col = st.columns([2, 1])
+    
+        with selector_col:
+            selected_site_key = st.selectbox(
+                "🏢 Select a Site for Detailed Analysis",
+                options=list(site_options.keys()),
+                index=0
+            )
+    
+        selected_site = site_options[selected_site_key]
+    
+        with summary_col:
+            margin_color = '#27ae60' if selected_site['margin'] > 50 else '#f39c12' if selected_site['margin'] > 30 else '#e63946'
             st.markdown(f"""
-                <div style="background: white; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.4rem; border-left: 4px solid {margin_color};">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <span style="font-weight: 600; color: #1a2b4a;">{site['site_id']}</span>
-                            <span style="font-size: 0.75rem; color: #888; margin-left: 0.5rem;">{site['city']} • {site['type']}</span>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="font-weight: 700; color: {margin_color};">{site['margin']:.0f}%</span>
-                            <span style="font-size: 0.7rem; color: #888; margin-left: 0.25rem;">margin</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
-                        <span>💰 €{site['revenue']/1000:.0f}K rev</span>
-                        <span>📊 €{site['total_opex']/1000:.0f}K opex</span>
-                        <span>👥 {site['tenants']} tenants</span>
-                    </div>
+                <div style="background: {margin_color}; border-radius: 10px; padding: 1rem; color: white; text-align: center;">
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Site Margin</div>
+                    <div style="font-size: 2.5rem; font-weight: 700;">{selected_site['margin']:.1f}%</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    st.markdown("---")
+        # Site details in 4 columns
+        detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
     
-    # -------------------------------------------------------------------------
-    # ROW 18: Site Detail Deep Dive
-    # -------------------------------------------------------------------------
-    
-    st.markdown("### 🔍 Site Detail Analysis")
-    
-    # Site selector
-    site_options = {f"{s['site_id']} - {s['city']} ({s['type']})": s for s in site_economics_data}
-    
-    selector_col, summary_col = st.columns([2, 1])
-    
-    with selector_col:
-        selected_site_key = st.selectbox(
-            "🏢 Select a Site for Detailed Analysis",
-            options=list(site_options.keys()),
-            index=0
-        )
-    
-    selected_site = site_options[selected_site_key]
-    
-    with summary_col:
-        margin_color = '#27ae60' if selected_site['margin'] > 50 else '#f39c12' if selected_site['margin'] > 30 else '#e63946'
-        st.markdown(f"""
-            <div style="background: {margin_color}; border-radius: 10px; padding: 1rem; color: white; text-align: center;">
-                <div style="font-size: 0.8rem; opacity: 0.9;">Site Margin</div>
-                <div style="font-size: 2.5rem; font-weight: 700;">{selected_site['margin']:.1f}%</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Site details in 4 columns
-    detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
-    
-    with detail_col1:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">📍 Site Info</div>
-                <div style="font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0;">{selected_site['site_id']}</div>
-                <div style="font-size: 0.8rem; opacity: 0.9;">{selected_site['city']}, {selected_site['region']}</div>
-                <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">{selected_site['type']}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with detail_col2:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">💰 Annual Revenue</div>
-                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['revenue']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; opacity: 0.9;">👥 {selected_site['tenants']} tenant(s)</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with detail_col3:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">📊 Annual OPEX</div>
-                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_opex']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; opacity: 0.9;">{(selected_site['total_opex']/selected_site['revenue']*100):.0f}% of revenue</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with detail_col4:
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 10px; padding: 1rem; color: white;">
-                <div style="font-size: 0.75rem; opacity: 0.8;">🏗️ 3-Year CAPEX</div>
-                <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_capex']/1000:.0f}K</div>
-                <div style="font-size: 0.75rem; opacity: 0.9;">Total investment</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
-    
-    # Detailed breakdowns
-    opex_detail_col, capex_detail_col, pnl_col = st.columns(3)
-    
-    with opex_detail_col:
-        st.markdown("#### 📊 OPEX Breakdown")
-        
-        opex_items = [
-            {"name": "Maintenance", "value": selected_site['opex_maintenance'], "color": "#e63946"},
-            {"name": "Energy", "value": selected_site['opex_energy'], "color": "#f39c12"},
-            {"name": "Site Lease", "value": selected_site['opex_lease'], "color": "#3498db"},
-            {"name": "Other", "value": selected_site['opex_other'], "color": "#9b59b6"},
-        ]
-        
-        fig_opex = go.Figure(data=[go.Pie(
-            labels=[o['name'] for o in opex_items],
-            values=[o['value'] for o in opex_items],
-            hole=0.6,
-            marker_colors=[o['color'] for o in opex_items],
-            textinfo='label+percent',
-            textfont_size=10,
-            hovertemplate='<b>%{label}</b><br>€%{value:,.0f}<br>%{percent}<extra></extra>'
-        )])
-        
-        fig_opex.add_annotation(
-            text=f"<b>€{selected_site['total_opex']/1000:.0f}K</b><br><span style='font-size:10px'>Total OPEX</span>",
-            x=0.5, y=0.5, font_size=14, showarrow=False
-        )
-        
-        fig_opex.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_opex, use_container_width=True)
-    
-    with capex_detail_col:
-        st.markdown("#### 🏗️ CAPEX History (3 Years)")
-        
-        years = ['2023', '2024', '2025']
-        capex_values = [selected_site['capex_y3'], selected_site['capex_y2'], selected_site['capex_y1']]
-        
-        fig_capex = go.Figure()
-        
-        fig_capex.add_trace(go.Bar(
-            x=years,
-            y=capex_values,
-            marker_color=['#1a2b4a', '#3498db', '#27ae60'],
-            text=[f'€{v/1000:.0f}K' if v > 0 else '€0' for v in capex_values],
-            textposition='outside'
-        ))
-        
-        fig_capex.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            xaxis_title="Year",
-            yaxis_title="CAPEX (€)",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_capex, use_container_width=True)
-    
-    with pnl_col:
-        st.markdown("#### 💵 P&L Waterfall")
-        
-        # Waterfall chart
-        fig_waterfall = go.Figure(go.Waterfall(
-            orientation="v",
-            measure=["absolute", "relative", "relative", "relative", "relative", "total"],
-            x=["Revenue", "Maintenance", "Energy", "Lease", "Other", "EBITDA"],
-            y=[selected_site['revenue'], 
-               -selected_site['opex_maintenance'], 
-               -selected_site['opex_energy'],
-               -selected_site['opex_lease'],
-               -selected_site['opex_other'],
-               selected_site['ebitda']],
-            text=[f"€{selected_site['revenue']/1000:.0f}K",
-                  f"-€{selected_site['opex_maintenance']/1000:.0f}K",
-                  f"-€{selected_site['opex_energy']/1000:.0f}K",
-                  f"-€{selected_site['opex_lease']/1000:.0f}K",
-                  f"-€{selected_site['opex_other']/1000:.0f}K",
-                  f"€{selected_site['ebitda']/1000:.0f}K"],
-            textposition="outside",
-            connector={"line": {"color": "#888"}},
-            decreasing={"marker": {"color": "#e63946"}},
-            increasing={"marker": {"color": "#27ae60"}},
-            totals={"marker": {"color": "#1a2b4a"}}
-        ))
-        
-        fig_waterfall.update_layout(
-            height=250,
-            margin=dict(l=10, r=10, t=10, b=10),
-            showlegend=False,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_waterfall, use_container_width=True)
-    
-    # Site recommendations
-    st.markdown("#### 💡 Site-Specific Recommendations")
-    
-    rec_col1, rec_col2, rec_col3 = st.columns(3)
-    
-    if selected_site['margin'] > 60:
-        rec_type = "expand"
-        rec_color = "#27ae60"
-        rec_icon = "🚀"
-        rec_title = "Expansion Candidate"
-        rec_actions = ["Add tenant capacity", "Upgrade to 5G", "Consider tower strengthening"]
-    elif selected_site['margin'] > 40:
-        rec_type = "optimize"
-        rec_color = "#3498db"
-        rec_icon = "⚡"
-        rec_title = "Optimization Opportunity"
-        rec_actions = ["Negotiate energy contracts", "Review maintenance costs", "Attract new tenants"]
-    elif selected_site['margin'] > 20:
-        rec_type = "review"
-        rec_color = "#f39c12"
-        rec_icon = "⚠️"
-        rec_title = "Needs Review"
-        rec_actions = ["Audit all costs", "Renegotiate site lease", "Consider decommissioning equipment"]
-    else:
-        rec_type = "critical"
-        rec_color = "#e63946"
-        rec_icon = "🔴"
-        rec_title = "Critical - Action Required"
-        rec_actions = ["Full cost audit", "Decommissioning analysis", "Tenant renegotiation"]
-    
-    with rec_col1:
-        st.markdown(f"""
-            <div style="background: {rec_color}15; border-radius: 10px; padding: 1rem; border-left: 4px solid {rec_color};">
-                <div style="font-size: 1.5rem;">{rec_icon}</div>
-                <div style="font-weight: 700; color: {rec_color}; margin: 0.5rem 0;">{rec_title}</div>
-                <div style="font-size: 0.85rem; color: #666;">Based on {selected_site['margin']:.0f}% margin</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with rec_col2:
-        st.markdown("**Recommended Actions:**")
-        for action in rec_actions:
-            st.markdown(f"• {action}")
-    
-    with rec_col3:
-        # Potential improvement
-        if selected_site['margin'] < 60:
-            opex_reduction = selected_site['total_opex'] * 0.1
-            new_margin = ((selected_site['revenue'] - selected_site['total_opex'] + opex_reduction) / selected_site['revenue']) * 100
+        with detail_col1:
             st.markdown(f"""
-                <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
-                    <div style="font-size: 0.8rem; color: #666;">💰 If 10% OPEX reduction:</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
-                        {selected_site['margin']:.0f}% → {new_margin:.0f}%
-                    </div>
-                    <div style="font-size: 0.8rem; color: #666;">
-                        Saves €{opex_reduction/1000:.0f}K/year
-                    </div>
+                <div style="background: linear-gradient(135deg, #1a2b4a 0%, #2d3e5f 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">📍 Site Info</div>
+                    <div style="font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0;">{selected_site['site_id']}</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">{selected_site['city']}, {selected_site['region']}</div>
+                    <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">{selected_site['type']}</div>
                 </div>
             """, unsafe_allow_html=True)
+    
+        with detail_col2:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">💰 Annual Revenue</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['revenue']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; opacity: 0.9;">👥 {selected_site['tenants']} tenant(s)</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with detail_col3:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">📊 Annual OPEX</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_opex']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; opacity: 0.9;">{(selected_site['total_opex']/selected_site['revenue']*100):.0f}% of revenue</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        with detail_col4:
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-radius: 10px; padding: 1rem; color: white;">
+                    <div style="font-size: 0.75rem; opacity: 0.8;">🏗️ 3-Year CAPEX</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; margin: 0.25rem 0;">€{selected_site['total_capex']/1000:.0f}K</div>
+                    <div style="font-size: 0.75rem; opacity: 0.9;">Total investment</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    
+        # Detailed breakdowns
+        opex_detail_col, capex_detail_col, pnl_col = st.columns(3)
+    
+        with opex_detail_col:
+            st.markdown("#### 📊 OPEX Breakdown")
+        
+            opex_items = [
+                {"name": "Maintenance", "value": selected_site['opex_maintenance'], "color": "#e63946"},
+                {"name": "Energy", "value": selected_site['opex_energy'], "color": "#f39c12"},
+                {"name": "Site Lease", "value": selected_site['opex_lease'], "color": "#3498db"},
+                {"name": "Other", "value": selected_site['opex_other'], "color": "#9b59b6"},
+            ]
+        
+            fig_opex = go.Figure(data=[go.Pie(
+                labels=[o['name'] for o in opex_items],
+                values=[o['value'] for o in opex_items],
+                hole=0.6,
+                marker_colors=[o['color'] for o in opex_items],
+                textinfo='label+percent',
+                textfont_size=10,
+                hovertemplate='<b>%{label}</b><br>€%{value:,.0f}<br>%{percent}<extra></extra>'
+            )])
+        
+            fig_opex.add_annotation(
+                text=f"<b>€{selected_site['total_opex']/1000:.0f}K</b><br><span style='font-size:10px'>Total OPEX</span>",
+                x=0.5, y=0.5, font_size=14, showarrow=False
+            )
+        
+            fig_opex.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_opex, use_container_width=True)
+    
+        with capex_detail_col:
+            st.markdown("#### 🏗️ CAPEX History (3 Years)")
+        
+            years = ['2023', '2024', '2025']
+            capex_values = [selected_site['capex_y3'], selected_site['capex_y2'], selected_site['capex_y1']]
+        
+            fig_capex = go.Figure()
+        
+            fig_capex.add_trace(go.Bar(
+                x=years,
+                y=capex_values,
+                marker_color=['#1a2b4a', '#3498db', '#27ae60'],
+                text=[f'€{v/1000:.0f}K' if v > 0 else '€0' for v in capex_values],
+                textposition='outside'
+            ))
+        
+            fig_capex.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis_title="Year",
+                yaxis_title="CAPEX (€)",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_capex, use_container_width=True)
+    
+        with pnl_col:
+            st.markdown("#### 💵 P&L Waterfall")
+        
+            # Waterfall chart
+            fig_waterfall = go.Figure(go.Waterfall(
+                orientation="v",
+                measure=["absolute", "relative", "relative", "relative", "relative", "total"],
+                x=["Revenue", "Maintenance", "Energy", "Lease", "Other", "EBITDA"],
+                y=[selected_site['revenue'], 
+                   -selected_site['opex_maintenance'], 
+                   -selected_site['opex_energy'],
+                   -selected_site['opex_lease'],
+                   -selected_site['opex_other'],
+                   selected_site['ebitda']],
+                text=[f"€{selected_site['revenue']/1000:.0f}K",
+                      f"-€{selected_site['opex_maintenance']/1000:.0f}K",
+                      f"-€{selected_site['opex_energy']/1000:.0f}K",
+                      f"-€{selected_site['opex_lease']/1000:.0f}K",
+                      f"-€{selected_site['opex_other']/1000:.0f}K",
+                      f"€{selected_site['ebitda']/1000:.0f}K"],
+                textposition="outside",
+                connector={"line": {"color": "#888"}},
+                decreasing={"marker": {"color": "#e63946"}},
+                increasing={"marker": {"color": "#27ae60"}},
+                totals={"marker": {"color": "#1a2b4a"}}
+            ))
+        
+            fig_waterfall.update_layout(
+                height=250,
+                margin=dict(l=10, r=10, t=10, b=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+    
+        # Site recommendations
+        st.markdown("#### 💡 Site-Specific Recommendations")
+    
+        rec_col1, rec_col2, rec_col3 = st.columns(3)
+    
+        if selected_site['margin'] > 60:
+            rec_type = "expand"
+            rec_color = "#27ae60"
+            rec_icon = "🚀"
+            rec_title = "Expansion Candidate"
+            rec_actions = ["Add tenant capacity", "Upgrade to 5G", "Consider tower strengthening"]
+        elif selected_site['margin'] > 40:
+            rec_type = "optimize"
+            rec_color = "#3498db"
+            rec_icon = "⚡"
+            rec_title = "Optimization Opportunity"
+            rec_actions = ["Negotiate energy contracts", "Review maintenance costs", "Attract new tenants"]
+        elif selected_site['margin'] > 20:
+            rec_type = "review"
+            rec_color = "#f39c12"
+            rec_icon = "⚠️"
+            rec_title = "Needs Review"
+            rec_actions = ["Audit all costs", "Renegotiate site lease", "Consider decommissioning equipment"]
         else:
-            tenant_revenue = selected_site['revenue'] / selected_site['tenants'] if selected_site['tenants'] > 0 else 0
+            rec_type = "critical"
+            rec_color = "#e63946"
+            rec_icon = "🔴"
+            rec_title = "Critical - Action Required"
+            rec_actions = ["Full cost audit", "Decommissioning analysis", "Tenant renegotiation"]
+    
+        with rec_col1:
             st.markdown(f"""
-                <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
-                    <div style="font-size: 0.8rem; color: #666;">📈 Add 1 more tenant:</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
-                        +€{tenant_revenue/1000:.0f}K/year
-                    </div>
-                    <div style="font-size: 0.8rem; color: #666;">
-                        Revenue potential
-                    </div>
+                <div style="background: {rec_color}15; border-radius: 10px; padding: 1rem; border-left: 4px solid {rec_color};">
+                    <div style="font-size: 1.5rem;">{rec_icon}</div>
+                    <div style="font-weight: 700; color: {rec_color}; margin: 0.5rem 0;">{rec_title}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Based on {selected_site['margin']:.0f}% margin</div>
                 </div>
             """, unsafe_allow_html=True)
     
-    # Export button
-    btn_col1, btn_col2, btn_col3, _ = st.columns([1, 1, 1, 2])
-    with btn_col1:
-        st.button("📥 Export Site Report", key="export_site", use_container_width=True)
-    with btn_col2:
-        st.button("📧 Share with Team", key="share_site", use_container_width=True)
-    with btn_col3:
-        st.button("📅 Schedule Review", key="schedule_site", use_container_width=True)
+        with rec_col2:
+            st.markdown("**Recommended Actions:**")
+            for action in rec_actions:
+                st.markdown(f"• {action}")
+    
+        with rec_col3:
+            # Potential improvement
+            if selected_site['margin'] < 60:
+                opex_reduction = selected_site['total_opex'] * 0.1
+                new_margin = ((selected_site['revenue'] - selected_site['total_opex'] + opex_reduction) / selected_site['revenue']) * 100
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
+                        <div style="font-size: 0.8rem; color: #666;">💰 If 10% OPEX reduction:</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
+                            {selected_site['margin']:.0f}% → {new_margin:.0f}%
+                        </div>
+                        <div style="font-size: 0.8rem; color: #666;">
+                            Saves €{opex_reduction/1000:.0f}K/year
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                tenant_revenue = selected_site['revenue'] / selected_site['tenants'] if selected_site['tenants'] > 0 else 0
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 10px; padding: 1rem; border: 2px dashed #27ae60;">
+                        <div style="font-size: 0.8rem; color: #666;">📈 Add 1 more tenant:</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60; margin: 0.25rem 0;">
+                            +€{tenant_revenue/1000:.0f}K/year
+                        </div>
+                        <div style="font-size: 0.8rem; color: #666;">
+                            Revenue potential
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+        # Export button
+        btn_col1, btn_col2, btn_col3, _ = st.columns([1, 1, 1, 2])
+        with btn_col1:
+            st.button("📥 Export Site Report", key="export_site", use_container_width=True)
+        with btn_col2:
+            st.button("📧 Share with Team", key="share_site", use_container_width=True)
+        with btn_col3:
+            st.button("📅 Schedule Review", key="schedule_site", use_container_width=True)
 
-# ==============================================================================
-# PAGE: ARCHITECTURE
-# ==============================================================================
+    # ==============================================================================
+    # PAGE: ARCHITECTURE
+    # ==============================================================================
 
 def page_architecture():
     render_header(
