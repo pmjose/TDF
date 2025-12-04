@@ -25,14 +25,14 @@ TRUNCATE TABLE IF EXISTS OPERATORS;
 INSERT INTO OPERATORS (OPERATOR_ID, OPERATOR_CODE, OPERATOR_NAME, OPERATOR_TYPE, PARENT_COMPANY, CONTRACT_START_DATE, CONTRACT_END_DATE, ANNUAL_REVENUE_EUR, CREDIT_RATING, IS_STRATEGIC_CLIENT)
 VALUES
     ('OP-ORANGE', 'ORANGE', 'Orange France', 'MNO', 'Orange SA', '2010-01-01', '2030-12-31', 145000000, 'BBB+', TRUE),
-    ('OP-SFR', 'SFR', 'SFR', 'MNO', 'Altice France', '2012-03-01', '2028-12-31', 125000000, 'BB', TRUE),
+    ('OP-SFR', 'SFR', 'SFR', 'MNO', 'Altice France', '2012-03-01', '2026-03-31', 125000000, 'BB', TRUE),
     ('OP-BOUYGUES', 'BOUYGUES', 'Bouygues Telecom', 'MNO', 'Bouygues SA', '2011-06-01', '2029-06-30', 110000000, 'BBB', TRUE),
-    ('OP-FREE', 'FREE', 'Free Mobile', 'MNO', 'Iliad SA', '2012-01-01', '2027-12-31', 85000000, 'BB+', TRUE),
+    ('OP-FREE', 'FREE', 'Free Mobile', 'MNO', 'Iliad SA', '2012-01-01', '2026-09-30', 85000000, 'BB+', TRUE),
     ('OP-TDF-BC', 'TDF-BC', 'TDF Broadcast (Internal)', 'BROADCASTER', 'TDF Infrastructure', '2000-01-01', '2099-12-31', 0, 'BBB-', FALSE),
     ('OP-FTV', 'FTV', 'France Télévisions', 'BROADCASTER', 'France Télévisions', '2005-01-01', '2030-12-31', 35000000, 'AA', TRUE),
-    ('OP-RADIOFR', 'RADIOFR', 'Radio France', 'BROADCASTER', 'Radio France', '2005-01-01', '2030-12-31', 28000000, 'AA', TRUE),
+    ('OP-RADIOFR', 'RADIOFR', 'Radio France', 'BROADCASTER', 'Radio France', '2005-01-01', '2026-12-31', 28000000, 'AA', TRUE),
     ('OP-NRJ', 'NRJ', 'NRJ Group', 'BROADCASTER', 'NRJ Group', '2008-01-01', '2028-12-31', 15000000, 'BBB', FALSE),
-    ('OP-SIGFOX', 'SIGFOX', 'Sigfox', 'IOT', 'UnaBiz', '2015-01-01', '2026-12-31', 5000000, 'B', FALSE),
+    ('OP-SIGFOX', 'SIGFOX', 'Sigfox', 'IOT', 'UnaBiz', '2015-01-01', '2025-12-31', 5000000, 'B', FALSE),
     ('OP-LORA', 'LORA', 'LoRa Alliance Members', 'IOT', 'Various', '2016-01-01', '2028-12-31', 8000000, 'B+', FALSE);
 
 -- ============================================================================
