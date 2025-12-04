@@ -656,25 +656,25 @@ with st.sidebar:
     
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
     
-    # Info - Fetch live data
+    # Info - Live data from database
     st.markdown("### Data Platform")
     
-    sidebar_sites = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'")
-    sidebar_towers = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE' AND SITE_TYPE = 'TOWER'")
-    sidebar_employees = run_query("SELECT COUNT(*) as CNT FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE'")
-    sidebar_revenue = run_query("SELECT SUM(REVENUE_EUR) / 7 * 12 / 1000000 as REV FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS WHERE FISCAL_YEAR = 2025")
+    sb_sites = run_query("SELECT COUNT(*) as N FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'")
+    sb_towers = run_query("SELECT COUNT(*) as N FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE' AND SITE_TYPE = 'TOWER'")
+    sb_emp = run_query("SELECT COUNT(*) as N FROM TDF_DATA_PLATFORM.HR.EMPLOYEES WHERE EMPLOYMENT_STATUS = 'ACTIVE'")
+    sb_rev = run_query("SELECT SUM(REVENUE_EUR)/7*12/1000000 as R FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS WHERE FISCAL_YEAR = 2025")
     
-    sites_cnt = int(sidebar_sites['CNT'].iloc[0]) if not sidebar_sites.empty else 8785
-    towers_cnt = int(sidebar_towers['CNT'].iloc[0]) if not sidebar_towers.empty else 7877
-    emp_cnt = int(sidebar_employees['CNT'].iloc[0]) if not sidebar_employees.empty else 1500
-    rev_amt = sidebar_revenue['REV'].iloc[0] if not sidebar_revenue.empty and sidebar_revenue['REV'].iloc[0] else 808.2
+    n_sites = int(sb_sites['N'].iloc[0]) if not sb_sites.empty else 8533
+    n_towers = int(sb_towers['N'].iloc[0]) if not sb_towers.empty else 5131
+    n_emp = int(sb_emp['N'].iloc[0]) if not sb_emp.empty else 1500
+    n_rev = sb_rev['R'].iloc[0] if not sb_rev.empty and sb_rev['R'].iloc[0] else 808.2
     
     st.markdown(f"""
         <div style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">
-            <p>📡 {sites_cnt:,} Active Sites</p>
-            <p>🗼 {towers_cnt:,} Towers</p>
-            <p>👥 {emp_cnt:,} Employees</p>
-            <p>💶 EUR {rev_amt:.1f}M Revenue</p>
+            <p>📡 {n_sites:,} Active Sites</p>
+            <p>🗼 {n_towers:,} Towers</p>
+            <p>👥 {n_emp:,} Employees</p>
+            <p>💶 EUR {n_rev:.1f}M Revenue</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -693,9 +693,9 @@ with st.sidebar:
 
 def page_executive_dashboard():
     
-    # =========================================================================
-    # FETCH COMMON DATA FOR ALL TABS
-    # =========================================================================
+    # -------------------------------------------------------------------------
+    # HERO BANNER - Key Financial Metrics
+    # -------------------------------------------------------------------------
     
     # Fetch EBITDA metrics - annualized
     ebitda_df = run_query("""
@@ -715,7 +715,8 @@ def page_executive_dashboard():
     
     # Get values - annualize if we only have partial year data
     if not ebitda_df.empty and ebitda_df['ANNUAL_REVENUE'].iloc[0]:
-        months_of_data = 7
+        # We have 7 months of data (June-Dec), annualize to 12 months
+        months_of_data = 7  # June to December
         revenue = (ebitda_df['ANNUAL_REVENUE'].iloc[0] / months_of_data * 12) / 1000000
     else:
         revenue = 799.1
@@ -724,10 +725,7 @@ def page_executive_dashboard():
     yoy_growth = ebitda_df['AVG_GROWTH'].iloc[0] if not ebitda_df.empty and ebitda_df['AVG_GROWTH'].iloc[0] else 8.5
     esg_status = esg_df['OVERALL_ESG_STATUS'].iloc[0] if not esg_df.empty else 'GREEN'
     
-    # =========================================================================
-    # HERO BANNER - Always visible at top
-    # =========================================================================
-    
+    # Hero Banner
     st.markdown(f"""
         <div class="hero-banner">
             <div class="hero-metrics">
@@ -770,11 +768,15 @@ def page_executive_dashboard():
     ])
     
     # =========================================================================
-    # TAB 1: EXECUTIVE OVERVIEW - Risk Radar & Vital Signs
+    # TAB 1: EXECUTIVE OVERVIEW
     # =========================================================================
     
     with tab_overview:
-        
+    
+        # -------------------------------------------------------------------------
+        # 🚨 RISK RADAR - Critical Alerts for Executive Attention
+        # -------------------------------------------------------------------------
+    
         # Fetch risk data
         contract_risk_df = run_query("""
             SELECT 
@@ -788,98 +790,99 @@ def page_executive_dashboard():
             ORDER BY o.CONTRACT_END_DATE ASC
             LIMIT 5
         """)
-        
+    
         equipment_risk_df = run_query("""
             SELECT COUNT(*) as AT_RISK_COUNT
             FROM TDF_DATA_PLATFORM.OPERATIONS.EQUIPMENT_STATUS
             WHERE FAILURE_RISK_SCORE > 70
         """)
     
-    sla_breach_df = run_query("""
-        SELECT COUNT(*) as BREACH_COUNT
-        FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS
-        WHERE SLA_MET = FALSE 
-        AND STATUS = 'COMPLETED'
-        AND CREATED_DATE >= DATEADD(MONTH, -1, CURRENT_DATE())
-    """)
+        sla_breach_df = run_query("""
+            SELECT COUNT(*) as BREACH_COUNT
+            FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS
+            WHERE SLA_MET = FALSE 
+            AND STATUS = 'COMPLETED'
+            AND CREATED_DATE >= DATEADD(MONTH, -1, CURRENT_DATE())
+        """)
     
-    esg_deadline_df = run_query("""
-        SELECT COUNT(*) as PENDING_COUNT
-        FROM TDF_DATA_PLATFORM.ESG.REGULATORY_REPORTS
-        WHERE STATUS IN ('DRAFT', 'REVIEW')
-    """)
+        esg_deadline_df = run_query("""
+            SELECT COUNT(*) as PENDING_COUNT
+            FROM TDF_DATA_PLATFORM.ESG.REGULATORY_REPORTS
+            WHERE STATUS IN ('DRAFT', 'REVIEW')
+        """)
     
-    # Build risk items
-    risk_items = []
+        # Build risk items
+        risk_items = []
     
-    # Contract renewals
-    if not contract_risk_df.empty:
-        expiring_soon = contract_risk_df[contract_risk_df['DAYS_TO_EXPIRY'] < 365]
-        if len(expiring_soon) > 0:
-            total_at_risk = expiring_soon['REVENUE_M'].sum()
-            next_expiry = expiring_soon.iloc[0]
+        # Contract renewals
+        if not contract_risk_df.empty:
+            expiring_soon = contract_risk_df[contract_risk_df['DAYS_TO_EXPIRY'] < 365]
+            if len(expiring_soon) > 0:
+                total_at_risk = expiring_soon['REVENUE_M'].sum()
+                next_expiry = expiring_soon.iloc[0]
+                risk_items.append({
+                    'icon': '📋',
+                    'title': f"Contract Renewal: {next_expiry['OPERATOR_NAME']}",
+                    'detail': f"€{next_expiry['REVENUE_M']:.0f}M revenue • Expires in {next_expiry['DAYS_TO_EXPIRY']:.0f} days",
+                    'value': f"€{total_at_risk:.0f}M at risk",
+                    'severity': 'red' if next_expiry['DAYS_TO_EXPIRY'] < 180 else 'amber'
+                })
+    
+        # Equipment at risk
+        at_risk_count = equipment_risk_df['AT_RISK_COUNT'].iloc[0] if not equipment_risk_df.empty else 0
+        if at_risk_count > 0:
             risk_items.append({
-                'icon': '📋',
-                'title': f"Contract Renewal: {next_expiry['OPERATOR_NAME']}",
-                'detail': f"€{next_expiry['REVENUE_M']:.0f}M revenue • Expires in {next_expiry['DAYS_TO_EXPIRY']:.0f} days",
-                'value': f"€{total_at_risk:.0f}M at risk",
-                'severity': 'red' if next_expiry['DAYS_TO_EXPIRY'] < 180 else 'amber'
+                'icon': '⚠️',
+                'title': 'Equipment at High Risk',
+                'detail': 'Equipment with failure risk score > 70 requiring attention',
+                'value': f"{at_risk_count:,} items",
+                'severity': 'red' if at_risk_count > 100 else 'amber'
             })
     
-    # Equipment at risk
-    at_risk_count = equipment_risk_df['AT_RISK_COUNT'].iloc[0] if not equipment_risk_df.empty else 0
-    if at_risk_count > 0:
-        risk_items.append({
-            'icon': '⚠️',
-            'title': 'Equipment at High Risk',
-            'detail': 'Equipment with failure risk score > 70 requiring attention',
-            'value': f"{at_risk_count:,} items",
-            'severity': 'red' if at_risk_count > 100 else 'amber'
-        })
+        # SLA breaches
+        breach_count = sla_breach_df['BREACH_COUNT'].iloc[0] if not sla_breach_df.empty else 0
+        if breach_count > 0:
+            risk_items.append({
+                'icon': '🎯',
+                'title': 'SLA Breaches (Last 30 Days)',
+                'detail': 'Work orders that missed SLA targets',
+                'value': f"{breach_count} breaches",
+                'severity': 'red' if breach_count > 50 else 'amber'
+            })
     
-    # SLA breaches
-    breach_count = sla_breach_df['BREACH_COUNT'].iloc[0] if not sla_breach_df.empty else 0
-    if breach_count > 0:
-        risk_items.append({
-            'icon': '🎯',
-            'title': 'SLA Breaches (Last 30 Days)',
-            'detail': 'Work orders that missed SLA targets',
-            'value': f"{breach_count} breaches",
-            'severity': 'red' if breach_count > 50 else 'amber'
-        })
+        # ESG deadlines
+        pending_esg = esg_deadline_df['PENDING_COUNT'].iloc[0] if not esg_deadline_df.empty else 0
+        if pending_esg > 0:
+            risk_items.append({
+                'icon': '🌱',
+                'title': 'ESG Reports In Progress',
+                'detail': 'Regulatory reports awaiting completion',
+                'value': f"{pending_esg} pending",
+                'severity': 'amber'
+            })
     
-    # ESG deadlines
-    pending_esg = esg_deadline_df['PENDING_COUNT'].iloc[0] if not esg_deadline_df.empty else 0
-    if pending_esg > 0:
-        risk_items.append({
-            'icon': '🌱',
-            'title': 'ESG Reports In Progress',
-            'detail': 'Regulatory reports awaiting completion',
-            'value': f"{pending_esg} pending",
-            'severity': 'amber'
-        })
-    
-    # Add a green item if things are good
-    if len(risk_items) < 3:
-        risk_items.append({
-            'icon': '✅',
-            'title': 'Infrastructure Health',
-            'detail': 'Network availability and performance on target',
-            'value': '99.8% uptime',
-            'severity': 'green'
-        })
+        # Add a green item if things are good
+        if len(risk_items) < 3:
+            risk_items.append({
+                'icon': '✅',
+                'title': 'Infrastructure Health',
+                'detail': 'Network availability and performance on target',
+                'value': '99.8% uptime',
+                'severity': 'green'
+            })
     
         # Render Risk Radar using Streamlit columns for better compatibility
-        
+        st.markdown("### 🚨 Risk Radar - Items Requiring Attention")
+    
         # Create columns for risk items
         risk_cols = st.columns(len(risk_items[:4]))
-        
+    
         for i, item in enumerate(risk_items[:4]):
             with risk_cols[i]:
                 severity = item.get('severity', 'amber')
                 border_color = '#e63946' if severity == 'red' else '#f39c12' if severity == 'amber' else '#27ae60'
                 bg_color = 'rgba(230, 57, 70, 0.05)' if severity == 'red' else 'rgba(243, 156, 18, 0.05)' if severity == 'amber' else 'rgba(39, 174, 96, 0.05)'
-                
+            
                 st.markdown(f"""
                     <div style="background: {bg_color}; border-left: 4px solid {border_color}; border-radius: 8px; padding: 1rem; height: 140px;">
                         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{item['icon']}</div>
@@ -888,11 +891,11 @@ def page_executive_dashboard():
                         <div style="background: {border_color}; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block;">{item['value']}</div>
                     </div>
                 """, unsafe_allow_html=True)
-        
+    
         # -------------------------------------------------------------------------
         # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
         # -------------------------------------------------------------------------
-        
+    
         col_map, col_clients = st.columns([3, 2])
     
         with col_map:
@@ -1582,15 +1585,14 @@ def page_executive_dashboard():
                 </div>
             """, unsafe_allow_html=True)
     
-        # =========================================================================
+        # -------------------------------------------------------------------------
+    
+    # =========================================================================
     # TAB 2: FINANCIAL PERFORMANCE
     # =========================================================================
     
     with tab_financial:
         st.markdown("### 💰 Financial Performance")
-        st.info("📊 Financial metrics and trends are displayed in the Executive Overview tab above. Select the Executive Overview tab to view Revenue, EBITDA, and segment analysis.")
-        
-        # Quick financial summary
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Annual Revenue", f"€{revenue:.1f}M", f"+{yoy_growth:.1f}% YoY")
@@ -1605,26 +1607,18 @@ def page_executive_dashboard():
     
     with tab_operations:
         st.markdown("### 🏗️ Infrastructure & Operations")
-        st.info("📊 Infrastructure map and operational metrics are displayed in the Executive Overview tab. Select Executive Overview to view the France infrastructure map and strategic pillars.")
-        
-        # Quick infrastructure summary
-        infra_summary = run_query("""
-            SELECT 
-                COUNT(*) as TOTAL_SITES,
-                SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS,
-                AVG(COLOCATION_RATE) * 100 as AVG_COLOCATION
-            FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
-            WHERE STATUS = 'ACTIVE'
+        infra_df = run_query("""
+            SELECT COUNT(*) as SITES, SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS,
+            AVG(COLOCATION_RATE) * 100 as COLOC FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'
         """)
-        
-        if not infra_summary.empty:
+        if not infra_df.empty:
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Total Sites", f"{int(infra_summary['TOTAL_SITES'].iloc[0]):,}")
+                st.metric("Total Sites", f"{int(infra_df['SITES'].iloc[0]):,}")
             with col2:
-                st.metric("Towers", f"{int(infra_summary['TOWERS'].iloc[0]):,}")
+                st.metric("Towers", f"{int(infra_df['TOWERS'].iloc[0]):,}")
             with col3:
-                st.metric("Avg Colocation", f"{infra_summary['AVG_COLOCATION'].iloc[0]:.0f}%")
+                st.metric("Avg Colocation", f"{infra_df['COLOC'].iloc[0]:.0f}%")
     
     # =========================================================================
     # TAB 4: CLIENT PORTFOLIO
@@ -1632,25 +1626,16 @@ def page_executive_dashboard():
     
     with tab_clients:
         st.markdown("### 🤝 Client Portfolio")
-        st.info("📊 Client health monitor and portfolio analysis are displayed in the Executive Overview tab. Select Executive Overview to view the full client health dashboard.")
-        
-        # Quick client summary
-        client_summary = run_query("""
-            SELECT 
-                COUNT(*) as CLIENT_COUNT,
-                SUM(ANNUAL_REVENUE_EUR) / 1000000 as TOTAL_REVENUE_M
-            FROM TDF_DATA_PLATFORM.CORE.OPERATORS 
-            WHERE ANNUAL_REVENUE_EUR > 0
+        client_df = run_query("""
+            SELECT COUNT(*) as CLIENTS, SUM(ANNUAL_REVENUE_EUR)/1000000 as REV
+            FROM TDF_DATA_PLATFORM.CORE.OPERATORS WHERE ANNUAL_REVENUE_EUR > 0
         """)
-        
-        if not client_summary.empty:
+        if not client_df.empty:
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Strategic Clients", f"{int(client_summary['CLIENT_COUNT'].iloc[0])}")
+                st.metric("Strategic Clients", f"{int(client_df['CLIENTS'].iloc[0])}")
             with col2:
-                st.metric("Total Client Revenue", f"€{client_summary['TOTAL_REVENUE_M'].iloc[0]:.0f}M")
-    
-    # -------------------------------------------------------------------------
+                st.metric("Total Client Revenue", f"€{client_df['REV'].iloc[0]:.0f}M")
     # FOOTER - Last Updated
     # -------------------------------------------------------------------------
     
