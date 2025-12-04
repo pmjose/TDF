@@ -772,7 +772,7 @@ def page_executive_dashboard():
     # =========================================================================
     
     with tab_overview:
-    
+        
         # -------------------------------------------------------------------------
         # 🚨 RISK RADAR - Critical Alerts for Executive Attention
         # -------------------------------------------------------------------------
@@ -893,6 +893,507 @@ def page_executive_dashboard():
                 """, unsafe_allow_html=True)
     
         # -------------------------------------------------------------------------
+
+        # FOUR VITAL SIGNS - Gauge Charts
+        # -------------------------------------------------------------------------
+    
+        # Fetch additional metrics
+        sites_df = run_query("""
+            SELECT 
+                COUNT(*) as TOTAL_SITES,
+                AVG(COLOCATION_RATE) as AVG_COLOCATION
+            FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
+            WHERE STATUS = 'ACTIVE'
+        """)
+    
+        renewable_df = run_query("""
+            SELECT AVG(RENEWABLE_PCT) as RENEWABLE_PCT 
+            FROM TDF_DATA_PLATFORM.ENERGY.RENEWABLE_ENERGY 
+            WHERE YEAR(YEAR_MONTH) = 2025
+        """)
+    
+        sla_df = run_query("""
+            SELECT 
+                COUNT(CASE WHEN SLA_MET = TRUE THEN 1 END) * 100.0 / COUNT(*) as SLA_PCT
+            FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
+            WHERE STATUS = 'COMPLETED'
+        """)
+    
+        colocation_rate = sites_df['AVG_COLOCATION'].iloc[0] * 100 if not sites_df.empty and sites_df['AVG_COLOCATION'].iloc[0] else 60
+        renewable_pct = renewable_df['RENEWABLE_PCT'].iloc[0] if not renewable_df.empty and renewable_df['RENEWABLE_PCT'].iloc[0] else 47
+        sla_pct = sla_df['SLA_PCT'].iloc[0] if not sla_df.empty and sla_df['SLA_PCT'].iloc[0] else 92
+    
+        st.markdown("### 📊 Vital Signs")
+    
+        col1, col2, col3, col4 = st.columns(4)
+    
+        # Revenue Growth Gauge
+        with col1:
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=yoy_growth,
+                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
+                delta={'reference': 5, 'relative': False, 'position': 'bottom'},
+                gauge={
+                    'axis': {'range': [0, 15], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
+                    'bar': {'color': '#1a2b4a'},
+                    'bgcolor': 'white',
+                    'borderwidth': 0,
+                    'steps': [
+                        {'range': [0, 5], 'color': '#fee2e2'},
+                        {'range': [5, 10], 'color': '#fef3c7'},
+                        {'range': [10, 15], 'color': '#d1fae5'}
+                    ],
+                    'threshold': {
+                        'line': {'color': '#e63946', 'width': 3},
+                        'thickness': 0.8,
+                        'value': 8
+                    }
+                },
+                title={'text': 'Revenue Growth', 'font': {'size': 14, 'color': '#666'}}
+            ))
+            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+    
+        # EBITDA Margin Gauge
+        with col2:
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=ebitda_margin,
+                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
+                gauge={
+                    'axis': {'range': [30, 60], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
+                    'bar': {'color': '#27ae60' if 42 <= ebitda_margin <= 53 else '#f39c12'},
+                    'bgcolor': 'white',
+                    'borderwidth': 0,
+                    'steps': [
+                        {'range': [30, 42], 'color': '#fee2e2'},
+                        {'range': [42, 53], 'color': '#d1fae5'},
+                        {'range': [53, 60], 'color': '#dbeafe'}
+                    ],
+                    'threshold': {
+                        'line': {'color': '#1a2b4a', 'width': 2},
+                        'thickness': 0.8,
+                        'value': 47.5
+                    }
+                },
+                title={'text': 'EBITDA Margin', 'font': {'size': 14, 'color': '#666'}}
+            ))
+            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+    
+        # Colocation Rate Gauge
+        with col3:
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=colocation_rate,
+                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
+                    'bar': {'color': '#1a2b4a'},
+                    'bgcolor': 'white',
+                    'borderwidth': 0,
+                    'steps': [
+                        {'range': [0, 40], 'color': '#fee2e2'},
+                        {'range': [40, 70], 'color': '#fef3c7'},
+                        {'range': [70, 100], 'color': '#d1fae5'}
+                    ]
+                },
+                title={'text': 'Colocation Rate', 'font': {'size': 14, 'color': '#666'}}
+            ))
+            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+    
+        # Renewable Energy Gauge
+        with col4:
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=renewable_pct,
+                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
+                    'bar': {'color': '#27ae60'},
+                    'bgcolor': 'white',
+                    'borderwidth': 0,
+                    'steps': [
+                        {'range': [0, 30], 'color': '#fee2e2'},
+                        {'range': [30, 50], 'color': '#fef3c7'},
+                        {'range': [50, 100], 'color': '#d1fae5'}
+                    ],
+                    'threshold': {
+                        'line': {'color': '#e63946', 'width': 3},
+                        'thickness': 0.8,
+                        'value': 50
+                    }
+                },
+                title={'text': 'Renewable Energy', 'font': {'size': 14, 'color': '#666'}}
+            ))
+            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+    
+        # -------------------------------------------------------------------------
+
+        # THREE STRATEGIC PILLARS
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 🏛️ Strategic Pillars")
+    
+        col1, col2, col3 = st.columns(3)
+    
+        # Infrastructure Pillar
+        with col1:
+            infra_df = run_query("""
+                SELECT 
+                    COUNT(*) as SITES,
+                    SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS
+                FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
+                WHERE STATUS = 'ACTIVE'
+            """)
+        
+            pos_df = run_query("""
+                SELECT COUNT(*) as POS_COUNT 
+                FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.POINTS_OF_SERVICE 
+                WHERE STATUS = 'ACTIVE'
+            """)
+        
+            sites_count = infra_df['SITES'].iloc[0] if not infra_df.empty else 8785
+            towers_count = infra_df['TOWERS'].iloc[0] if not infra_df.empty else 7877
+            pos_count = pos_df['POS_COUNT'].iloc[0] if not pos_df.empty else 21244
+        
+            st.markdown(f"""
+                <div class="pillar-card infrastructure">
+                    <div class="pillar-title">🏗️ Infrastructure</div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Active Sites</span>
+                        <span class="pillar-metric-value">{sites_count:,}</span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Towers</span>
+                        <span class="pillar-metric-value">{towers_count:,}</span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Points of Service</span>
+                        <span class="pillar-metric-value">{pos_count:,}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # Operations Pillar
+        with col2:
+            ops_df = run_query("""
+                SELECT 
+                    COUNT(*) as OPEN_WO,
+                    AVG(FAILURE_RISK_SCORE) as AVG_RISK
+                FROM TDF_DATA_PLATFORM.OPERATIONS.EQUIPMENT_STATUS
+            """)
+        
+            wo_df = run_query("""
+                SELECT COUNT(*) as OPEN_WO
+                FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
+                WHERE STATUS = 'OPEN'
+            """)
+        
+            open_wo = wo_df['OPEN_WO'].iloc[0] if not wo_df.empty else 50
+            avg_risk = ops_df['AVG_RISK'].iloc[0] if not ops_df.empty else 42
+        
+            risk_status = 'green' if avg_risk < 40 else 'amber' if avg_risk < 60 else 'red'
+        
+            st.markdown(f"""
+                <div class="pillar-card operations">
+                    <div class="pillar-title">⚡ Operations</div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">SLA Performance</span>
+                        <span class="pillar-metric-value">{sla_pct:.0f}%</span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Open Work Orders</span>
+                        <span class="pillar-metric-value">{open_wo}</span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Avg Risk Score</span>
+                        <span class="pillar-metric-value">
+                            <span class="status-badge {risk_status}">{avg_risk:.0f}</span>
+                        </span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # ESG Pillar
+        with col3:
+            esg_detail = run_query("""
+                SELECT 
+                    CARBON_EMISSIONS_TONNES,
+                    RENEWABLE_ENERGY_PCT,
+                    EQUALITY_INDEX_SCORE,
+                    CARBON_VARIANCE_PCT
+                FROM TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD 
+                ORDER BY REPORTING_DATE DESC LIMIT 1
+            """)
+        
+            carbon = esg_detail['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_detail.empty else 48000
+            equality = esg_detail['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_detail.empty else 88
+            carbon_var = esg_detail['CARBON_VARIANCE_PCT'].iloc[0] if not esg_detail.empty else -5
+        
+            carbon_status = 'green' if carbon_var <= 0 else 'amber' if carbon_var < 10 else 'red'
+            equality_status = 'green' if equality >= 85 else 'amber' if equality >= 75 else 'red'
+        
+            st.markdown(f"""
+                <div class="pillar-card esg">
+                    <div class="pillar-title">🌱 ESG</div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Renewable Energy</span>
+                        <span class="pillar-metric-value">{renewable_pct:.0f}%</span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Carbon vs Target</span>
+                        <span class="pillar-metric-value">
+                            <span class="status-badge {carbon_status}">{carbon_var:+.0f}%</span>
+                        </span>
+                    </div>
+                    <div class="pillar-metric">
+                        <span class="pillar-metric-label">Equality Index</span>
+                        <span class="pillar-metric-value">
+                            <span class="status-badge {equality_status}">{equality:.0f}/100</span>
+                        </span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+        # -------------------------------------------------------------------------
+    
+
+    # =========================================================================
+    # TAB 2: FINANCIAL PERFORMANCE
+    # =========================================================================
+
+    with tab_financial:
+
+        # MONTHLY FINANCIAL PERFORMANCE - Revenue vs Costs
+        # -------------------------------------------------------------------------
+    
+        st.markdown("### 📈 Monthly Financial Performance")
+    
+        # Fetch monthly financial data
+        monthly_finance_df = run_query("""
+            SELECT 
+                PERIOD_DATE,
+                REVENUE_EUR / 1000000 as REVENUE_M,
+                OPEX_EUR / 1000000 as OPEX_M,
+                EBITDA_EUR / 1000000 as EBITDA_M,
+                EBITDAAL_MARGIN_PCT as MARGIN_PCT
+            FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
+            WHERE FISCAL_YEAR = 2025
+            ORDER BY PERIOD_DATE
+        """)
+    
+        if not monthly_finance_df.empty:
+            fig = go.Figure()
+        
+            # Revenue line
+            fig.add_trace(go.Scatter(
+                x=monthly_finance_df['PERIOD_DATE'],
+                y=monthly_finance_df['REVENUE_M'],
+                mode='lines+markers',
+                name='Revenue',
+                line=dict(color='#1a2b4a', width=3),
+                marker=dict(size=10, color='#1a2b4a'),
+                hovertemplate='Revenue: €%{y:.1f}M<extra></extra>'
+            ))
+        
+            # OPEX line
+            fig.add_trace(go.Scatter(
+                x=monthly_finance_df['PERIOD_DATE'],
+                y=monthly_finance_df['OPEX_M'],
+                mode='lines+markers',
+                name='OPEX',
+                line=dict(color='#e63946', width=3),
+                marker=dict(size=10, color='#e63946'),
+                hovertemplate='OPEX: €%{y:.1f}M<extra></extra>'
+            ))
+        
+            # EBITDA line
+            fig.add_trace(go.Scatter(
+                x=monthly_finance_df['PERIOD_DATE'],
+                y=monthly_finance_df['EBITDA_M'],
+                mode='lines+markers',
+                name='EBITDA',
+                line=dict(color='#27ae60', width=2, dash='dot'),
+                marker=dict(size=8, color='#27ae60'),
+                hovertemplate='EBITDA: €%{y:.1f}M<extra></extra>'
+            ))
+        
+            fig.update_layout(
+                height=350,
+                margin=dict(l=20, r=20, t=30, b=40),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='#f0f0f0',
+                    tickformat='%b %Y',
+                    title=None
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor='#f0f0f0',
+                    title=dict(text='EUR Millions', font=dict(size=12, color='#666')),
+                    tickprefix='€',
+                    ticksuffix='M'
+                ),
+                legend=dict(
+                    orientation='h',
+                    yanchor='bottom',
+                    y=1.02,
+                    xanchor='center',
+                    x=0.5,
+                    font=dict(size=12)
+                ),
+                hovermode='x unified'
+            )
+        
+            st.plotly_chart(fig, use_container_width=True)
+        
+            # Summary metrics below chart
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                avg_revenue = monthly_finance_df['REVENUE_M'].mean()
+                st.metric("Avg Monthly Revenue", f"€{avg_revenue:.1f}M")
+            with col2:
+                avg_opex = monthly_finance_df['OPEX_M'].mean()
+                st.metric("Avg Monthly OPEX", f"€{avg_opex:.1f}M")
+            with col3:
+                avg_ebitda = monthly_finance_df['EBITDA_M'].mean()
+                st.metric("Avg Monthly EBITDA", f"€{avg_ebitda:.1f}M")
+            with col4:
+                avg_margin = monthly_finance_df['MARGIN_PCT'].mean()
+                st.metric("Avg Margin", f"{avg_margin:.1f}%")
+        else:
+            st.info("Loading financial data...")
+    
+        # -------------------------------------------------------------------------
+
+        # REVENUE & CLIENT SECTION
+        # -------------------------------------------------------------------------
+    
+        col_left, col_right = st.columns([3, 2])
+    
+        with col_left:
+            st.markdown("### 📈 Revenue by Segment")
+        
+            # Fetch revenue by segment
+            revenue_df = run_query("""
+                SELECT 
+                    SEGMENT_LEVEL1,
+                    SUM(REVENUE_EUR) / 1000000 as REVENUE_M
+                FROM TDF_DATA_PLATFORM.FINANCE.REVENUE_BY_SEGMENT
+                WHERE FISCAL_YEAR = 2025
+                GROUP BY SEGMENT_LEVEL1
+                ORDER BY REVENUE_M DESC
+            """)
+        
+            if not revenue_df.empty:
+                # Create horizontal bar chart
+                fig = go.Figure()
+            
+                colors = ['#1a2b4a', '#2d3436', '#e63946', '#636e72']
+            
+                fig.add_trace(go.Bar(
+                    y=revenue_df['SEGMENT_LEVEL1'],
+                    x=revenue_df['REVENUE_M'],
+                    orientation='h',
+                    marker=dict(
+                        color=colors[:len(revenue_df)],
+                        line=dict(width=0)
+                    ),
+                    text=[f'€{x:.1f}M' for x in revenue_df['REVENUE_M']],
+                    textposition='inside',
+                    textfont=dict(color='white', size=14, family='Arial Black'),
+                    hovertemplate='%{y}: €%{x:.1f}M<extra></extra>'
+                ))
+            
+                fig.update_layout(
+                    height=300,
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor='#f0f0f0',
+                        title=dict(text='Revenue (EUR Millions)', font=dict(size=12, color='#666'))
+                    ),
+                    yaxis=dict(
+                        showgrid=False,
+                        categoryorder='total ascending'
+                    ),
+                    showlegend=False
+                )
+            
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Loading revenue data...")
+    
+        with col_right:
+            st.markdown("### 🎯 Client Portfolio")
+        
+            # Fetch client concentration
+            client_df = run_query("""
+                SELECT 
+                    o.OPERATOR_NAME,
+                    SUM(rc.REVENUE_EUR) / 1000000 as REVENUE_M,
+                    AVG(rc.REVENUE_SHARE_PCT) as SHARE_PCT
+                FROM TDF_DATA_PLATFORM.FINANCE.REVENUE_BY_CLIENT rc
+                JOIN TDF_DATA_PLATFORM.CORE.OPERATORS o ON rc.OPERATOR_ID = o.OPERATOR_ID
+                WHERE rc.FISCAL_YEAR = 2025
+                GROUP BY o.OPERATOR_NAME
+                ORDER BY REVENUE_M DESC
+            """)
+        
+            if not client_df.empty:
+                colors = ['#1a2b4a', '#e63946', '#2d3436', '#636e72']
+            
+                fig = go.Figure(data=[go.Pie(
+                    labels=client_df['OPERATOR_NAME'],
+                    values=client_df['REVENUE_M'],
+                    hole=0.6,
+                    marker=dict(colors=colors[:len(client_df)]),
+                    textinfo='percent',
+                    textfont=dict(size=14, color='white'),
+                    hovertemplate='%{label}<br>€%{value:.1f}M<br>%{percent}<extra></extra>'
+                )])
+            
+                fig.update_layout(
+                    height=300,
+                    margin=dict(l=20, r=20, t=20, b=20),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    showlegend=True,
+                    legend=dict(
+                        orientation='h',
+                        yanchor='bottom',
+                        y=-0.2,
+                        xanchor='center',
+                        x=0.5,
+                        font=dict(size=11)
+                    ),
+                    annotations=[dict(
+                        text='<b>4</b><br>Strategic<br>Clients',
+                        x=0.5, y=0.5,
+                        font=dict(size=14, color='#1a2b4a'),
+                        showarrow=False
+                    )]
+                )
+            
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Loading client data...")
+    
+        # -------------------------------------------------------------------------
+
+    # =========================================================================
+    # TAB 3: INFRASTRUCTURE & OPERATIONS
+    # =========================================================================
+
+    with tab_operations:
+
         # 🗺️ FRANCE MAP + 💰 CLIENT HEALTH (Side by Side)
         # -------------------------------------------------------------------------
     
@@ -1103,542 +1604,71 @@ def page_executive_dashboard():
                 st.info("Loading client data...")
     
         # -------------------------------------------------------------------------
-        # MONTHLY FINANCIAL PERFORMANCE - Revenue vs Costs
-        # -------------------------------------------------------------------------
-    
-        st.markdown("### 📈 Monthly Financial Performance")
-    
-        # Fetch monthly financial data
-        monthly_finance_df = run_query("""
-            SELECT 
-                PERIOD_DATE,
-                REVENUE_EUR / 1000000 as REVENUE_M,
-                OPEX_EUR / 1000000 as OPEX_M,
-                EBITDA_EUR / 1000000 as EBITDA_M,
-                EBITDAAL_MARGIN_PCT as MARGIN_PCT
-            FROM TDF_DATA_PLATFORM.FINANCE.EBITDA_METRICS 
-            WHERE FISCAL_YEAR = 2025
-            ORDER BY PERIOD_DATE
-        """)
-    
-        if not monthly_finance_df.empty:
-            fig = go.Figure()
-        
-            # Revenue line
-            fig.add_trace(go.Scatter(
-                x=monthly_finance_df['PERIOD_DATE'],
-                y=monthly_finance_df['REVENUE_M'],
-                mode='lines+markers',
-                name='Revenue',
-                line=dict(color='#1a2b4a', width=3),
-                marker=dict(size=10, color='#1a2b4a'),
-                hovertemplate='Revenue: €%{y:.1f}M<extra></extra>'
-            ))
-        
-            # OPEX line
-            fig.add_trace(go.Scatter(
-                x=monthly_finance_df['PERIOD_DATE'],
-                y=monthly_finance_df['OPEX_M'],
-                mode='lines+markers',
-                name='OPEX',
-                line=dict(color='#e63946', width=3),
-                marker=dict(size=10, color='#e63946'),
-                hovertemplate='OPEX: €%{y:.1f}M<extra></extra>'
-            ))
-        
-            # EBITDA line
-            fig.add_trace(go.Scatter(
-                x=monthly_finance_df['PERIOD_DATE'],
-                y=monthly_finance_df['EBITDA_M'],
-                mode='lines+markers',
-                name='EBITDA',
-                line=dict(color='#27ae60', width=2, dash='dot'),
-                marker=dict(size=8, color='#27ae60'),
-                hovertemplate='EBITDA: €%{y:.1f}M<extra></extra>'
-            ))
-        
-            fig.update_layout(
-                height=350,
-                margin=dict(l=20, r=20, t=30, b=40),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor='#f0f0f0',
-                    tickformat='%b %Y',
-                    title=None
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor='#f0f0f0',
-                    title=dict(text='EUR Millions', font=dict(size=12, color='#666')),
-                    tickprefix='€',
-                    ticksuffix='M'
-                ),
-                legend=dict(
-                    orientation='h',
-                    yanchor='bottom',
-                    y=1.02,
-                    xanchor='center',
-                    x=0.5,
-                    font=dict(size=12)
-                ),
-                hovermode='x unified'
-            )
-        
-            st.plotly_chart(fig, use_container_width=True)
-        
-            # Summary metrics below chart
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                avg_revenue = monthly_finance_df['REVENUE_M'].mean()
-                st.metric("Avg Monthly Revenue", f"€{avg_revenue:.1f}M")
-            with col2:
-                avg_opex = monthly_finance_df['OPEX_M'].mean()
-                st.metric("Avg Monthly OPEX", f"€{avg_opex:.1f}M")
-            with col3:
-                avg_ebitda = monthly_finance_df['EBITDA_M'].mean()
-                st.metric("Avg Monthly EBITDA", f"€{avg_ebitda:.1f}M")
-            with col4:
-                avg_margin = monthly_finance_df['MARGIN_PCT'].mean()
-                st.metric("Avg Margin", f"{avg_margin:.1f}%")
-        else:
-            st.info("Loading financial data...")
-    
-        # -------------------------------------------------------------------------
-        # FOUR VITAL SIGNS - Gauge Charts
-        # -------------------------------------------------------------------------
-    
-        # Fetch additional metrics
-        sites_df = run_query("""
-            SELECT 
-                COUNT(*) as TOTAL_SITES,
-                AVG(COLOCATION_RATE) as AVG_COLOCATION
-            FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
-            WHERE STATUS = 'ACTIVE'
-        """)
-    
-        renewable_df = run_query("""
-            SELECT AVG(RENEWABLE_PCT) as RENEWABLE_PCT 
-            FROM TDF_DATA_PLATFORM.ENERGY.RENEWABLE_ENERGY 
-            WHERE YEAR(YEAR_MONTH) = 2025
-        """)
-    
-        sla_df = run_query("""
-            SELECT 
-                COUNT(CASE WHEN SLA_MET = TRUE THEN 1 END) * 100.0 / COUNT(*) as SLA_PCT
-            FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
-            WHERE STATUS = 'COMPLETED'
-        """)
-    
-        colocation_rate = sites_df['AVG_COLOCATION'].iloc[0] * 100 if not sites_df.empty and sites_df['AVG_COLOCATION'].iloc[0] else 60
-        renewable_pct = renewable_df['RENEWABLE_PCT'].iloc[0] if not renewable_df.empty and renewable_df['RENEWABLE_PCT'].iloc[0] else 47
-        sla_pct = sla_df['SLA_PCT'].iloc[0] if not sla_df.empty and sla_df['SLA_PCT'].iloc[0] else 92
-    
-        st.markdown("### 📊 Vital Signs")
-    
-        col1, col2, col3, col4 = st.columns(4)
-    
-        # Revenue Growth Gauge
-        with col1:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=yoy_growth,
-                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
-                delta={'reference': 5, 'relative': False, 'position': 'bottom'},
-                gauge={
-                    'axis': {'range': [0, 15], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
-                    'bar': {'color': '#1a2b4a'},
-                    'bgcolor': 'white',
-                    'borderwidth': 0,
-                    'steps': [
-                        {'range': [0, 5], 'color': '#fee2e2'},
-                        {'range': [5, 10], 'color': '#fef3c7'},
-                        {'range': [10, 15], 'color': '#d1fae5'}
-                    ],
-                    'threshold': {
-                        'line': {'color': '#e63946', 'width': 3},
-                        'thickness': 0.8,
-                        'value': 8
-                    }
-                },
-                title={'text': 'Revenue Growth', 'font': {'size': 14, 'color': '#666'}}
-            ))
-            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-    
-        # EBITDA Margin Gauge
-        with col2:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=ebitda_margin,
-                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
-                gauge={
-                    'axis': {'range': [30, 60], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
-                    'bar': {'color': '#27ae60' if 42 <= ebitda_margin <= 53 else '#f39c12'},
-                    'bgcolor': 'white',
-                    'borderwidth': 0,
-                    'steps': [
-                        {'range': [30, 42], 'color': '#fee2e2'},
-                        {'range': [42, 53], 'color': '#d1fae5'},
-                        {'range': [53, 60], 'color': '#dbeafe'}
-                    ],
-                    'threshold': {
-                        'line': {'color': '#1a2b4a', 'width': 2},
-                        'thickness': 0.8,
-                        'value': 47.5
-                    }
-                },
-                title={'text': 'EBITDA Margin', 'font': {'size': 14, 'color': '#666'}}
-            ))
-            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-    
-        # Colocation Rate Gauge
-        with col3:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=colocation_rate,
-                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
-                gauge={
-                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
-                    'bar': {'color': '#1a2b4a'},
-                    'bgcolor': 'white',
-                    'borderwidth': 0,
-                    'steps': [
-                        {'range': [0, 40], 'color': '#fee2e2'},
-                        {'range': [40, 70], 'color': '#fef3c7'},
-                        {'range': [70, 100], 'color': '#d1fae5'}
-                    ]
-                },
-                title={'text': 'Colocation Rate', 'font': {'size': 14, 'color': '#666'}}
-            ))
-            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-    
-        # Renewable Energy Gauge
-        with col4:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=renewable_pct,
-                number={'suffix': '%', 'font': {'size': 36, 'color': '#1a2b4a'}},
-                gauge={
-                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': '#1a2b4a'},
-                    'bar': {'color': '#27ae60'},
-                    'bgcolor': 'white',
-                    'borderwidth': 0,
-                    'steps': [
-                        {'range': [0, 30], 'color': '#fee2e2'},
-                        {'range': [30, 50], 'color': '#fef3c7'},
-                        {'range': [50, 100], 'color': '#d1fae5'}
-                    ],
-                    'threshold': {
-                        'line': {'color': '#e63946', 'width': 3},
-                        'thickness': 0.8,
-                        'value': 50
-                    }
-                },
-                title={'text': 'Renewable Energy', 'font': {'size': 14, 'color': '#666'}}
-            ))
-            fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-    
-        # -------------------------------------------------------------------------
-        # REVENUE & CLIENT SECTION
-        # -------------------------------------------------------------------------
-    
-        col_left, col_right = st.columns([3, 2])
-    
-        with col_left:
-            st.markdown("### 📈 Revenue by Segment")
-        
-            # Fetch revenue by segment
-            revenue_df = run_query("""
-                SELECT 
-                    SEGMENT_LEVEL1,
-                    SUM(REVENUE_EUR) / 1000000 as REVENUE_M
-                FROM TDF_DATA_PLATFORM.FINANCE.REVENUE_BY_SEGMENT
-                WHERE FISCAL_YEAR = 2025
-                GROUP BY SEGMENT_LEVEL1
-                ORDER BY REVENUE_M DESC
-            """)
-        
-            if not revenue_df.empty:
-                # Create horizontal bar chart
-                fig = go.Figure()
-            
-                colors = ['#1a2b4a', '#2d3436', '#e63946', '#636e72']
-            
-                fig.add_trace(go.Bar(
-                    y=revenue_df['SEGMENT_LEVEL1'],
-                    x=revenue_df['REVENUE_M'],
-                    orientation='h',
-                    marker=dict(
-                        color=colors[:len(revenue_df)],
-                        line=dict(width=0)
-                    ),
-                    text=[f'€{x:.1f}M' for x in revenue_df['REVENUE_M']],
-                    textposition='inside',
-                    textfont=dict(color='white', size=14, family='Arial Black'),
-                    hovertemplate='%{y}: €%{x:.1f}M<extra></extra>'
-                ))
-            
-                fig.update_layout(
-                    height=300,
-                    margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(
-                        showgrid=True,
-                        gridcolor='#f0f0f0',
-                        title=dict(text='Revenue (EUR Millions)', font=dict(size=12, color='#666'))
-                    ),
-                    yaxis=dict(
-                        showgrid=False,
-                        categoryorder='total ascending'
-                    ),
-                    showlegend=False
-                )
-            
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Loading revenue data...")
-    
-        with col_right:
-            st.markdown("### 🎯 Client Portfolio")
-        
-            # Fetch client concentration
-            client_df = run_query("""
-                SELECT 
-                    o.OPERATOR_NAME,
-                    SUM(rc.REVENUE_EUR) / 1000000 as REVENUE_M,
-                    AVG(rc.REVENUE_SHARE_PCT) as SHARE_PCT
-                FROM TDF_DATA_PLATFORM.FINANCE.REVENUE_BY_CLIENT rc
-                JOIN TDF_DATA_PLATFORM.CORE.OPERATORS o ON rc.OPERATOR_ID = o.OPERATOR_ID
-                WHERE rc.FISCAL_YEAR = 2025
-                GROUP BY o.OPERATOR_NAME
-                ORDER BY REVENUE_M DESC
-            """)
-        
-            if not client_df.empty:
-                colors = ['#1a2b4a', '#e63946', '#2d3436', '#636e72']
-            
-                fig = go.Figure(data=[go.Pie(
-                    labels=client_df['OPERATOR_NAME'],
-                    values=client_df['REVENUE_M'],
-                    hole=0.6,
-                    marker=dict(colors=colors[:len(client_df)]),
-                    textinfo='percent',
-                    textfont=dict(size=14, color='white'),
-                    hovertemplate='%{label}<br>€%{value:.1f}M<br>%{percent}<extra></extra>'
-                )])
-            
-                fig.update_layout(
-                    height=300,
-                    margin=dict(l=20, r=20, t=20, b=20),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    showlegend=True,
-                    legend=dict(
-                        orientation='h',
-                        yanchor='bottom',
-                        y=-0.2,
-                        xanchor='center',
-                        x=0.5,
-                        font=dict(size=11)
-                    ),
-                    annotations=[dict(
-                        text='<b>4</b><br>Strategic<br>Clients',
-                        x=0.5, y=0.5,
-                        font=dict(size=14, color='#1a2b4a'),
-                        showarrow=False
-                    )]
-                )
-            
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Loading client data...")
-    
-        # -------------------------------------------------------------------------
-        # THREE STRATEGIC PILLARS
-        # -------------------------------------------------------------------------
-    
-        st.markdown("### 🏛️ Strategic Pillars")
-    
-        col1, col2, col3 = st.columns(3)
-    
-        # Infrastructure Pillar
-        with col1:
-            infra_df = run_query("""
-                SELECT 
-                    COUNT(*) as SITES,
-                    SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS
-                FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES 
-                WHERE STATUS = 'ACTIVE'
-            """)
-        
-            pos_df = run_query("""
-                SELECT COUNT(*) as POS_COUNT 
-                FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.POINTS_OF_SERVICE 
-                WHERE STATUS = 'ACTIVE'
-            """)
-        
-            sites_count = infra_df['SITES'].iloc[0] if not infra_df.empty else 8785
-            towers_count = infra_df['TOWERS'].iloc[0] if not infra_df.empty else 7877
-            pos_count = pos_df['POS_COUNT'].iloc[0] if not pos_df.empty else 21244
-        
-            st.markdown(f"""
-                <div class="pillar-card infrastructure">
-                    <div class="pillar-title">🏗️ Infrastructure</div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Active Sites</span>
-                        <span class="pillar-metric-value">{sites_count:,}</span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Towers</span>
-                        <span class="pillar-metric-value">{towers_count:,}</span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Points of Service</span>
-                        <span class="pillar-metric-value">{pos_count:,}</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-        # Operations Pillar
-        with col2:
-            ops_df = run_query("""
-                SELECT 
-                    COUNT(*) as OPEN_WO,
-                    AVG(FAILURE_RISK_SCORE) as AVG_RISK
-                FROM TDF_DATA_PLATFORM.OPERATIONS.EQUIPMENT_STATUS
-            """)
-        
-            wo_df = run_query("""
-                SELECT COUNT(*) as OPEN_WO
-                FROM TDF_DATA_PLATFORM.OPERATIONS.WORK_ORDERS 
-                WHERE STATUS = 'OPEN'
-            """)
-        
-            open_wo = wo_df['OPEN_WO'].iloc[0] if not wo_df.empty else 50
-            avg_risk = ops_df['AVG_RISK'].iloc[0] if not ops_df.empty else 42
-        
-            risk_status = 'green' if avg_risk < 40 else 'amber' if avg_risk < 60 else 'red'
-        
-            st.markdown(f"""
-                <div class="pillar-card operations">
-                    <div class="pillar-title">⚡ Operations</div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">SLA Performance</span>
-                        <span class="pillar-metric-value">{sla_pct:.0f}%</span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Open Work Orders</span>
-                        <span class="pillar-metric-value">{open_wo}</span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Avg Risk Score</span>
-                        <span class="pillar-metric-value">
-                            <span class="status-badge {risk_status}">{avg_risk:.0f}</span>
-                        </span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-        # ESG Pillar
-        with col3:
-            esg_detail = run_query("""
-                SELECT 
-                    CARBON_EMISSIONS_TONNES,
-                    RENEWABLE_ENERGY_PCT,
-                    EQUALITY_INDEX_SCORE,
-                    CARBON_VARIANCE_PCT
-                FROM TDF_DATA_PLATFORM.ESG.BOARD_SCORECARD 
-                ORDER BY REPORTING_DATE DESC LIMIT 1
-            """)
-        
-            carbon = esg_detail['CARBON_EMISSIONS_TONNES'].iloc[0] if not esg_detail.empty else 48000
-            equality = esg_detail['EQUALITY_INDEX_SCORE'].iloc[0] if not esg_detail.empty else 88
-            carbon_var = esg_detail['CARBON_VARIANCE_PCT'].iloc[0] if not esg_detail.empty else -5
-        
-            carbon_status = 'green' if carbon_var <= 0 else 'amber' if carbon_var < 10 else 'red'
-            equality_status = 'green' if equality >= 85 else 'amber' if equality >= 75 else 'red'
-        
-            st.markdown(f"""
-                <div class="pillar-card esg">
-                    <div class="pillar-title">🌱 ESG</div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Renewable Energy</span>
-                        <span class="pillar-metric-value">{renewable_pct:.0f}%</span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Carbon vs Target</span>
-                        <span class="pillar-metric-value">
-                            <span class="status-badge {carbon_status}">{carbon_var:+.0f}%</span>
-                        </span>
-                    </div>
-                    <div class="pillar-metric">
-                        <span class="pillar-metric-label">Equality Index</span>
-                        <span class="pillar-metric-value">
-                            <span class="status-badge {equality_status}">{equality:.0f}/100</span>
-                        </span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-        # -------------------------------------------------------------------------
-    
-    # =========================================================================
-    # TAB 2: FINANCIAL PERFORMANCE
-    # =========================================================================
-    
-    with tab_financial:
-        st.markdown("### 💰 Financial Performance")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Annual Revenue", f"€{revenue:.1f}M", f"+{yoy_growth:.1f}% YoY")
-        with col2:
-            st.metric("EBITDAaL Margin", f"{ebitda_margin:.1f}%", "Target: 42-53%")
-        with col3:
-            st.metric("Credit Rating", "BBB-", "Fitch • Stable")
-    
-    # =========================================================================
-    # TAB 3: INFRASTRUCTURE & OPERATIONS
-    # =========================================================================
-    
-    with tab_operations:
-        st.markdown("### 🏗️ Infrastructure & Operations")
-        infra_df = run_query("""
-            SELECT COUNT(*) as SITES, SUM(CASE WHEN SITE_TYPE = 'TOWER' THEN 1 ELSE 0 END) as TOWERS,
-            AVG(COLOCATION_RATE) * 100 as COLOC FROM TDF_DATA_PLATFORM.INFRASTRUCTURE.SITES WHERE STATUS = 'ACTIVE'
-        """)
-        if not infra_df.empty:
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Sites", f"{int(infra_df['SITES'].iloc[0]):,}")
-            with col2:
-                st.metric("Towers", f"{int(infra_df['TOWERS'].iloc[0]):,}")
-            with col3:
-                st.metric("Avg Colocation", f"{infra_df['COLOC'].iloc[0]:.0f}%")
-    
+
     # =========================================================================
     # TAB 4: CLIENT PORTFOLIO
     # =========================================================================
-    
+
     with tab_clients:
-        st.markdown("### 🤝 Client Portfolio")
-        client_df = run_query("""
-            SELECT COUNT(*) as CLIENTS, SUM(ANNUAL_REVENUE_EUR)/1000000 as REV
-            FROM TDF_DATA_PLATFORM.CORE.OPERATORS WHERE ANNUAL_REVENUE_EUR > 0
+        st.markdown("### 🤝 Client Portfolio & Health")
+
+        # Client Health data
+        client_health_df = run_query("""
+            SELECT 
+                o.OPERATOR_NAME,
+                o.OPERATOR_CODE,
+                o.ANNUAL_REVENUE_EUR / 1000000 as REVENUE_M,
+                o.CONTRACT_END_DATE,
+                o.CREDIT_RATING,
+                DATEDIFF(DAY, CURRENT_DATE(), o.CONTRACT_END_DATE) as DAYS_TO_EXPIRY
+            FROM TDF_DATA_PLATFORM.CORE.OPERATORS o
+            WHERE o.ANNUAL_REVENUE_EUR > 0
+            ORDER BY o.ANNUAL_REVENUE_EUR DESC
+            LIMIT 6
         """)
-        if not client_df.empty:
+
+        if not client_health_df.empty:
+            for _, client in client_health_df.iterrows():
+                days_to_expiry = client['DAYS_TO_EXPIRY'] if client['DAYS_TO_EXPIRY'] else 9999
+                if days_to_expiry < 365:
+                    status_text = f'Expires {days_to_expiry}d'
+                    status_color = '#e63946'
+                elif days_to_expiry < 730:
+                    status_text = f'Renewal in {days_to_expiry//30}mo'
+                    status_color = '#f39c12'
+                else:
+                    status_text = 'Secured'
+                    status_color = '#27ae60'
+
+                initials = ''.join([w[0] for w in client['OPERATOR_NAME'].split()[:2]]).upper()
+                st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="background: #1a2b4a; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 1rem;">{initials}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1a2b4a;">{client['OPERATOR_NAME']}</div>
+                            <div style="color: #666; font-size: 0.8rem;">Rating: {client['CREDIT_RATING']}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: bold; color: #1a2b4a;">€{client['REVENUE_M']:.0f}M</div>
+                            <div style="background: {status_color}; color: white; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem;">{status_text}</div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Summary metrics
+            at_risk = client_health_df[client_health_df['DAYS_TO_EXPIRY'] < 730]['REVENUE_M'].sum()
+            secured = client_health_df[client_health_df['DAYS_TO_EXPIRY'] >= 730]['REVENUE_M'].sum()
+            st.markdown("---")
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Strategic Clients", f"{int(client_df['CLIENTS'].iloc[0])}")
+                st.metric("Revenue Secured", f"€{secured:.0f}M", "Contracted 2+ yrs")
             with col2:
-                st.metric("Total Client Revenue", f"€{client_df['REV'].iloc[0]:.0f}M")
-    # FOOTER - Last Updated
+                st.metric("Revenue to Renew", f"€{at_risk:.0f}M", "Within 24 months", delta_color="inverse")
+
     # -------------------------------------------------------------------------
-    
+    # FOOTER
+    # -------------------------------------------------------------------------
+
     st.markdown("---")
     st.markdown("""
         <div style="text-align: center; color: #888; font-size: 0.8rem;">
@@ -1646,7 +1676,6 @@ def page_executive_dashboard():
         </div>
     """, unsafe_allow_html=True)
 
-# ==============================================================================
 # PAGE: RESOURCE & CAPACITY PLANNING
 # ==============================================================================
 
