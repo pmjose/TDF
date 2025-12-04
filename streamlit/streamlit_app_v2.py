@@ -1553,10 +1553,11 @@ def page_executive_dashboard():
         
             if not client_infra_df.empty:
                 for _, client in client_infra_df.iterrows():
-                    sites = int(client['SITES_COUNT']) if client['SITES_COUNT'] else 0
-                    sla = client['SLA_PCT'] if client['SLA_PCT'] else 99.5
-                    tickets = int(client['CRITICAL_TICKETS']) if client['CRITICAL_TICKETS'] else 0
-                    equipment = int(client['EQUIPMENT_COUNT']) if client['EQUIPMENT_COUNT'] else 0
+                    import pandas as pd
+                    sites = int(client['SITES_COUNT']) if pd.notna(client['SITES_COUNT']) else 0
+                    sla = float(client['SLA_PCT']) if pd.notna(client['SLA_PCT']) else 99.5
+                    tickets = int(client['CRITICAL_TICKETS']) if pd.notna(client['CRITICAL_TICKETS']) else 0
+                    equipment = int(client['EQUIPMENT_COUNT']) if pd.notna(client['EQUIPMENT_COUNT']) else 0
                     
                     # Status based on SLA and tickets
                     if sla >= 99 and tickets == 0:
